@@ -1,0 +1,59 @@
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
+import { Container, Typography, Box, Button, Card, CardContent, Grid } from '@mui/material';
+
+const Dashboard = () => {
+  const { user, logout } = useContext(AuthContext);
+
+  return (
+    <Container maxWidth="lg">
+      <Box sx={{ mt: 4, mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h4">Dashboard</Typography>
+        <Button variant="outlined" color="secondary" onClick={logout}>
+          Logout
+        </Button>
+      </Box>
+
+      {user && (
+        <Card sx={{ mb: 4 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>User Information</Typography>
+            <Typography><strong>Username:</strong> {user.username}</Typography>
+            <Typography><strong>Email:</strong> {user.email}</Typography>
+            <Typography><strong>Full Name:</strong> {user.full_name || 'N/A'}</Typography>
+            <Typography><strong>Role:</strong> {user.role}</Typography>
+          </CardContent>
+        </Card>
+      )}
+
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">My Exams</Typography>
+              <Typography variant="body2" color="text.secondary">Placeholder for future features.</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">Recent Results</Typography>
+              <Typography variant="body2" color="text.secondary">Placeholder for future features.</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">Proctoring Status</Typography>
+              <Typography variant="body2" color="text.secondary">Placeholder for future features.</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Container>
+  );
+};
+
+export default Dashboard;
