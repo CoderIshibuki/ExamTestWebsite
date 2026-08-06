@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from fastapi.security import OAuth2PasswordRequestForm
 import os
+from contextlib import asynccontextmanager
 
 from database import engine, Base, get_db
 import models
@@ -10,12 +11,13 @@ import schemas
 import auth
 from jose import JWTError, jwt
 
-app = FastAPI(title="Auth Service API")
-
-@app.on_event("startup")
-async def startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
+    yield
+
+app = FastAPI(title="Auth Service API", lifespan=lifespan)
 
 @app.get("/health")
 def health_check():
