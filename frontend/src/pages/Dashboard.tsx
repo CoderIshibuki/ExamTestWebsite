@@ -1,9 +1,11 @@
 import { useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Container, Typography, Box, Button, Card, CardContent, Grid } from '@mui/material';
 
 const Dashboard = () => {
   const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   return (
     <Container maxWidth="lg">
@@ -47,7 +49,12 @@ const Dashboard = () => {
           <Card>
             <CardContent>
               <Typography variant="h6">Proctoring Status</Typography>
-              <Typography variant="body2" color="text.secondary">Placeholder for future features.</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Test tính năng giám sát bằng camera.
+              </Typography>
+              <Button variant="contained" size="small" onClick={() => navigate('/camera-test')}>
+                Mở Camera Test
+              </Button>
             </CardContent>
           </Card>
         </Grid>
