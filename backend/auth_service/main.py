@@ -88,3 +88,33 @@ async def get_current_user(token: str = Depends(auth.oauth2_scheme), db: AsyncSe
 async def read_users_me(current_user: models.User = Depends(get_current_user)):
     return current_user
 
+from pydantic import BaseModel
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+@app.post("/refresh", response_model=schemas.Token)
+async def refresh_token(request: RefreshTokenRequest, db: AsyncSession = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(request.refresh_token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+        
+    query = select(models.User).where(models.User.username == username)
+    result = await db.execute(query)
+    user = result.scalars().first()
+    if user is None:
+        raise credentials_exception
+        
+    access_token = auth.create_access_token(data={"sub": user.username})
+    new_refresh_token = auth.create_refresh_token(data={"sub": user.username})
+    
+    return {"access_token": access_token, "refresh_token": new_refresh_token, "token_type": "bearer"}
+
