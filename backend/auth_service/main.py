@@ -17,7 +17,28 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(models.Base.metadata.create_all)
     yield
 
+from fastapi.middleware.cors import CORSMiddleware
+import json
+
 app = FastAPI(title="Auth Service API", lifespan=lifespan)
+
+origins_str = os.getenv("CORS_ORIGINS", '["http://localhost:3000", "http://localhost:5173"]')
+try:
+    origins = json.loads(origins_str)
+except Exception:
+    origins = ["*"]
+    
+# Always add localhost:5173 for Vite dev server if not present
+if "http://localhost:5173" not in origins and "*" not in origins:
+    origins.append("http://localhost:5173")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/health")
 def health_check():

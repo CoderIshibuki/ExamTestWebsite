@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create an Axios instance
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost/api/auth', // Proxy through API Gateway (Nginx)
+  baseURL: `${import.meta.env.VITE_API_URL}/auth`, // Proxy through API Gateway (Nginx)
 });
 
 // Request interceptor to add the auth token to headers
