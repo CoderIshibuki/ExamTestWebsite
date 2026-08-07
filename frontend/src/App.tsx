@@ -5,12 +5,15 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import CameraTest from './components/CameraTest';
 
+import Register from './pages/Register';
+
 function App() {
   return (
     <AuthProvider>
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={
             <PrivateRoute>
               <Dashboard />
