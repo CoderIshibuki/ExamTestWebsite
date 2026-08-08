@@ -140,6 +140,19 @@ async def get_exam_attempt(db: AsyncSession, attempt_id: str) -> Optional[models
     return result.scalars().first()
 
 async def upsert_exam_attempt_answer(db: AsyncSession, attempt_id: str, question_id: str, selected_answer: str) -> models.ExamAttemptAnswer:
+    # First verify attempt is still valid atomically
+    now = datetime.now(timezone.utc)
+    attempt_check = await db.execute(
+        select(models.ExamAttempt)
+        .where(
+            models.ExamAttempt.id == UUID(attempt_id),
+            models.ExamAttempt.status == "in_progress",
+            models.ExamAttempt.expires_at >= now
+        )
+    )
+    if not attempt_check.scalars().first():
+        raise Exception("Attempt is already submitted or expired")
+
     result = await db.execute(
         select(models.ExamAttemptAnswer)
         .filter(models.ExamAttemptAnswer.attempt_id == UUID(attempt_id))
