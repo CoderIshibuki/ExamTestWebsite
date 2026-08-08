@@ -81,7 +81,7 @@ const Login = () => {
                 Sign In
               </Button>
             </form>
-            <Box textAlign="center" mt={2}>
+            <Box sx={{ textAlign: "center", mt: 2 }}>
               <Typography variant="body2">
                 Don't have an account?{' '}
                 <Link component={RouterLink} to="/register">

@@ -97,7 +97,7 @@ const Register = () => {
                 Sign Up
               </Button>
             </form>
-            <Box textAlign="center" mt={2}>
+            <Box sx={{ textAlign: "center", mt: 2 }}>
               <Typography variant="body2">
                 Already have an account?{' '}
                 <Link component={RouterLink} to="/login">

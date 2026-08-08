@@ -1,6 +1,4 @@
-import axiosInstance from './axios';
-
-const BASE_URL = `${import.meta.env.VITE_API_URL}/v1/exams`;
+import apiClient from './apiClient';
 
 export interface Exam {
   id: string;
@@ -8,21 +6,37 @@ export interface Exam {
   description: string;
   duration_minutes: number;
   max_attempts: number;
+  status?: string;
+  created_at?: string;
+}
+
+export async function getPublishedExams(): Promise<Exam[]> {
+  const response = await apiClient.get('/v1/exams/', {
+    params: { status: 'published' }
+  });
+  return response.data;
+}
+
+export async function getExamById(examId: string): Promise<Exam> {
+  const response = await apiClient.get(`/v1/exams/${examId}`);
+  return response.data;
+}
+
+export async function getExamQuestions(examId: string): Promise<ExamQuestion[]> {
+  const response = await apiClient.get(`/v1/exams/${examId}/questions`);
+  return response.data;
+}
+
+export interface ExamQuestion {
+  id: string;
+  question_id: string;
+  content?: string;
+  options?: string[];
+  type?: string;
 }
 
 export const examApi = {
-  getPublishedExams: async (): Promise<Exam[]> => {
-    const response = await axiosInstance.get(`${BASE_URL}/`, {
-      params: { status: 'published' }
-    });
-    return response.data;
-  },
-  getExamById: async (examId: string): Promise<Exam> => {
-    const response = await axiosInstance.get(`${BASE_URL}/${examId}`);
-    return response.data;
-  },
-  getExamQuestions: async (examId: string): Promise<any[]> => {
-    const response = await axiosInstance.get(`${BASE_URL}/${examId}/questions`);
-    return response.data;
-  }
+  getPublishedExams,
+  getExamById,
+  getExamQuestions,
 };

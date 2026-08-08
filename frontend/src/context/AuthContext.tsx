@@ -1,4 +1,5 @@
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import axiosInstance from '../api/axios';
 
 interface User {

@@ -1,21 +1,30 @@
 import { useState, useEffect, useCallback } from 'react';
 import { proctoringApi } from '../api/proctoringApi';
 
-export const useProctoring = (examId: string, userId: string) => {
-  const [isActive, setIsActive] = useState(true);
+export const useProctoring = (examId: string) => {
+  const [isActive] = useState(true);
   const [violationCount, setViolationCount] = useState(0);
   const [lastViolationType, setLastViolationType] = useState<string | null>(null);
 
-  const handleViolation = useCallback((type: string) => {
-    setViolationCount((prev) => prev + 1);
-    setLastViolationType(type);
-    proctoringApi.sendViolationEvent({
-      examId,
-      userId,
-      violationType: type,
-      timestamp: new Date().toISOString()
-    }).catch(console.error);
-  }, [examId, userId]);
+  const handleViolation = useCallback(
+    (type: string) => {
+      setViolationCount((prev) => prev + 1);
+      setLastViolationType(type);
+      proctoringApi
+        .sendViolationEvent({
+          exam_id: examId,
+          type,
+          severity: 'medium',
+          details: {
+            source: 'browser',
+            eventType: type,
+          },
+          screenshot_url: null,
+        })
+        .catch(console.error);
+    },
+    [examId],
+  );
 
   useEffect(() => {
     const handleVisibilityChange = () => {

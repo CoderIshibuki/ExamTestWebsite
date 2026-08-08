@@ -16,7 +16,7 @@ const Timer: React.FC<TimerProps> = ({ timeLeft, isWarning, formattedTime }) => 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', color, gap: 1 }}>
       <AccessTimeIcon sx={{ animation: isWarning ? 'pulse 1s infinite' : 'none' }} />
-      <Typography variant="h6" fontWeight="bold">
+      <Typography variant="h6" sx={{ fontWeight: "bold" }}>
         {formattedTime}
       </Typography>
       <style>

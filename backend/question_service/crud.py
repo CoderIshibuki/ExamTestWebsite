@@ -24,6 +24,18 @@ async def create_question(question_data: dict):
     new_doc = await db_instance.db.questions.find_one({"_id": result.inserted_id})
     return serialize_doc(new_doc)
 
+async def create_questions_bulk(questions_data: list[dict]):
+    for q in questions_data:
+        if "category_id" in q and q["category_id"]:
+            q["category_id"] = ObjectId(q["category_id"])
+        q["created_at"] = datetime.utcnow()
+        q["updated_at"] = datetime.utcnow()
+    
+    result = await db_instance.db.questions.insert_many(questions_data)
+    
+    # Return count of inserted
+    return len(result.inserted_ids)
+
 async def get_questions(skip: int = 0, limit: int = 10, filters: dict = None):
     query = {}
     if filters:

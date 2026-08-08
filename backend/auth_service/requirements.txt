@@ -14,3 +14,4 @@ pytest-asyncio
 httpx
 aiosqlite
 python-multipart
+slowapi

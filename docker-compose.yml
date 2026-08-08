@@ -69,6 +69,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - ./backend/auth_service:/app
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
@@ -88,6 +90,8 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+    volumes:
+      - ./backend/question_service:/app
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
@@ -226,8 +230,10 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
       auth_service:
         condition: service_healthy

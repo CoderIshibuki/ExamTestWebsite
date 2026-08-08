@@ -1,6 +1,14 @@
 import React from 'react';
-import { Paper, Typography, Radio, RadioGroup, FormControlLabel, FormControl, Box } from '@mui/material';
-import { Question } from '../context/ExamContext';
+import {
+  Paper,
+  Typography,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormControl,
+  Box,
+} from '@mui/material';
+import type { Question } from '../context/ExamContext';
 
 interface QuestionPanelProps {
   question: Question;
@@ -10,20 +18,23 @@ interface QuestionPanelProps {
   totalQuestions: number;
 }
 
-const QuestionPanel: React.FC<QuestionPanelProps> = ({ question, selectedAnswer, onSelectAnswer, questionIndex, totalQuestions }) => {
+const QuestionPanel: React.FC<QuestionPanelProps> = ({
+  question,
+  selectedAnswer,
+  onSelectAnswer,
+  questionIndex,
+
+}) => {
   return (
     <Paper elevation={2} sx={{ p: 4, borderRadius: 2 }}>
-      <Typography variant="h6" gutterBottom fontWeight="bold">
+      <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
         Câu {questionIndex + 1}:
       </Typography>
-      <Typography variant="body1" paragraph sx={{ fontSize: '1.1rem', mb: 4 }}>
+      <Typography variant="body1" sx={{ fontSize: '1.1rem', mb: 4 }}>
         {question.content}
       </Typography>
       <FormControl component="fieldset" fullWidth>
-        <RadioGroup
-          value={selectedAnswer}
-          onChange={(e) => onSelectAnswer(e.target.value)}
-        >
+        <RadioGroup value={selectedAnswer} onChange={(e) => onSelectAnswer(e.target.value)}>
           {question.options.map((option) => (
             <Box
               key={option.id}
@@ -35,7 +46,7 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({ question, selectedAnswer,
                 borderRadius: 1,
                 bgcolor: selectedAnswer === option.id ? 'primary.light' : 'transparent',
                 transition: '0.2s',
-                '&:hover': { bgcolor: 'action.hover' }
+                '&:hover': { bgcolor: 'action.hover' },
               }}
             >
               <FormControlLabel

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text
 from sqlalchemy.sql import func
 from database import Base
 
@@ -14,3 +14,17 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=True)
+    action = Column(String(50), nullable=False)
+    resource_type = Column(String(50), nullable=True)
+    resource_id = Column(String(50), nullable=True)
+    old_data = Column(Text, nullable=True)
+    new_data = Column(Text, nullable=True)
+    ip_address = Column(String(50), nullable=True)
+    user_agent = Column(String(255), nullable=True)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())

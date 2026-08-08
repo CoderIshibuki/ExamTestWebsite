@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from pydantic import BaseModel
 import socketio
 from services.redis_client import redis_client
 from services.pubsub_manager import pubsub_manager
@@ -33,3 +34,23 @@ async def shutdown_event():
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
+
+class ProctorAlert(BaseModel):
+    exam_id: str
+    user_id: str
+    severity: str
+    message: str
+    violation_id: str
+
+@app.post("/api/v1/realtime/alert")
+async def broadcast_alert(alert: ProctorAlert):
+    payload = alert.dict()
+    await sio.emit("proctor:alert", payload, room=f"proctor:{alert.exam_id}")
+    return {"status": "alert_broadcasted"}
+
+@app.get("/api/v1/realtime/exams/{exam_id}/students")
+async def get_exam_students(exam_id: str):
+    client = await redis_client.get_client()
+    clients_set = await client.smembers(f"exam:room:{exam_id}:clients")
+    user_ids = [c.decode('utf-8') for c in clients_set]
+    return {"exam_id": exam_id, "online_students": user_ids}

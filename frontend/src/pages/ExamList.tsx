@@ -1,6 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Card, CardContent, Typography, Button, Grid, Skeleton, AppBar, Toolbar } from '@mui/material';
-import { examApi, Exam } from '../api/examApi';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Grid,
+  Skeleton,
+  AppBar,
+  Toolbar,
+} from '@mui/material';
+import { examApi } from '../api/examApi';
+import type { Exam } from '../api/examApi';
 import { useNavigate } from 'react-router-dom';
 
 const ExamList: React.FC = () => {
@@ -29,20 +40,25 @@ const ExamList: React.FC = () => {
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             Hệ thống thi trắc nghiệm
           </Typography>
-          <Button color="inherit" onClick={() => {
-            localStorage.removeItem('access_token');
-            navigate('/login');
-          }}>Đăng xuất</Button>
+          <Button
+            color="inherit"
+            onClick={() => {
+              localStorage.removeItem('access_token');
+              navigate('/login');
+            }}
+          >
+            Đăng xuất
+          </Button>
         </Toolbar>
       </AppBar>
       <Box sx={{ p: 4, maxWidth: 1200, mx: 'auto' }}>
-        <Typography variant="h4" gutterBottom fontWeight="bold">
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: "bold" }}>
           Các bài thi hiện có
         </Typography>
         {loading ? (
           <Grid container spacing={3}>
             {[1, 2, 3].map((n) => (
-              <Grid item xs={12} md={4} key={n}>
+              <Grid size={{ xs: 12, md: 4 }} key={n}>
                 <Skeleton variant="rectangular" height={200} />
               </Grid>
             ))}
@@ -52,24 +68,36 @@ const ExamList: React.FC = () => {
         ) : (
           <Grid container spacing={3}>
             {exams.map((exam) => (
-              <Grid item xs={12} md={4} key={exam.id}>
-                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', transition: '0.3s', '&:hover': { transform: 'translateY(-5px)', boxShadow: 6 } }}>
+              <Grid size={{ xs: 12, md: 4 }} key={exam.id}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: '0.3s',
+                    '&:hover': { transform: 'translateY(-5px)', boxShadow: 6 },
+                  }}
+                >
                   <CardContent sx={{ flexGrow: 1 }}>
                     <Typography variant="h5" component="div" gutterBottom color="primary">
                       {exam.title}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" paragraph>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                       {exam.description}
                     </Typography>
-                    <Typography variant="body2" fontWeight="medium">
+                    <Typography variant="body2" sx={{ fontWeight: "medium" }}>
                       Thời gian: {exam.duration_minutes} phút
                     </Typography>
-                    <Typography variant="body2" fontWeight="medium">
+                    <Typography variant="body2" sx={{ fontWeight: "medium" }}>
                       Số lần làm tối đa: {exam.max_attempts}
                     </Typography>
                   </CardContent>
                   <Box sx={{ p: 2, pt: 0 }}>
-                    <Button variant="contained" fullWidth onClick={() => navigate(`/exam/${exam.id}`)}>
+                    <Button
+                      variant="contained"
+                      fullWidth
+                      onClick={() => navigate(`/exam/${exam.id}`)}
+                    >
                       Tham gia thi
                     </Button>
                   </Box>

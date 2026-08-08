@@ -1,9 +1,13 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from fastapi.security import OAuth2PasswordRequestForm
 import os
 from contextlib import asynccontextmanager
+
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from database import engine, Base, get_db
 import models
@@ -20,7 +24,13 @@ async def lifespan(app: FastAPI):
 from fastapi.middleware.cors import CORSMiddleware
 import json
 
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Auth Service API", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+from middleware.audit import AuditLogMiddleware
+app.add_middleware(AuditLogMiddleware)
 
 origins_str = os.getenv("CORS_ORIGINS", '["http://localhost:3000", "http://localhost:5173"]')
 try:
@@ -45,7 +55,8 @@ def health_check():
     return {"status": "ok"}
 
 @app.post("/register", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)
-async def register(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def register(request: Request, user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
     query = select(models.User).where((models.User.username == user.username) | (models.User.email == user.email))
     result = await db.execute(query)
     existing_user = result.scalars().first()
@@ -67,7 +78,8 @@ async def register(user: schemas.UserCreate, db: AsyncSession = Depends(get_db))
     return db_user
 
 @app.post("/login", response_model=schemas.Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     query = select(models.User).where(models.User.username == form_data.username)
     result = await db.execute(query)
     user = result.scalars().first()
@@ -114,14 +126,15 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
 @app.post("/refresh", response_model=schemas.Token)
-async def refresh_token(request: RefreshTokenRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("10/minute")
+async def refresh_token(request: Request, body: RefreshTokenRequest, db: AsyncSession = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(request.refresh_token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
+        payload = jwt.decode(body.refresh_token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
             raise credentials_exception
@@ -139,3 +152,55 @@ async def refresh_token(request: RefreshTokenRequest, db: AsyncSession = Depends
     
     return {"access_token": access_token, "refresh_token": new_refresh_token, "token_type": "bearer"}
 
+@app.get("/api/v1/auth/users", response_model=list[schemas.UserResponse])
+async def list_users(
+    skip: int = 0, limit: int = 100, role: str = None, 
+    current_user: models.User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+    query = select(models.User)
+    if role:
+        query = query.where(models.User.role == role)
+    query = query.offset(skip).limit(limit)
+    result = await db.execute(query)
+    return result.scalars().all()
+
+@app.put("/api/v1/auth/users/{user_id}", response_model=schemas.UserResponse)
+async def update_user(
+    user_id: int, user_update: schemas.UserUpdate, 
+    current_user: models.User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+    query = select(models.User).where(models.User.id == user_id)
+    result = await db.execute(query)
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user_update.role is not None:
+        user.role = user_update.role
+    if user_update.is_active is not None:
+        user.is_active = user_update.is_active
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+@app.delete("/api/v1/auth/users/{user_id}")
+async def delete_user(
+    user_id: int, 
+    current_user: models.User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+    query = select(models.User).where(models.User.id == user_id)
+    result = await db.execute(query)
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Soft delete
+    user.is_active = False
+    await db.commit()
+    return {"detail": "User soft deleted"}

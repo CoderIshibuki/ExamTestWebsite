@@ -10,7 +10,7 @@ export const useTimer = (durationMinutes: number, onExpire: () => void) => {
   }, [durationMinutes]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (isRunning && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft((prev) => {

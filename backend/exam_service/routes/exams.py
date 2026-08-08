@@ -4,12 +4,21 @@ from typing import List
 import crud, schemas
 from database import get_db
 from dependencies import get_current_user, require_teacher_or_admin
+import os
+from services.cache import CacheService
+
+redis_url = os.getenv("REDIS_URL", "redis://redis_cache:6379")
+cache = CacheService(redis_url)
 
 router = APIRouter(prefix="/api/v1/exams", tags=["Exams"])
 
 @router.get("/", response_model=List[schemas.ExamResponse])
 async def list_exams(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
-    exams = await crud.get_exams(db, skip=skip, limit=limit)
+    async def fetch_data():
+        return await crud.get_exams(db, skip=skip, limit=limit)
+    
+    key = f"exams:list:{skip}:{limit}"
+    exams = await cache.get_or_set(key, fetch_data, ttl=300)
     return exams
 
 @router.post("/", response_model=schemas.ExamResponse, status_code=status.HTTP_201_CREATED)
@@ -19,6 +28,22 @@ async def create_exam(
     current_user: dict = Depends(require_teacher_or_admin)
 ):
     return await crud.create_exam(db, exam, current_user["id"])
+
+@router.get("/stats/overview")
+async def get_exam_stats_overview(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_teacher_or_admin)
+):
+    total_exams = await crud.count_exams(db)
+    # Mocking other stats for now, in a real system we'd query other microservices
+    # or an aggregated database
+    return {
+        "total_exams": total_exams,
+        "total_questions": 150,  # mock
+        "total_users": 1200,     # mock
+        "total_results": 450     # mock
+    }
+
 
 @router.get("/{exam_id}", response_model=schemas.ExamResponse)
 async def get_exam(exam_id: str, db: AsyncSession = Depends(get_db)):

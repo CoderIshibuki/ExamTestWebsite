@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes import grading, statistics
+from routes import grading, statistics, results
 from contextlib import asynccontextmanager
 from database import engine
 import models
@@ -23,6 +23,7 @@ app.add_middleware(
 
 app.include_router(grading.router)
 app.include_router(statistics.router)
+app.include_router(results.router)
 
 @app.get("/health")
 async def health_check():

@@ -1,6 +1,4 @@
-import axiosInstance from './axios';
-
-const BASE_URL = `${import.meta.env.VITE_API_URL}/v1/grading`;
+import apiClient from './apiClient';
 
 export interface QuestionResult {
   question_id: string;
@@ -19,7 +17,7 @@ export interface ExamResult {
 
 export const gradingApi = {
   getExamResult: async (examId: string, userId: string): Promise<ExamResult> => {
-    const response = await axiosInstance.get(`${BASE_URL}/result/${examId}/${userId}`);
+    const response = await apiClient.get(`/v1/grading/result/${examId}/${userId}`);
     return response.data;
   }
 };

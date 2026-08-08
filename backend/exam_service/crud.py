@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.sql import func
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 import models, schemas
@@ -16,6 +17,10 @@ async def create_exam(db: AsyncSession, exam: schemas.ExamCreate, user_id: str) 
 async def get_exams(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[models.Exam]:
     result = await db.execute(select(models.Exam).offset(skip).limit(limit))
     return result.scalars().all()
+
+async def count_exams(db: AsyncSession) -> int:
+    result = await db.execute(select(func.count(models.Exam.id)))
+    return result.scalar_one()
 
 async def get_exam_by_id(db: AsyncSession, exam_id: str) -> Optional[models.Exam]:
     result = await db.execute(

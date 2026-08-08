@@ -6,8 +6,17 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import ExamList from './pages/ExamList';
 import ExamRoom from './pages/ExamRoom';
+import { ExamProvider } from './context/ExamContext';
 import ResultSummary from './pages/ResultSummary';
 import CameraTest from './components/CameraTest';
+import RoleRoute from './components/RoleRoute';
+import ProctorDashboard from './pages/ProctorDashboard';
+import AdminRoute from './components/AdminRoute';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminUsers from './pages/AdminUsers';
+import AdminQuestions from './pages/AdminQuestions';
+import AdminExams from './pages/AdminExams';
+import AdminReports from './pages/AdminReports';
 
 function App() {
   return (
@@ -28,7 +37,9 @@ function App() {
           } />
           <Route path="/exam/:id" element={
             <PrivateRoute>
-              <ExamRoom />
+              <ExamProvider>
+                <ExamRoom />
+              </ExamProvider>
             </PrivateRoute>
           } />
           <Route path="/result/:examId" element={
@@ -41,6 +52,39 @@ function App() {
               <CameraTest />
             </PrivateRoute>
           } />
+          <Route path="/proctor/:examId" element={
+            <RoleRoute allowedRoles={['admin', 'teacher']}>
+              <ProctorDashboard />
+            </RoleRoute>
+          } />
+          
+          {/* Admin Routes */}
+          <Route path="/admin/dashboard" element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          } />
+          <Route path="/admin/users" element={
+            <AdminRoute>
+              <AdminUsers />
+            </AdminRoute>
+          } />
+          <Route path="/admin/questions" element={
+            <AdminRoute>
+              <AdminQuestions />
+            </AdminRoute>
+          } />
+          <Route path="/admin/exams" element={
+            <AdminRoute>
+              <AdminExams />
+            </AdminRoute>
+          } />
+          <Route path="/admin/reports" element={
+            <AdminRoute>
+              <AdminReports />
+            </AdminRoute>
+          } />
+          
           <Route path="*" element={<Navigate to="/dashboard" />} />
         </Routes>
       </Router>

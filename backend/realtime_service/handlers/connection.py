@@ -37,5 +37,7 @@ def register_connection_handlers(sio):
                 # Remove user from active room count if needed
                 client = await redis_client.get_client()
                 await client.srem(f"exam:room:{exam_id}:clients", user_id)
+                # Emit to proctor room
+                await sio.emit("proctor:student_left", {"exam_id": exam_id, "user_id": user_id}, room=f"proctor:{exam_id}")
         else:
             print(f"Client {sid} disconnected")

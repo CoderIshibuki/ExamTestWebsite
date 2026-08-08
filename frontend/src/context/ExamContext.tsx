@@ -1,4 +1,5 @@
-import React, { createContext, useState, ReactNode, useContext } from 'react';
+import React, { createContext, useState, useContext, useCallback } from 'react';
+import type { ReactNode } from 'react';
 
 export interface Question {
   id: string;
@@ -40,38 +41,38 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     sessionId: null,
   });
 
-  const setQuestions = (questions: Question[]) => {
+  const setQuestions = useCallback((questions: Question[]) => {
     setState((prev) => ({ ...prev, questions, totalQuestions: questions.length }));
-  };
+  }, []);
 
-  const setAnswer = (questionId: string, answer: string) => {
+  const setAnswer = useCallback((questionId: string, answer: string) => {
     setState((prev) => ({
       ...prev,
       answers: { ...prev.answers, [questionId]: answer }
     }));
-  };
+  }, []);
 
-  const nextQuestion = () => {
+  const nextQuestion = useCallback(() => {
     setState((prev) => ({
       ...prev,
       currentQuestionIndex: Math.min(prev.currentQuestionIndex + 1, prev.totalQuestions - 1)
     }));
-  };
+  }, []);
 
-  const prevQuestion = () => {
+  const prevQuestion = useCallback(() => {
     setState((prev) => ({
       ...prev,
       currentQuestionIndex: Math.max(prev.currentQuestionIndex - 1, 0)
     }));
-  };
+  }, []);
 
-  const setStatus = (status: ExamState['status']) => {
+  const setStatus = useCallback((status: ExamState['status']) => {
     setState((prev) => ({ ...prev, status }));
-  };
+  }, []);
 
-  const setExamId = (examId: string) => {
+  const setExamId = useCallback((examId: string) => {
     setState((prev) => ({ ...prev, examId }));
-  };
+  }, []);
 
   return (
     <ExamContext.Provider value={{ state, setQuestions, setAnswer, nextQuestion, prevQuestion, setStatus, setExamId }}>

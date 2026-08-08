@@ -29,6 +29,9 @@ def register_message_handlers(sio):
         client = await redis_client.get_client()
         await client.sadd(f"exam:room:{exam_id}:clients", user_id)
         
+        # Notify proctor
+        await sio.emit("proctor:student_joined", {"exam_id": exam_id, "user_id": user_id}, room=f"proctor:{exam_id}")
+        
         # Subscribe to PubSub for this exam room
         await pubsub_manager.subscribe_to_exam(exam_id)
 
@@ -168,3 +171,9 @@ def register_message_handlers(sio):
         if exam_id and user_id:
             await session_manager.heartbeat(exam_id, user_id)
         await sio.emit('pong', {}, room=sid)
+
+    @sio.event
+    async def join_proctor_room(sid, data):
+        exam_id = data.get('exam_id')
+        if exam_id:
+            await sio.enter_room(sid, f"proctor:{exam_id}")

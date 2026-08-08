@@ -14,31 +14,38 @@ const ExamRoom: React.FC = () => {
   const { id: examId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const token = localStorage.getItem('access_token') || '';
-  const userId = 'current_user_id';
-  
-  const { state, setStatus, setQuestions, setAnswer, nextQuestion, prevQuestion, setExamId } = useExamContext();
-  const { isActive, violationCount } = useProctoring(examId || '', userId);
+
+
+  const { state, setStatus, setQuestions, setAnswer, nextQuestion, prevQuestion, setExamId } =
+    useExamContext();
+  const { isActive, violationCount } = useProctoring(examId || '');
 
   const handleExamSubmit = useCallback(() => {
     navigate(`/result/${examId}`);
   }, [examId, navigate]);
 
-  const { status: wsStatus, joinExam, startExam, submitAnswer, submitExam } = useWebSocket({
+  const {
+    status: wsStatus,
+    joinExam,
+    startExam,
+    submitAnswer,
+    submitExam,
+  } = useWebSocket({
     examId: examId || '',
     token,
-    onQuestion: (data) => {
+    onQuestion: useCallback((data: any) => {
       if (Array.isArray(data)) {
         setQuestions(data);
       }
-    },
-    onAnswerSaved: (data) => {
+    }, [setQuestions]),
+    onAnswerSaved: useCallback(() => {
       // confirm answer saved
-    },
+    }, []),
     onExamSubmitted: handleExamSubmit,
-    onError: (err) => {
+    onError: useCallback((err: any) => {
       console.error('WS Error:', err);
       setStatus('error');
-    }
+    }, [setStatus]),
   });
 
   const { formattedTime, isWarning } = useTimer(60, () => {
@@ -75,7 +82,16 @@ const ExamRoom: React.FC = () => {
 
   if (state.status === 'joining' || state.status === 'idle') {
     return (
-      <Box sx={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: 2 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          height: '100vh',
+          justifyContent: 'center',
+          alignItems: 'center',
+          flexDirection: 'column',
+          gap: 2,
+        }}
+      >
         <CircularProgress />
         <Typography>Đang chuẩn bị phòng thi...</Typography>
       </Box>
@@ -85,8 +101,24 @@ const ExamRoom: React.FC = () => {
   const currentQuestion = state.questions[state.currentQuestionIndex];
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
-      <Paper elevation={3} sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 0 }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        bgcolor: 'background.default',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <Paper
+        elevation={3}
+        sx={{
+          p: 2,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderRadius: 0,
+        }}
+      >
         <Timer timeLeft={60} isWarning={isWarning} formattedTime={formattedTime} />
         <Typography variant="h6">
           Câu hỏi {state.currentQuestionIndex + 1} / {state.totalQuestions}
@@ -97,8 +129,8 @@ const ExamRoom: React.FC = () => {
       </Paper>
 
       <Box sx={{ flexGrow: 1, p: 3, display: 'flex', justifyContent: 'center' }}>
-        <Grid container spacing={3} maxWidth={1200}>
-          <Grid item xs={12} md={8}>
+        <Grid container spacing={3} sx={{ maxWidth: 1200 }}>
+          <Grid size={{ xs: 12, md: 8 }}>
             {currentQuestion ? (
               <QuestionPanel
                 question={currentQuestion}
@@ -110,25 +142,36 @@ const ExamRoom: React.FC = () => {
             ) : (
               <Typography>Đang tải câu hỏi...</Typography>
             )}
-            
+
             <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
               <Button disabled={state.currentQuestionIndex === 0} onClick={prevQuestion}>
                 Câu trước
               </Button>
-              <Button disabled={state.currentQuestionIndex === state.totalQuestions - 1} onClick={nextQuestion}>
+              <Button
+                disabled={state.currentQuestionIndex === state.totalQuestions - 1}
+                onClick={nextQuestion}
+              >
                 Câu tiếp
               </Button>
             </Box>
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>Danh sách câu hỏi</Typography>
+              <Typography variant="h6" gutterBottom>
+                Danh sách câu hỏi
+              </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                 {state.questions.map((q, idx) => (
-                  <Button 
-                    key={q.id} 
-                    variant={state.answers[q.id] ? "contained" : "outlined"}
-                    color={state.currentQuestionIndex === idx ? "primary" : (state.answers[q.id] ? "success" : "inherit")}
+                  <Button
+                    key={q.id}
+                    variant={state.answers[q.id] ? 'contained' : 'outlined'}
+                    color={
+                      state.currentQuestionIndex === idx
+                        ? 'primary'
+                        : state.answers[q.id]
+                          ? 'success'
+                          : 'inherit'
+                    }
                     sx={{ minWidth: 40 }}
                   >
                     {idx + 1}
@@ -140,7 +183,10 @@ const ExamRoom: React.FC = () => {
         </Grid>
       </Box>
 
-      <Paper elevation={3} sx={{ p: 1, display: 'flex', justifyContent: 'space-between', borderRadius: 0 }}>
+      <Paper
+        elevation={3}
+        sx={{ p: 1, display: 'flex', justifyContent: 'space-between', borderRadius: 0 }}
+      >
         <ProctoringStatus isActive={isActive} violationCount={violationCount} />
         <WebSocketStatus status={wsStatus} />
       </Paper>
