@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import Optional
 import crud
 import schemas
-from dependencies import get_current_user, require_role
+from dependencies import get_current_user, require_permission
 import os
 from services.cache import CacheService
 
@@ -38,7 +38,7 @@ async def get_questions(
 @router.post("/", response_model=schemas.QuestionResponse, status_code=status.HTTP_201_CREATED)
 async def create_question(
     question: schemas.QuestionCreate,
-    current_user: dict = Depends(require_role(["teacher", "admin"]))
+    current_user: dict = Depends(require_permission("question:create"))
 ):
     question_data = question.model_dump(exclude_unset=True)
     question_data["created_by"] = current_user.get("id")
@@ -52,7 +52,7 @@ from typing import List
 @router.post("/bulk", status_code=status.HTTP_201_CREATED)
 async def create_questions_bulk(
     questions: List[schemas.QuestionCreate],
-    current_user: dict = Depends(require_role(["teacher", "admin"]))
+    current_user: dict = Depends(require_permission("question:create"))
 ):
     questions_data = []
     for q in questions:
@@ -76,7 +76,7 @@ async def get_question(id: str):
 async def update_question(
     id: str,
     question: schemas.QuestionUpdate,
-    current_user: dict = Depends(require_role(["teacher", "admin"]))
+    current_user: dict = Depends(require_permission("question:update"))
 ):
     existing_q = await crud.get_question(id)
     if not existing_q:
@@ -96,7 +96,7 @@ async def update_question(
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_question(
     id: str,
-    current_user: dict = Depends(require_role(["teacher", "admin"]))
+    current_user: dict = Depends(require_permission("question:delete"))
 ):
     existing_q = await crud.get_question(id)
     if not existing_q:

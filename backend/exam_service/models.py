@@ -18,17 +18,22 @@ class Exam(Base):
     shuffle_options = Column(Boolean, default=True)
     show_result_after_submit = Column(Boolean, default=True)
     status = Column(String(20), default="draft")
-    created_by = Column(String(50), nullable=False)
+    owner_id = Column(UUID(as_uuid=True), nullable=False)
+    is_public = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     questions = relationship("ExamQuestion", back_populates="exam", cascade="all, delete-orphan")
     schedules = relationship("ExamSchedule", back_populates="exam", cascade="all, delete-orphan")
     assignments = relationship("ExamAssignment", back_populates="exam", cascade="all, delete-orphan")
+    collaborators = relationship("ExamCollaborator", back_populates="exam", cascade="all, delete-orphan")
+    proctors = relationship("ExamProctor", back_populates="exam", cascade="all, delete-orphan")
+    roster = relationship("ExamRoster", back_populates="exam", cascade="all, delete-orphan")
+    snapshots = relationship("ExamQuestionSnapshot", back_populates="exam", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("idx_exams_status", "status"),
-        Index("idx_exams_created_by", "created_by"),
+        Index("idx_exams_owner_id", "owner_id"),
     )
 
 class ExamQuestion(Base):
@@ -114,3 +119,63 @@ class ExamAttemptAnswer(Base):
     __table_args__ = (
         Index("idx_exam_attempt_answers_attempt_question", "attempt_id", "question_id", unique=True),
     )
+
+class ExamCollaborator(Base):
+    __tablename__ = "exam_collaborators"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    exam_id = Column(UUID(as_uuid=True), ForeignKey("exams.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), nullable=False)
+    role = Column(String(50), default="CO_TEACHER")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    exam = relationship("Exam", back_populates="collaborators")
+    __table_args__ = (
+        Index("idx_exam_collaborators_exam_user", "exam_id", "user_id", unique=True),
+    )
+
+class ExamProctor(Base):
+    __tablename__ = "exam_proctors"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    exam_id = Column(UUID(as_uuid=True), ForeignKey("exams.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    exam = relationship("Exam", back_populates="proctors")
+    __table_args__ = (
+        Index("idx_exam_proctors_exam_user", "exam_id", "user_id", unique=True),
+    )
+
+class ExamRoster(Base):
+    __tablename__ = "exam_roster"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    exam_id = Column(UUID(as_uuid=True), ForeignKey("exams.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    exam = relationship("Exam", back_populates="roster")
+    __table_args__ = (
+        Index("idx_exam_roster_exam_user", "exam_id", "user_id", unique=True),
+    )
+
+from sqlalchemy.dialects.postgresql import JSONB
+
+class ExamQuestionSnapshot(Base):
+    __tablename__ = "exam_question_snapshots"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    exam_id = Column(UUID(as_uuid=True), ForeignKey("exams.id", ondelete="CASCADE"), nullable=False)
+    question_id = Column(String(64), nullable=False)
+    question_version = Column(Integer, default=1)
+    question_text = Column(Text, nullable=False)
+    choices = Column(JSONB, nullable=False)  # Array of dicts
+    correct_answer = Column(JSONB, nullable=False) # String or array
+    points = Column(Float, default=1.0)
+    explanation = Column(Text, nullable=True)
+    metadata_json = Column(JSONB, nullable=True)
+    display_order = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    exam = relationship("Exam", back_populates="snapshots")
+    __table_args__ = (
+        Index("idx_exam_snapshots_exam_question", "exam_id", "question_id", unique=True),
+    )
+

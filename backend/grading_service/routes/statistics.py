@@ -6,7 +6,7 @@ from uuid import UUID
 
 import models
 from database import get_db
-from dependencies import require_teacher_or_admin
+from dependencies import require_permission
 
 router = APIRouter(prefix="/api/v1/grading/statistics", tags=["Statistics"])
 
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/v1/grading/statistics", tags=["Statistics"])
 async def get_exam_statistics(
     exam_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_teacher_or_admin)
+    current_user: dict = Depends(require_permission("result:read_managed"))
 ):
     stmt = select(models.Result).where(models.Result.exam_id == exam_id)
     result = await db.execute(stmt)

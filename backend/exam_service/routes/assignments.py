@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 import crud, schemas
 from database import get_db
-from dependencies import require_admin
+from dependencies import require_permission
 
 router = APIRouter(prefix="/api/v1/exams/{exam_id}", tags=["Exam Assignments"])
 
@@ -11,7 +11,7 @@ async def assign_teacher(
     exam_id: str,
     assignment: schemas.ExamAssignmentCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_admin)
+    current_user: dict = Depends(require_permission("exam:assign"))
 ):
     exam = await crud.get_exam_by_id(db, exam_id)
     if not exam:

@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography, Button, CircularProgress, Paper, Grid, Container } from '@mui/material';
 import { ErrorOutlined } from '@mui/icons-material';
@@ -9,10 +9,13 @@ import QuestionPanel from '../components/QuestionPanel';
 import Timer from '../components/Timer';
 import ProctoringStatus from '../components/ProctoringStatus';
 import { examApi } from '../api/examApi';
+import { AuthContext } from '../context/AuthContext';
 
 const ExamRoom: React.FC = () => {
   const { id: examId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
+
   
   const { state, setStatus, setQuestions, setAnswer, nextQuestion, prevQuestion, setExamId, setAttemptId } = useExamContext();
   const { isActive, violationCount } = useProctoring(examId || '', state.attemptId || '');
@@ -49,7 +52,7 @@ const ExamRoom: React.FC = () => {
     setStatus('submitting');
     try {
       await examApi.submitExam(state.attemptId);
-      navigate(`/result/${state.attemptId}`);
+      navigate(`/${user?.role}/result/${state.attemptId}`);
     } catch (err) {
       console.error('Failed to submit exam:', err);
       setStatus('error');
@@ -103,7 +106,7 @@ const ExamRoom: React.FC = () => {
           <Typography color="text.secondary" sx={{ mb: 4 }}>
             Không thể tải hoặc nộp bài thi. Vui lòng kiểm tra lại kết nối.
           </Typography>
-          <Button variant="contained" onClick={() => navigate('/exams')}>
+          <Button variant="contained" onClick={() => navigate(`/${user?.role}/exams`)}>
             Quay lại danh sách
           </Button>
         </Paper>

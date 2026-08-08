@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 import crud, schemas
 from database import get_db
-from dependencies import get_current_user, require_teacher_or_admin
+from dependencies import get_current_user, require_permission
 import os
 from services.cache import CacheService
 
@@ -25,7 +25,7 @@ async def list_exams(skip: int = 0, limit: int = 100, db: AsyncSession = Depends
 async def create_exam(
     exam: schemas.ExamCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_teacher_or_admin)
+    current_user: dict = Depends(require_permission("exam:create"))
 ):
     new_exam = await crud.create_exam(db, exam, current_user["id"])
     await cache.invalidate_pattern("exams:list:*")
@@ -34,7 +34,7 @@ async def create_exam(
 @router.get("/stats/overview")
 async def get_exam_stats_overview(
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_teacher_or_admin)
+    current_user: dict = Depends(require_permission("exam:read"))
 ):
     total_exams = await crud.count_exams(db)
     return {
@@ -61,13 +61,15 @@ async def update_exam(
     exam_id: str,
     exam_update: schemas.ExamUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_teacher_or_admin)
+    current_user: dict = Depends(require_permission("exam:update"))
 ):
     exam = await crud.get_exam_by_id(db, exam_id)
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
     
-    if current_user["role"] != "admin" and str(exam.created_by) != current_user["id"]:
+    is_owner = str(exam.owner_id) == current_user["id"]
+    is_collaborator = any(str(c.user_id) == current_user["id"] for c in exam.collaborators)
+    if current_user["role"] != "admin" and not is_owner and not is_collaborator:
         raise HTTPException(status_code=403, detail="You don't have permission")
         
     updated = await crud.update_exam(db, exam_id, exam_update)
@@ -79,14 +81,15 @@ async def update_exam(
 async def delete_exam(
     exam_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_teacher_or_admin)
+    current_user: dict = Depends(require_permission("exam:delete"))
 ):
     exam = await crud.get_exam_by_id(db, exam_id)
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
         
-    if current_user["role"] != "admin" and str(exam.created_by) != current_user["id"]:
-        raise HTTPException(status_code=403, detail="You don't have permission")
+    is_owner = str(exam.owner_id) == current_user["id"]
+    if current_user["role"] != "admin" and not is_owner:
+        raise HTTPException(status_code=403, detail="You don't have permission. Only owners can delete.")
         
     await crud.delete_exam(db, exam_id)
     await cache.invalidate_pattern("exams:list:*")
@@ -96,29 +99,77 @@ async def delete_exam(
 async def publish_exam(
     exam_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_teacher_or_admin)
+    current_user: dict = Depends(require_permission("exam:publish"))
 ):
     exam = await crud.get_exam_by_id(db, exam_id)
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
         
-    if current_user["role"] != "admin" and str(exam.created_by) != current_user["id"]:
+    is_owner = str(exam.owner_id) == current_user["id"]
+    is_collaborator = any(str(c.user_id) == current_user["id"] for c in exam.collaborators)
+    if current_user["role"] != "admin" and not is_owner and not is_collaborator:
         raise HTTPException(status_code=403, detail="You don't have permission")
         
     if exam.status != "draft":
         raise HTTPException(status_code=409, detail="Only draft exams can be published")
         
+    import httpx
+    from config import settings
+    from jose import jwt
+    
+    # Fetch questions from question_service
+    question_ids = [str(q.question_id) for q in exam.questions]
+    snapshots_data = []
+    
+    if question_ids:
+        try:
+            async with httpx.AsyncClient() as client:
+                token = jwt.encode({"sub": current_user["id"]}, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+                headers = {"Authorization": f"Bearer {token}"}
+                for i, q_id in enumerate(question_ids):
+                    res = await client.get(f"{settings.QUESTION_SERVICE_URL}/api/v1/questions/{q_id}", headers=headers)
+                    if res.status_code == 200:
+                        q_data = res.json()
+                        snapshots_data.append({
+                            "exam_id": exam.id,
+                            "question_id": str(q_id),
+                            "question_version": 1,
+                            "question_text": q_data.get("question_text", ""),
+                            "choices": q_data.get("choices", []),
+                            "correct_answer": q_data.get("correct_answer", ""),
+                            "points": exam.questions[i].point_value if hasattr(exam.questions[i], 'point_value') else 1.0,
+                            "display_order": exam.questions[i].question_order
+                        })
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error fetching questions: {e}")
+            
+    if snapshots_data:
+        await crud.create_exam_snapshots(db, snapshots_data)
+
     update_data = schemas.ExamUpdate(status="published")
     updated = await crud.update_exam(db, exam_id, update_data)
     await cache.invalidate_pattern("exams:list:*")
     await cache.invalidate(f"exam:{exam_id}")
     return updated
 
+@router.get("/{exam_id}/snapshots")
+async def get_exam_snapshots(
+    exam_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    # This endpoint is primarily for grading service
+    if current_user["role"] != "system" and current_user["role"] not in ["admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    snapshots = await crud.get_exam_snapshots(db, exam_id)
+    return snapshots
+
 @router.post("/{exam_id}/start", response_model=schemas.ExamAttemptResponse)
 async def start_exam(
     exam_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(require_permission("attempt:create"))
 ):
     exam = await crud.get_exam_by_id(db, exam_id)
     if not exam:
@@ -126,6 +177,10 @@ async def start_exam(
         
     if exam.status != "published":
         raise HTTPException(status_code=400, detail="Exam is not published yet")
+
+    is_on_roster = any(str(r.user_id) == current_user["id"] for r in exam.roster)
+    if not getattr(exam, 'is_public', False) and not is_on_roster:
+        raise HTTPException(status_code=403, detail="You are not on the roster for this private exam")
 
     active_attempt = await crud.get_active_exam_attempt(db, exam_id, current_user["id"])
     if active_attempt:
@@ -143,7 +198,7 @@ async def save_answer(
     attempt_id: str,
     answer: schemas.ExamAttemptAnswerCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(require_permission("attempt:answer"))
 ):
     attempt = await crud.get_exam_attempt(db, attempt_id)
     if not attempt:
@@ -167,7 +222,7 @@ async def save_answer(
 async def submit_exam(
     attempt_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(require_permission("attempt:submit"))
 ):
     attempt = await crud.get_exam_attempt(db, attempt_id)
     if not attempt:
@@ -210,7 +265,7 @@ async def submit_exam(
                 "answers": answers_dict
             }
             # Create a system token for internal communication
-            import jwt
+            from jose import jwt
             token = jwt.encode({"sub": "system", "role": "system"}, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
             headers = {"Authorization": f"Bearer {token}"}
             await client.post(f"{settings.GRADING_SERVICE_URL}/api/v1/grading/submit", json=payload, headers=headers)

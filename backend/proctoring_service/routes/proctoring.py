@@ -5,7 +5,7 @@ from typing import List, Optional
 from uuid import UUID
 
 from database import get_db
-from dependencies import get_current_user, require_teacher_or_admin
+from dependencies import get_current_user, require_permission
 from models import Violation
 from schemas import ViolationCreate, ViolationResponse, EventLogResponse, RiskResponse, ResetRequest
 from services.risk_engine import calculate_risk_and_alert
@@ -53,9 +53,24 @@ async def list_violations(
     severity: Optional[str] = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    current_user: dict = Depends(require_teacher_or_admin),
+    current_user: dict = Depends(require_permission("proctoring:read")),
     db: AsyncSession = Depends(get_db)
 ):
+    if current_user["role"] != "admin":
+        from sqlalchemy import text
+        res = await db.execute(
+            text("""
+                SELECT 1 FROM exams WHERE id = :exam_id AND owner_id = :user_id::uuid
+                UNION
+                SELECT 1 FROM exam_collaborators WHERE exam_id = :exam_id AND user_id = :user_id::uuid
+                UNION
+                SELECT 1 FROM exam_proctors WHERE exam_id = :exam_id AND user_id = :user_id::uuid
+            """),
+            {"exam_id": str(exam_id), "user_id": current_user["id"]}
+        )
+        if not res.fetchone():
+            raise HTTPException(status_code=403, detail="Not authorized to proctor this exam")
+            
     query = select(Violation).where(Violation.exam_id == exam_id)
     
     if user_id:
@@ -73,9 +88,24 @@ async def list_violations(
 async def get_risk_score(
     exam_id: UUID,
     user_id: str,
-    current_user: dict = Depends(require_teacher_or_admin),
+    current_user: dict = Depends(require_permission("proctoring:read")),
     db: AsyncSession = Depends(get_db)
 ):
+    if current_user["role"] != "admin":
+        from sqlalchemy import text
+        res = await db.execute(
+            text("""
+                SELECT 1 FROM exams WHERE id = :exam_id AND owner_id = :user_id::uuid
+                UNION
+                SELECT 1 FROM exam_collaborators WHERE exam_id = :exam_id AND user_id = :user_id::uuid
+                UNION
+                SELECT 1 FROM exam_proctors WHERE exam_id = :exam_id AND user_id = :user_id::uuid
+            """),
+            {"exam_id": str(exam_id), "user_id": current_user["id"]}
+        )
+        if not res.fetchone():
+            raise HTTPException(status_code=403, detail="Not authorized to proctor this exam")
+            
     from datetime import datetime, timedelta, timezone
     five_mins_ago = datetime.now(timezone.utc) - timedelta(minutes=5)
     
@@ -104,7 +134,7 @@ async def get_risk_score(
 @router.post("/reset")
 async def reset_risk_score(
     request: ResetRequest,
-    current_user: dict = Depends(require_teacher_or_admin),
+    current_user: dict = Depends(require_permission("proctoring:read")),
     db: AsyncSession = Depends(get_db)
 ):
     return {"status": "reset"}

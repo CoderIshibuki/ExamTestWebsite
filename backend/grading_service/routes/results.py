@@ -15,17 +15,40 @@ cache = CacheService(redis_url)
 
 router = APIRouter(prefix="/api/v1/results", tags=["Results"])
 
-@router.get("/{exam_id}")
+@router.get("/exam/{exam_id}")
 async def get_results_by_exam(
     exam_id: UUID,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
+    # Teachers/admins can see all results for the exam
+    # Students can only see their own results
     async def fetch_data():
-        stmt = select(models.Result).where(models.Result.exam_id == exam_id)
+        if current_user["role"] in ["admin", "teacher"]:
+            stmt = select(models.Result).where(models.Result.exam_id == exam_id)
+        else:
+            stmt = select(models.Result).where(models.Result.exam_id == exam_id, models.Result.user_id == current_user["id"])
         result = await db.execute(stmt)
-        results = result.scalars().all()
-        return results
+        return result.scalars().all()
 
     key = f"results:exam:{exam_id}"
     return await cache.get_or_set(key, fetch_data, ttl=300)
+
+@router.get("/{attempt_id}")
+async def get_result(
+    attempt_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    stmt = select(models.Result).where(models.Result.attempt_id == attempt_id)
+    result = await db.execute(stmt)
+    db_result = result.scalars().first()
+    
+    if not db_result:
+        raise HTTPException(status_code=404, detail="Result not found")
+        
+    if current_user["role"] not in ["admin", "teacher"] and str(db_result.user_id) != str(current_user["id"]):
+        raise HTTPException(status_code=403, detail="Not authorized to view this result")
+        
+    return db_result
+

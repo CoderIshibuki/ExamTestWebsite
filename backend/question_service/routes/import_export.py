@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 import pandas as pd
 import io
 import crud
-from dependencies import require_role
+from dependencies import require_permission
 from datetime import datetime
 
 router = APIRouter()
@@ -11,7 +11,7 @@ router = APIRouter()
 @router.post("/import", status_code=status.HTTP_201_CREATED)
 async def import_questions(
     file: UploadFile = File(...),
-    current_user: dict = Depends(require_role(["teacher", "admin"]))
+    current_user: dict = Depends(require_permission("question:create"))
 ):
     if not file.filename.endswith('.xlsx'):
         raise HTTPException(status_code=400, detail="Only .xlsx files are supported")
@@ -52,7 +52,7 @@ async def import_questions(
 
 @router.get("/export")
 async def export_questions(
-    current_user: dict = Depends(require_role(["teacher", "admin"]))
+    current_user: dict = Depends(require_permission("question:read"))
 ):
     try:
         # Get all questions

@@ -16,7 +16,7 @@ const RoleRoute = ({ children, allowedRoles }: RoleRouteProps) => {
   }
 
   if (user && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/dashboard" />;
+    return <Navigate to="/unauthorized" />;
   }
 
   return <>{children}</>;

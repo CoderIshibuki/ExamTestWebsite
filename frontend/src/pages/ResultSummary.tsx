@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 import { Box, Typography, Button, Paper, CircularProgress, Divider, Container, Fade } from '@mui/material';
 import { CheckCircleOutlined, CancelOutlined, EmojiEvents, Home } from '@mui/icons-material';
 import { gradingApi } from '../api/gradingApi';
@@ -11,7 +12,7 @@ const ResultSummary: React.FC = () => {
   const [result, setResult] = useState<ExamResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // In a real app, this would come from AuthContext
+  const { user } = useContext(AuthContext);
 
   useEffect(() => {
     if (attemptId) {
@@ -44,7 +45,7 @@ const ResultSummary: React.FC = () => {
           <Typography color="text.secondary" sx={{ mb: 4 }}>
             {error}
           </Typography>
-          <Button variant="contained" onClick={() => navigate('/dashboard')} startIcon={<Home />}>
+          <Button variant="contained" onClick={() => navigate(`/${user?.role}/dashboard`)} startIcon={<Home />}>
             Về trang chủ
           </Button>
         </Paper>
@@ -59,7 +60,7 @@ const ResultSummary: React.FC = () => {
           <Typography variant="h5" color="text.secondary" gutterBottom>
             Không tìm thấy kết quả.
           </Typography>
-          <Button variant="contained" sx={{ mt: 3 }} onClick={() => navigate('/dashboard')} startIcon={<Home />}>
+          <Button variant="contained" sx={{ mt: 3 }} onClick={() => navigate(`/${user?.role}/dashboard`)} startIcon={<Home />}>
             Về trang chủ
           </Button>
         </Paper>
@@ -116,7 +117,7 @@ const ResultSummary: React.FC = () => {
               size="large"
               fullWidth
               sx={{ py: 1.5, fontSize: '1.1rem', fontWeight: 600, borderRadius: 2, textTransform: 'none', background: 'linear-gradient(to right, #4F46E5, #3B82F6)' }}
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate(`/${user?.role}/dashboard`)}
               startIcon={<Home />}
               aria-label="Trở về màn hình chính"
             >

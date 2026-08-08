@@ -15,7 +15,7 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
   }
 
   if (user && user.role !== 'admin') {
-    return <Navigate to="/dashboard" />;
+    return <Navigate to="/unauthorized" />;
   }
 
   return <>{children}</>;

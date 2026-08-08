@@ -30,7 +30,7 @@ class ExamUpdate(BaseModel):
 class ExamResponse(ExamBase):
     id: UUID
     status: str
-    created_by: str
+    owner_id: UUID
     created_at: datetime
     updated_at: datetime
 
@@ -71,8 +71,9 @@ class ExamScheduleResponse(ExamScheduleBase):
     model_config = ConfigDict(from_attributes=True)
 
 class ExamAssignmentBase(BaseModel):
-    teacher_id: str
-    role: str = "proctor"
+    user_id: UUID
+    type: str
+    role: Optional[str] = None
 
 class ExamAssignmentCreate(ExamAssignmentBase):
     pass

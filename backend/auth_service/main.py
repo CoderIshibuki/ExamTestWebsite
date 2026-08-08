@@ -89,8 +89,8 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
             headers={"WWW-Authenticate": "Bearer"},
         )
         
-    access_token = auth.create_access_token(data={"sub": str(user.id), "role": user.role})
-    refresh_token = auth.create_refresh_token(data={"sub": str(user.id), "role": user.role})
+    access_token = auth.create_access_token(data={"sub": str(user.id)})
+    refresh_token = auth.create_refresh_token(data={"sub": str(user.id)})
     
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
@@ -145,8 +145,8 @@ async def refresh_token(request: Request, body: RefreshTokenRequest, db: AsyncSe
     if user is None:
         raise credentials_exception
         
-    access_token = auth.create_access_token(data={"sub": str(user.id), "role": user.role})
-    new_refresh_token = auth.create_refresh_token(data={"sub": str(user.id), "role": user.role})
+    access_token = auth.create_access_token(data={"sub": str(user.id)})
+    new_refresh_token = auth.create_refresh_token(data={"sub": str(user.id)})
     
     return {"access_token": access_token, "refresh_token": new_refresh_token, "token_type": "bearer"}
 

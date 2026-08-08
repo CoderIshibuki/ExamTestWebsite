@@ -1,14 +1,15 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import func, update
+from sqlalchemy import func, update, text
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 import models, schemas
 from uuid import UUID
+import uuid
 
 # --- Exams ---
 async def create_exam(db: AsyncSession, exam: schemas.ExamCreate, user_id: str) -> models.Exam:
-    db_exam = models.Exam(**exam.model_dump(), created_by=user_id)
+    db_exam = models.Exam(**exam.model_dump(), owner_id=UUID(user_id))
     db.add(db_exam)
     await db.commit()
     await db.refresh(db_exam)
@@ -25,7 +26,14 @@ async def count_exams(db: AsyncSession) -> int:
 async def get_exam_by_id(db: AsyncSession, exam_id: str) -> Optional[models.Exam]:
     result = await db.execute(
         select(models.Exam)
-        .options(selectinload(models.Exam.questions), selectinload(models.Exam.schedules), selectinload(models.Exam.assignments))
+        .options(
+            selectinload(models.Exam.questions), 
+            selectinload(models.Exam.schedules), 
+            selectinload(models.Exam.assignments),
+            selectinload(models.Exam.collaborators),
+            selectinload(models.Exam.proctors),
+            selectinload(models.Exam.roster)
+        )
         .filter(models.Exam.id == UUID(exam_id))
     )
     return result.scalars().first()
@@ -76,6 +84,20 @@ async def get_exam_questions(db: AsyncSession, exam_id: str) -> List[models.Exam
     )
     return result.scalars().all()
 
+async def get_exam_snapshots(db: AsyncSession, exam_id: str) -> List[models.ExamQuestionSnapshot]:
+    result = await db.execute(
+        select(models.ExamQuestionSnapshot)
+        .filter(models.ExamQuestionSnapshot.exam_id == UUID(exam_id))
+        .order_by(models.ExamQuestionSnapshot.display_order)
+    )
+    return result.scalars().all()
+
+async def create_exam_snapshots(db: AsyncSession, snapshots_data: List[dict]) -> None:
+    for data in snapshots_data:
+        snapshot = models.ExamQuestionSnapshot(**data)
+        db.add(snapshot)
+    await db.commit()
+
 # --- Exam Schedules ---
 async def add_exam_schedule(db: AsyncSession, exam_id: str, schedule: schemas.ExamScheduleCreate) -> models.ExamSchedule:
     db_schedule = models.ExamSchedule(**schedule.model_dump(), exam_id=UUID(exam_id))
@@ -85,13 +107,24 @@ async def add_exam_schedule(db: AsyncSession, exam_id: str, schedule: schemas.Ex
     return db_schedule
 
 # --- Exam Assignments ---
-async def add_exam_assignment(db: AsyncSession, exam_id: str, assignment: schemas.ExamAssignmentCreate) -> models.ExamAssignment:
-    db_assignment = models.ExamAssignment(**assignment.model_dump(), exam_id=UUID(exam_id))
-    db_assignment.teacher_id = assignment.teacher_id
-    db.add(db_assignment)
+async def add_exam_assignment(db: AsyncSession, exam_id: str, assignment: schemas.ExamAssignmentCreate):
+    now = datetime.now(timezone.utc)
+    assignment_id = uuid.uuid4()
+    if assignment.type == "collaborator":
+        stmt = text("INSERT INTO exam_collaborators (id, exam_id, user_id, role) VALUES (:id, :exam_id, :user_id, :role)")
+        await db.execute(stmt, {"id": assignment_id, "exam_id": exam_id, "user_id": str(assignment.user_id), "role": assignment.role or "edit"})
+    elif assignment.type == "proctor":
+        stmt = text("INSERT INTO exam_proctors (id, exam_id, user_id) VALUES (:id, :exam_id, :user_id)")
+        await db.execute(stmt, {"id": assignment_id, "exam_id": exam_id, "user_id": str(assignment.user_id)})
+    elif assignment.type == "roster":
+        stmt = text("INSERT INTO exam_roster (id, exam_id, user_id) VALUES (:id, :exam_id, :user_id)")
+        await db.execute(stmt, {"id": assignment_id, "exam_id": exam_id, "user_id": str(assignment.user_id)})
+    else:
+        raise ValueError("Invalid assignment type")
+    
     await db.commit()
-    await db.refresh(db_assignment)
-    return db_assignment
+    # Dummy response to satisfy the response model (or we can just return a dict)
+    return schemas.ExamAssignmentResponse(id=assignment_id, exam_id=UUID(exam_id), user_id=assignment.user_id, type=assignment.type, role=assignment.role, created_at=now)
 
 # --- Exam Attempts ---
 from datetime import datetime, timedelta, timezone

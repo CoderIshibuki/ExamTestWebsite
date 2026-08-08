@@ -18,8 +18,11 @@ import { PlayArrow, AccessTime, Autorenew, ErrorOutlined } from '@mui/icons-mate
 import { examApi } from '../api/examApi';
 import type { Exam } from '../api/examApi';
 import { useNavigate } from 'react-router-dom';
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 
 const ExamList: React.FC = () => {
+  const { user } = useContext(AuthContext);
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -144,7 +147,7 @@ const ExamList: React.FC = () => {
                       fullWidth
                       size="large"
                       startIcon={<PlayArrow />}
-                      onClick={() => navigate(`/exam/${exam.id}`)}
+                      onClick={() => navigate(`/${user?.role}/exam/${exam.id}`)}
                       aria-label={`Bắt đầu bài thi ${exam.title}`}
                     >
                       Bắt đầu làm bài

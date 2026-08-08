@@ -1,6 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import PrivateRoute from './components/PrivateRoute';
+import RoleRoute from './components/RoleRoute';
+import AdminRoute from './components/AdminRoute';
+import RootRedirect from './components/RootRedirect';
+import Unauthorized from './pages/Unauthorized';
+
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -9,9 +13,8 @@ import ExamRoom from './pages/ExamRoom';
 import { ExamProvider } from './context/ExamContext';
 import ResultSummary from './pages/ResultSummary';
 import CameraTest from './components/CameraTest';
-import RoleRoute from './components/RoleRoute';
 import ProctorDashboard from './pages/ProctorDashboard';
-import AdminRoute from './components/AdminRoute';
+
 import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
 import AdminQuestions from './pages/AdminQuestions';
@@ -26,35 +29,55 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/dashboard" element={
-            <PrivateRoute>
+          <Route path="/unauthorized" element={<Unauthorized />} />
+          
+          <Route path="/" element={<RootRedirect />} />
+          <Route path="/dashboard" element={<RootRedirect />} />
+
+          {/* Student Routes */}
+          <Route path="/student/dashboard" element={
+            <RoleRoute allowedRoles={['student', 'admin']}>
               <Dashboard />
-            </PrivateRoute>
+            </RoleRoute>
           } />
-          <Route path="/exams" element={
-            <PrivateRoute>
+          <Route path="/student/exams" element={
+            <RoleRoute allowedRoles={['student', 'admin']}>
               <ExamList />
-            </PrivateRoute>
+            </RoleRoute>
           } />
-          <Route path="/exam/:id" element={
-            <PrivateRoute>
+          <Route path="/student/exam/:id" element={
+            <RoleRoute allowedRoles={['student', 'admin']}>
               <ExamProvider>
                 <ExamRoom />
               </ExamProvider>
-            </PrivateRoute>
+            </RoleRoute>
           } />
-          <Route path="/result/:attemptId" element={
-            <PrivateRoute>
+          <Route path="/student/result/:attemptId" element={
+            <RoleRoute allowedRoles={['student', 'admin']}>
               <ResultSummary />
-            </PrivateRoute>
+            </RoleRoute>
           } />
-          <Route path="/camera-test" element={
-            <PrivateRoute>
+          <Route path="/student/camera-test" element={
+            <RoleRoute allowedRoles={['student', 'admin']}>
               <CameraTest />
-            </PrivateRoute>
+            </RoleRoute>
           } />
-          <Route path="/proctor/:examId" element={
-            <RoleRoute allowedRoles={['admin', 'teacher']}>
+
+          {/* Teacher Routes */}
+          <Route path="/teacher/dashboard" element={
+            <RoleRoute allowedRoles={['teacher', 'admin']}>
+              <Dashboard />
+            </RoleRoute>
+          } />
+          <Route path="/teacher/exams" element={
+            <RoleRoute allowedRoles={['teacher', 'admin']}>
+              <ExamList />
+            </RoleRoute>
+          } />
+
+          {/* Proctor Route */}
+          <Route path="/proctor/exam/:examId" element={
+            <RoleRoute allowedRoles={['teacher', 'admin']}>
               <ProctorDashboard />
             </RoleRoute>
           } />
@@ -96,7 +119,7 @@ function App() {
             </AdminRoute>
           } />
           
-          <Route path="*" element={<Navigate to="/dashboard" />} />
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Router>
     </AuthProvider>

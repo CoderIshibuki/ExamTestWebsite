@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 import crud
 import schemas
-from dependencies import require_role
+from dependencies import require_permission
 
 router = APIRouter()
 
@@ -16,7 +16,7 @@ async def get_categories(
 @router.post("/", response_model=schemas.CategoryResponse, status_code=status.HTTP_201_CREATED)
 async def create_category(
     category: schemas.CategoryCreate,
-    current_user: dict = Depends(require_role(["teacher", "admin"]))
+    current_user: dict = Depends(require_permission("question:create"))
 ):
     category_data = category.model_dump(exclude_unset=True)
     new_c = await crud.create_category(category_data)
@@ -35,7 +35,7 @@ async def get_category(id: str):
 async def update_category(
     id: str,
     category: schemas.CategoryCreate, # Using same schema for update for simplicity
-    current_user: dict = Depends(require_role(["teacher", "admin"]))
+    current_user: dict = Depends(require_permission("question:update"))
 ):
     update_data = category.model_dump(exclude_unset=True)
     c = await crud.update_category(id, update_data)
@@ -46,7 +46,7 @@ async def update_category(
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_category(
     id: str,
-    current_user: dict = Depends(require_role(["admin"]))
+    current_user: dict = Depends(require_permission("question:delete"))
 ):
     success = await crud.delete_category(id)
     if not success:

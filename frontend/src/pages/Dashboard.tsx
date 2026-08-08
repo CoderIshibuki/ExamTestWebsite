@@ -79,7 +79,7 @@ const Dashboard = () => {
                       <Typography variant="h6" sx={{ fontWeight: 700 }}>Danh sách kỳ thi</Typography>
                     </Box>
                     <Typography color="text.secondary" sx={{ mb: 4, minHeight: 40 }}>Xem các bài thi đang mở và bắt đầu làm bài ngay.</Typography>
-                    <Button variant="contained" fullWidth size="large" startIcon={<PlayArrow />} onClick={() => navigate('/exams')} aria-label="Xem danh sách kỳ thi">
+                    <Button variant="contained" fullWidth size="large" startIcon={<PlayArrow />} onClick={() => navigate(`/${user?.role}/exams`)} aria-label="Xem danh sách kỳ thi">
                       Xem kỳ thi
                     </Button>
                   </CardContent>
@@ -111,7 +111,7 @@ const Dashboard = () => {
                         <Typography color="text.secondary">Kiểm tra camera và micro trước khi thi để đảm bảo không gặp lỗi kỹ thuật.</Typography>
                       </Box>
                     </Box>
-                    <Button variant="outlined" color="warning" onClick={() => navigate('/camera-test')} aria-label="Kiểm tra Camera">
+                    <Button variant="outlined" color="warning" onClick={() => navigate(`/${user?.role}/camera-test`)} aria-label="Kiểm tra Camera">
                       Kiểm tra Camera
                     </Button>
                   </CardContent>

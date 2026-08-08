@@ -6,17 +6,23 @@ from typing import Dict, Any
 
 from sqlalchemy import update
 from sqlalchemy.future import select
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
 from .celery_app import celery_app
 from services.grading_engine import GradingEngine
 from services.exam_client import ExamClient
-from database import async_session_maker
 from models import Result, QuestionResult, Submission
+from config import settings
 
 logger = logging.getLogger(__name__)
 
 import os
 from jose import jwt
+
+def _make_session_maker():
+    """Create a fresh engine and session maker for use within a single asyncio.run() call."""
+    eng = create_async_engine(settings.DATABASE_URL, echo=False, pool_size=2, max_overflow=0)
+    return async_sessionmaker(eng, expire_on_commit=False, class_=AsyncSession), eng
 
 async def get_exam_questions(exam_id: str):
     client = ExamClient()
@@ -25,8 +31,8 @@ async def get_exam_questions(exam_id: str):
     token = jwt.encode({"sub": "system", "role": "admin"}, secret, algorithm=algorithm)
     return await client.get_exam_questions(exam_id, token)
 
-async def update_submission_status(submission_id: str, status_msg: str, error_msg: str = None):
-    async with async_session_maker() as session:
+async def update_submission_status(session_maker, submission_id: str, status_msg: str, error_msg: str = None):
+    async with session_maker() as session:
         try:
             stmt = update(Submission).where(Submission.id == UUID(submission_id)).values(
                 processed=True if status_msg == "processed" else False
@@ -36,8 +42,8 @@ async def update_submission_status(submission_id: str, status_msg: str, error_ms
         except Exception as e:
             logger.error(f"Failed to update submission status: {e}")
 
-async def save_result(exam_id: str, user_id: str, result_data: dict, started_at: datetime, attempt_id: str = None):
-    async with async_session_maker() as session:
+async def save_result(session_maker, exam_id: str, user_id: str, result_data: dict, started_at: datetime, attempt_id: str = None):
+    async with session_maker() as session:
         try:
             # Create Result
             db_result = Result(
@@ -77,35 +83,41 @@ async def save_result(exam_id: str, user_id: str, result_data: dict, started_at:
             raise
 
 async def process_grading(submission_id: str, exam_id: str, user_id: str, answers: dict, started_at: datetime = None, metadata_info: dict = None):
-    # 1. Lấy danh sách câu hỏi của exam
-    questions = await get_exam_questions(exam_id)
+    # Create a fresh engine/session for this event loop
+    sm, eng = _make_session_maker()
     
-    # 2. Chấm điểm
-    engine = GradingEngine(questions)
-    result = engine.grade(answers)
-    
-    # 3. Lưu kết quả vào database
-    attempt_id = metadata_info.get("attempt_id") if metadata_info else None
-    await save_result(exam_id, user_id, result, started_at, attempt_id)
-    
-    # 4. Cập nhật trạng thái
-    await update_submission_status(submission_id, "processed")
-    
-    # 5. Cập nhật ExamAttempt sang graded
-    if metadata_info and metadata_info.get("attempt_id"):
-        attempt_id = metadata_info.get("attempt_id")
-        from sqlalchemy import text
-        async with async_session_maker() as session:
-            try:
-                await session.execute(
-                    text("UPDATE exam_attempts SET status='graded' WHERE id = :attempt_id"),
-                    {"attempt_id": attempt_id}
-                )
-                await session.commit()
-            except Exception as e:
-                logger.error(f"Failed to update exam_attempts: {e}")
-                
-    return result
+    try:
+        # 1. Lấy danh sách câu hỏi của exam
+        questions = await get_exam_questions(exam_id)
+        
+        # 2. Chấm điểm
+        engine = GradingEngine(questions)
+        result = engine.grade(answers)
+        
+        # 3. Lưu kết quả vào database
+        attempt_id = metadata_info.get("attempt_id") if metadata_info else None
+        await save_result(sm, exam_id, user_id, result, started_at, attempt_id)
+        
+        # 4. Cập nhật trạng thái
+        await update_submission_status(sm, submission_id, "processed")
+        
+        # 5. Cập nhật ExamAttempt sang graded
+        if metadata_info and metadata_info.get("attempt_id"):
+            attempt_id = metadata_info.get("attempt_id")
+            from sqlalchemy import text
+            async with sm() as session:
+                try:
+                    await session.execute(
+                        text("UPDATE exam_attempts SET status='graded' WHERE id = :attempt_id"),
+                        {"attempt_id": attempt_id}
+                    )
+                    await session.commit()
+                except Exception as e:
+                    logger.error(f"Failed to update exam_attempts: {e}")
+                    
+        return result
+    finally:
+        await eng.dispose()
 
 @celery_app.task(
     bind=True, 
@@ -126,5 +138,10 @@ def grade_exam(self, submission_id: str, exam_id: str, user_id: str, answers: di
         
     except Exception as e:
         logger.error(f"Grading failed: {e}. Retrying...")
-        asyncio.run(update_submission_status(submission_id, "failed", str(e)))
+        sm, eng = _make_session_maker()
+        try:
+            asyncio.run(update_submission_status(sm, submission_id, "failed", str(e)))
+        except Exception:
+            pass
         raise self.retry(exc=e)
+

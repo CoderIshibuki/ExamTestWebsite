@@ -14,23 +14,22 @@ class ExamClient:
         # Assuming Exam Service HAS this endpoint:
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"{self.base_url}/api/v1/exams/{exam_id}/questions",
+                f"{self.base_url}/api/v1/exams/{exam_id}/snapshots",
                 headers={"Authorization": f"Bearer {token}"}
             )
             
             if response.status_code == 200:
-                exam_questions = response.json()
+                snapshots = response.json()
                 questions = []
-                async with httpx.AsyncClient() as q_client:
-                    for eq in exam_questions:
-                        q_id = eq.get("question_id")
-                        if not q_id: continue
-                        q_res = await q_client.get(f"{self.question_url}/api/v1/questions/{q_id}")
-                        if q_res.status_code == 200:
-                            q_data = q_res.json()
-                            q_data["point_possible"] = eq.get("point_value", 1.0)
-                            q_data["id"] = q_data.get("_id", q_id)
-                            questions.append(q_data)
+                for sn in snapshots:
+                    q_data = {
+                        "id": sn.get("question_id"),
+                        "question_text": sn.get("question_text"),
+                        "choices": sn.get("choices"),
+                        "correct_answer": sn.get("correct_answer"),
+                        "point_possible": sn.get("points", 1.0)
+                    }
+                    questions.append(q_data)
                 return questions
             
             # Fallback if the endpoint does not exist yet or doesn't return full details:
