@@ -16,6 +16,7 @@ export interface ExamState {
   status: 'idle' | 'joining' | 'in_progress' | 'submitting' | 'submitted' | 'error';
   totalQuestions: number;
   sessionId: string | null;
+  attemptId: string | null;
 }
 
 interface ExamContextType {
@@ -26,6 +27,7 @@ interface ExamContextType {
   prevQuestion: () => void;
   setStatus: (status: ExamState['status']) => void;
   setExamId: (examId: string) => void;
+  setAttemptId: (attemptId: string) => void;
 }
 
 const ExamContext = createContext<ExamContextType | undefined>(undefined);
@@ -39,6 +41,7 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     status: 'idle',
     totalQuestions: 0,
     sessionId: null,
+    attemptId: null,
   });
 
   const setQuestions = useCallback((questions: Question[]) => {
@@ -74,8 +77,12 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setState((prev) => ({ ...prev, examId }));
   }, []);
 
+  const setAttemptId = useCallback((attemptId: string) => {
+    setState((prev) => ({ ...prev, attemptId }));
+  }, []);
+
   return (
-    <ExamContext.Provider value={{ state, setQuestions, setAnswer, nextQuestion, prevQuestion, setStatus, setExamId }}>
+    <ExamContext.Provider value={{ state, setQuestions, setAnswer, nextQuestion, prevQuestion, setStatus, setExamId, setAttemptId }}>
       {children}
     </ExamContext.Provider>
   );
