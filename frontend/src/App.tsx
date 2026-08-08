@@ -2,10 +2,12 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import CameraTest from './components/CameraTest';
-
 import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import ExamList from './pages/ExamList';
+import ExamRoom from './pages/ExamRoom';
+import ResultSummary from './pages/ResultSummary';
+import CameraTest from './components/CameraTest';
 
 function App() {
   return (
@@ -17,6 +19,21 @@ function App() {
           <Route path="/dashboard" element={
             <PrivateRoute>
               <Dashboard />
+            </PrivateRoute>
+          } />
+          <Route path="/exams" element={
+            <PrivateRoute>
+              <ExamList />
+            </PrivateRoute>
+          } />
+          <Route path="/exam/:id" element={
+            <PrivateRoute>
+              <ExamRoom />
+            </PrivateRoute>
+          } />
+          <Route path="/result/:examId" element={
+            <PrivateRoute>
+              <ResultSummary />
             </PrivateRoute>
           } />
           <Route path="/camera-test" element={

@@ -33,7 +33,10 @@ const Dashboard = () => {
           <Card>
             <CardContent>
               <Typography variant="h6">My Exams</Typography>
-              <Typography variant="body2" color="text.secondary">Placeholder for future features.</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>View available exams and start taking tests.</Typography>
+              <Button variant="contained" size="small" onClick={() => navigate('/exams')}>
+                Xem danh sách kỳ thi
+              </Button>
             </CardContent>
           </Card>
         </Grid>
