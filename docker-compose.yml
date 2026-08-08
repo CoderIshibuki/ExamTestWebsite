@@ -146,6 +146,52 @@ services:
     networks:
       - exam_network
 
+  grading_service:
+    build: ./backend/grading_service
+    container_name: exam-grading-service
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-exam_db}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-key-change-in-production}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      EXAM_SERVICE_URL: http://exam_service:8000
+      QUESTION_SERVICE_URL: http://question_service:8000
+    ports:
+      - "8004:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/grading_service:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - exam_network
+
+  celery_worker:
+    build: ./backend/grading_service
+    container_name: exam-celery-worker
+    command: celery -A tasks.celery_app worker --loglevel=info
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-exam_db}
+      REDIS_URL: redis://redis:6379
+      EXAM_SERVICE_URL: http://exam_service:8000
+      QUESTION_SERVICE_URL: http://question_service:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/grading_service:/app
+    networks:
+      - exam_network
+
   nginx:
     image: nginx:alpine
     container_name: api_gateway
