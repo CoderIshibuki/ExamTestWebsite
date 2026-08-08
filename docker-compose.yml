@@ -121,6 +121,31 @@ services:
     networks:
       - exam_network
 
+  realtime_service:
+    build: ./backend/realtime_service
+    container_name: exam-realtime-service
+    environment:
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-key-change-in-production}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      EXAM_SERVICE_URL: http://exam_service:8000
+    ports:
+      - "8003:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      exam_service:
+        condition: service_healthy
+    volumes:
+      - ./backend/realtime_service:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - exam_network
+
   nginx:
     image: nginx:alpine
     container_name: api_gateway
