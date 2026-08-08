@@ -12,8 +12,9 @@ import {
   Container,
   Chip,
   Avatar,
+  Paper
 } from '@mui/material';
-import { PlayArrow, AccessTime, Autorenew } from '@mui/icons-material';
+import { PlayArrow, AccessTime, Autorenew, ErrorOutline } from '@mui/icons-material';
 import { examApi } from '../api/examApi';
 import type { Exam } from '../api/examApi';
 import { useNavigate } from 'react-router-dom';
@@ -21,15 +22,19 @@ import { useNavigate } from 'react-router-dom';
 const ExamList: React.FC = () => {
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchExams = async () => {
       try {
+        setLoading(true);
+        setError(null);
         const data = await examApi.getPublishedExams();
         setExams(data);
-      } catch (error) {
-        console.error('Failed to fetch exams', error);
+      } catch (err) {
+        console.error('Failed to fetch exams', err);
+        setError('Không thể tải danh sách bài thi. Vui lòng thử lại sau.');
       } finally {
         setLoading(false);
       }
@@ -41,12 +46,13 @@ const ExamList: React.FC = () => {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppBar position="static" elevation={0} sx={{ bgcolor: 'white', borderBottom: '1px solid #E2E8F0' }}>
         <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1, color: 'primary.main', fontWeight: 700 }}>
+          <Typography variant="h6" sx={{ flexGrow: 1, color: 'primary.main', fontWeight: 700 }} aria-label="Antigravity Exams Logo">
             Antigravity<span style={{color: '#10B981'}}>Exams</span>
           </Typography>
           <Button
             variant="outlined"
             color="inherit"
+            aria-label="Đăng xuất"
             sx={{ color: 'text.secondary', borderColor: '#E2E8F0' }}
             onClick={() => {
               localStorage.removeItem('access_token');
@@ -63,7 +69,7 @@ const ExamList: React.FC = () => {
         pt: 8, pb: 12, mb: -6 
       }}>
         <Container maxWidth="lg">
-          <Typography variant="h3" sx={{ color: 'white', fontWeight: 700, mb: 2 }}>
+          <Typography variant="h3" sx={{ color: 'white', fontWeight: 700, mb: 2 }} aria-label="Chào mừng trở lại">
             Chào mừng trở lại!
           </Typography>
           <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.8)', fontWeight: 400 }}>
@@ -74,21 +80,29 @@ const ExamList: React.FC = () => {
 
       <Container maxWidth="lg" sx={{ pb: 8 }}>
         {loading ? (
-          <Grid container spacing={4}>
+          <Grid container spacing={4} role="status" aria-busy="true">
             {[1, 2, 3].map((n) => (
               <Grid size={{ xs: 12, md: 4 }} key={n}>
                 <Skeleton variant="rectangular" height={250} sx={{ borderRadius: 4 }} />
               </Grid>
             ))}
           </Grid>
+        ) : error ? (
+          <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 4 }} role="alert">
+            <ErrorOutline color="error" sx={{ fontSize: 48, mb: 2 }} />
+            <Typography variant="h6" color="error">{error}</Typography>
+            <Button variant="contained" sx={{ mt: 3 }} onClick={() => window.location.reload()} aria-label="Thử lại">
+              Thử lại
+            </Button>
+          </Paper>
         ) : exams.length === 0 ? (
-          <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 4 }}>
+          <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 4 }} role="status">
             <Typography variant="h6" color="text.secondary">Chưa có bài thi nào được mở.</Typography>
           </Paper>
         ) : (
-          <Grid container spacing={4}>
+          <Grid container spacing={4} role="list" aria-label="Danh sách bài thi">
             {exams.map((exam) => (
-              <Grid size={{ xs: 12, md: 4 }} key={exam.id}>
+              <Grid size={{ xs: 12, md: 4 }} key={exam.id} role="listitem">
                 <Card
                   sx={{
                     height: '100%',
@@ -101,7 +115,7 @@ const ExamList: React.FC = () => {
                 >
                   <CardContent sx={{ flexGrow: 1, p: 3 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                      <Avatar sx={{ bgcolor: 'primary.light', color: 'primary.dark', width: 48, height: 48 }}>
+                      <Avatar sx={{ bgcolor: 'primary.light', color: 'primary.dark', width: 48, height: 48 }} aria-hidden="true">
                         {exam.title.charAt(0)}
                       </Avatar>
                       <Chip label="Đang mở" color="success" size="small" sx={{ fontWeight: 600 }} />
@@ -115,12 +129,12 @@ const ExamList: React.FC = () => {
                     
                     <Box sx={{ display: 'flex', gap: 2, mb: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary' }}>
-                        <AccessTime sx={{ fontSize: 18, mr: 0.5 }} />
-                        <Typography variant="body2">{exam.duration_minutes} phút</Typography>
+                        <AccessTime sx={{ fontSize: 18, mr: 0.5 }} aria-hidden="true" />
+                        <Typography variant="body2" aria-label={`Thời gian ${exam.duration_minutes} phút`}>{exam.duration_minutes} phút</Typography>
                       </Box>
                       <Box sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary' }}>
-                        <Autorenew sx={{ fontSize: 18, mr: 0.5 }} />
-                        <Typography variant="body2">Tối đa {exam.max_attempts} lần</Typography>
+                        <Autorenew sx={{ fontSize: 18, mr: 0.5 }} aria-hidden="true" />
+                        <Typography variant="body2" aria-label={`Tối đa ${exam.max_attempts} lần thử`}>Tối đa {exam.max_attempts} lần</Typography>
                       </Box>
                     </Box>
                   </CardContent>
@@ -131,6 +145,7 @@ const ExamList: React.FC = () => {
                       size="large"
                       startIcon={<PlayArrow />}
                       onClick={() => navigate(`/exam/${exam.id}`)}
+                      aria-label={`Bắt đầu bài thi ${exam.title}`}
                     >
                       Bắt đầu làm bài
                     </Button>

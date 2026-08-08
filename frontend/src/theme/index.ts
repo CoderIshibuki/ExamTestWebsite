@@ -84,7 +84,7 @@ const theme = createTheme({
             boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
           },
         },
-        containedPrimary: {
+        contained: {
           background: 'linear-gradient(135deg, #4F46E5 0%, #3B82F6 100%)',
           '&:hover': {
             background: 'linear-gradient(135deg, #4338CA 0%, #2563EB 100%)',

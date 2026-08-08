@@ -183,6 +183,13 @@ async def submit_exam(
     if attempt.status != "in_progress":
         raise HTTPException(status_code=400, detail="Attempt is already submitted or expired")
         
+    import datetime
+    if datetime.datetime.now(datetime.timezone.utc) > attempt.expires_at:
+        attempt.status = "submitted" # Or auto_submitted, but submitted works
+        attempt.submitted_at = datetime.datetime.now(datetime.timezone.utc)
+        await db.commit()
+        # Even if expired, we trigger grading. The student just submitted late, no new answers were saved.
+        
     submitted_attempt = await crud.submit_exam_attempt(db, attempt_id)
     
     # Fetch all answers for this attempt

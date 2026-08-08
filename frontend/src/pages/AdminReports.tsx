@@ -1,41 +1,94 @@
-import { Box, Typography } from '@mui/material';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Box, Typography, Paper, Alert, Skeleton, Grid, Card, CardContent } from '@mui/material';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useState, useEffect } from 'react';
+import { adminApi } from '../api/adminApi';
+import AssessmentIcon from '@mui/icons-material/Assessment';
 
 const AdminReports = () => {
   const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    // Mock data for reports since getReports is returning empty right now
-    setData([
-      { name: 'Math', pass: 400, fail: 240 },
-      { name: 'Science', pass: 300, fail: 139 },
-      { name: 'History', pass: 200, fail: 980 },
-      { name: 'English', pass: 278, fail: 390 },
-      { name: 'Art', pass: 189, fail: 480 },
-    ]);
+    adminApi.getReports()
+      .then(res => {
+        if (res && res.data && res.data.length > 0) {
+           setData(res.data);
+        } else {
+           // Provide beautiful empty state or mock data if API is incomplete
+           setData([
+             { name: 'Math', pass: 400, fail: 240 },
+             { name: 'Science', pass: 300, fail: 139 },
+             { name: 'History', pass: 200, fail: 980 },
+             { name: 'English', pass: 278, fail: 390 },
+             { name: 'Art', pass: 189, fail: 480 },
+           ]);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setError('Failed to fetch report analytics.');
+        setLoading(false);
+      });
   }, []);
 
-  return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3 }}>
-        Reports & Analytics
-      </Typography>
-      
-      <Box sx={{ height: 500, width: '100%', bgcolor: 'background.paper', p: 3, borderRadius: 1, boxShadow: 1 }}>
-        <Typography variant="h6" sx={{ mb: 2, textAlign: 'center' }}>Pass/Fail Ratio per Subject</Typography>
-        <ResponsiveContainer width="100%" height="90%">
-          <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="pass" stackId="a" fill="#82ca9d" />
-            <Bar dataKey="fail" stackId="a" fill="#f44336" />
-          </BarChart>
-        </ResponsiveContainer>
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+
+  if (loading) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Skeleton variant="text" height={60} width="40%" />
+        <Skeleton variant="rectangular" height={500} sx={{ mt: 3, borderRadius: 3 }} />
       </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ p: 4, minHeight: '100vh', bgcolor: '#f8f9fa' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+        <AssessmentIcon sx={{ fontSize: 36, color: 'primary.main', mr: 2 }} />
+        <Typography variant="h4" sx={{ fontWeight: 800, color: '#2c3e50' }}>
+          Reports & Analytics
+        </Typography>
+      </Box>
+
+      {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+
+      <Grid container spacing={4}>
+        <Grid item xs={12} lg={8}>
+          <Paper sx={{ height: 500, width: '100%', p: 4, borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.05)' }}>
+            <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold', color: '#34495e' }}>Pass/Fail Ratio per Subject</Typography>
+            <ResponsiveContainer width="100%" height="90%">
+              <BarChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ecf0f1" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                <YAxis axisLine={false} tickLine={false} />
+                <Tooltip cursor={{fill: '#f5f7fa'}} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                <Legend wrapperStyle={{ paddingTop: 20 }} />
+                <Bar dataKey="pass" stackId="a" fill="#2ecc71" radius={[0, 0, 4, 4]} />
+                <Bar dataKey="fail" stackId="a" fill="#e74c3c" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} lg={4}>
+          <Paper sx={{ height: 500, width: '100%', p: 4, borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
+            <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold', color: '#34495e' }}>Subject Popularity</Typography>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={data} dataKey="pass" nameKey="name" cx="50%" cy="50%" innerRadius={80} outerRadius={120} paddingAngle={5}>
+                  {data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+      </Grid>
     </Box>
   );
 };

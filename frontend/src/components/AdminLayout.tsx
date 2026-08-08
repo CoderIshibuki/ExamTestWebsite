@@ -2,7 +2,7 @@ import { Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText
 import { Dashboard as DashboardIcon, People as PeopleIcon, Assignment as AssignmentIcon, Assessment as AssessmentIcon, Article as ArticleIcon, ExitToApp as ExitToAppIcon } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { ReactNode, useContext } from 'react';
+import { useContext, type ReactNode } from 'react';
 
 const DRAWER_WIDTH = 240;
 
