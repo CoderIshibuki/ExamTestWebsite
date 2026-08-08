@@ -47,7 +47,8 @@ async def submit_exam(
         str(submission.exam_id),
         str(submission.user_id),
         submission.answers,
-        None
+        None,
+        submission.metadata_info
     )
 
     return {

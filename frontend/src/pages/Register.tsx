@@ -27,7 +27,8 @@ const Register = () => {
   const onSubmit = async (data: RegisterSchema) => {
     try {
       setError(null);
-      await axios.post(`${import.meta.env.VITE_API_URL}/auth/register`, data, {
+      const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+      await axios.post(`${API_URL}/auth/register`, data, {
         headers: {
           'Content-Type': 'application/json',
         },

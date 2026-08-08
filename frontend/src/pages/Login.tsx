@@ -29,7 +29,8 @@ const Login = () => {
       formData.append('username', data.username);
       formData.append('password', data.password);
 
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, formData, {
+      const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+      const response = await axios.post(`${API_URL}/auth/login`, formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },

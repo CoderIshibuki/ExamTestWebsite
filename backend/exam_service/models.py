@@ -78,3 +78,39 @@ class ExamAssignment(Base):
     __table_args__ = (
         Index("idx_exam_assignments_teacher_id", "teacher_id"),
     )
+
+class ExamAttempt(Base):
+    __tablename__ = "exam_attempts"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    exam_id = Column(UUID(as_uuid=True), ForeignKey("exams.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String(50), nullable=False)
+    attempt_number = Column(Integer, default=1)
+    status = Column(String(20), default="NOT_STARTED")  # NOT_STARTED, IN_PROGRESS, SUBMITTED, AUTO_SUBMITTED, GRADED, CANCELLED
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    submitted_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    exam = relationship("Exam")
+    answers = relationship("ExamAttemptAnswer", back_populates="attempt", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index("idx_exam_attempts_exam_user", "exam_id", "user_id"),
+        Index("idx_exam_attempts_status", "status"),
+    )
+
+class ExamAttemptAnswer(Base):
+    __tablename__ = "exam_attempt_answers"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    attempt_id = Column(UUID(as_uuid=True), ForeignKey("exam_attempts.id", ondelete="CASCADE"), nullable=False)
+    question_id = Column(String(64), nullable=False)
+    selected_answer = Column(Text, nullable=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    attempt = relationship("ExamAttempt", back_populates="answers")
+
+    __table_args__ = (
+        Index("idx_exam_attempt_answers_attempt_question", "attempt_id", "question_id", unique=True),
+    )

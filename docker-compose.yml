@@ -105,7 +105,7 @@ services:
     container_name: exam-exam-service
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-exam_db}
-      JWT_SECRET: ${JWT_SECRET:-your-super-secret-key-change-in-production}
+      JWT_SECRET: ${JWT_SECRET}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
       QUESTION_SERVICE_URL: http://question_service:8000
     ports:
@@ -130,7 +130,7 @@ services:
     container_name: exam-realtime-service
     environment:
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET:-your-super-secret-key-change-in-production}
+      JWT_SECRET: ${JWT_SECRET}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
       EXAM_SERVICE_URL: http://exam_service:8000
     ports:

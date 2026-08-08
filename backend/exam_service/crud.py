@@ -92,3 +92,81 @@ async def add_exam_assignment(db: AsyncSession, exam_id: str, assignment: schema
     await db.commit()
     await db.refresh(db_assignment)
     return db_assignment
+
+# --- Exam Attempts ---
+from datetime import datetime, timedelta, timezone
+
+async def get_active_exam_attempt(db: AsyncSession, exam_id: str, user_id: str) -> Optional[models.ExamAttempt]:
+    result = await db.execute(
+        select(models.ExamAttempt)
+        .filter(models.ExamAttempt.exam_id == UUID(exam_id))
+        .filter(models.ExamAttempt.user_id == user_id)
+        .filter(models.ExamAttempt.status == "in_progress")
+    )
+    return result.scalars().first()
+
+async def get_exam_attempt_count(db: AsyncSession, exam_id: str, user_id: str) -> int:
+    result = await db.execute(
+        select(func.count(models.ExamAttempt.id))
+        .filter(models.ExamAttempt.exam_id == UUID(exam_id))
+        .filter(models.ExamAttempt.user_id == user_id)
+    )
+    return result.scalar_one()
+
+async def create_exam_attempt(db: AsyncSession, exam_id: str, user_id: str, duration_minutes: int) -> models.ExamAttempt:
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(minutes=duration_minutes)
+    
+    attempt_count = await get_exam_attempt_count(db, exam_id, user_id)
+    
+    attempt = models.ExamAttempt(
+        exam_id=UUID(exam_id),
+        user_id=user_id,
+        attempt_number=attempt_count + 1,
+        status="in_progress",
+        started_at=now,
+        expires_at=expires_at
+    )
+    db.add(attempt)
+    await db.commit()
+    await db.refresh(attempt)
+    return attempt
+
+async def get_exam_attempt(db: AsyncSession, attempt_id: str) -> Optional[models.ExamAttempt]:
+    result = await db.execute(
+        select(models.ExamAttempt)
+        .filter(models.ExamAttempt.id == UUID(attempt_id))
+    )
+    return result.scalars().first()
+
+async def upsert_exam_attempt_answer(db: AsyncSession, attempt_id: str, question_id: str, selected_answer: str) -> models.ExamAttemptAnswer:
+    result = await db.execute(
+        select(models.ExamAttemptAnswer)
+        .filter(models.ExamAttemptAnswer.attempt_id == UUID(attempt_id))
+        .filter(models.ExamAttemptAnswer.question_id == question_id)
+    )
+    answer = result.scalars().first()
+    
+    if answer:
+        answer.selected_answer = selected_answer
+        answer.updated_at = func.now()
+    else:
+        answer = models.ExamAttemptAnswer(
+            attempt_id=UUID(attempt_id),
+            question_id=question_id,
+            selected_answer=selected_answer
+        )
+        db.add(answer)
+        
+    await db.commit()
+    await db.refresh(answer)
+    return answer
+
+async def submit_exam_attempt(db: AsyncSession, attempt_id: str) -> models.ExamAttempt:
+    attempt = await get_exam_attempt(db, attempt_id)
+    if attempt and attempt.status == "in_progress":
+        attempt.status = "submitted"
+        attempt.submitted_at = datetime.now(timezone.utc)
+        await db.commit()
+        await db.refresh(attempt)
+    return attempt

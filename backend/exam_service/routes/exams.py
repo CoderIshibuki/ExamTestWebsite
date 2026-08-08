@@ -115,3 +115,102 @@ async def publish_exam(
     await cache.invalidate_pattern("exams:list:*")
     await cache.invalidate(f"exam:{exam_id}")
     return updated
+
+@router.post("/{exam_id}/start", response_model=schemas.ExamAttemptResponse)
+async def start_exam(
+    exam_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    exam = await crud.get_exam_by_id(db, exam_id)
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+        
+    if exam.status != "published":
+        raise HTTPException(status_code=400, detail="Exam is not published yet")
+
+    active_attempt = await crud.get_active_exam_attempt(db, exam_id, current_user["id"])
+    if active_attempt:
+        return active_attempt
+        
+    attempt_count = await crud.get_exam_attempt_count(db, exam_id, current_user["id"])
+    if exam.max_attempts and attempt_count >= exam.max_attempts:
+        raise HTTPException(status_code=403, detail="Maximum attempts reached")
+
+    attempt = await crud.create_exam_attempt(db, exam_id, current_user["id"], exam.duration_minutes)
+    return attempt
+
+@router.post("/attempts/{attempt_id}/answers", response_model=schemas.ExamAttemptAnswerResponse)
+async def save_answer(
+    attempt_id: str,
+    answer: schemas.ExamAttemptAnswerCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    attempt = await crud.get_exam_attempt(db, attempt_id)
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Attempt not found")
+        
+    if attempt.user_id != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+        
+    if attempt.status != "in_progress":
+        raise HTTPException(status_code=400, detail="Attempt is already submitted or expired")
+        
+    import datetime
+    if datetime.datetime.now(datetime.timezone.utc) > attempt.expires_at:
+        attempt.status = "submitted"
+        attempt.submitted_at = datetime.datetime.now(datetime.timezone.utc)
+        await db.commit()
+        raise HTTPException(status_code=400, detail="Exam time expired")
+        
+    saved_answer = await crud.upsert_exam_attempt_answer(db, attempt_id, answer.question_id, answer.selected_answer)
+    return saved_answer
+
+@router.post("/attempts/{attempt_id}/submit", response_model=schemas.ExamAttemptResponse)
+async def submit_exam(
+    attempt_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    attempt = await crud.get_exam_attempt(db, attempt_id)
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Attempt not found")
+        
+    if attempt.user_id != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+        
+    if attempt.status != "in_progress":
+        raise HTTPException(status_code=400, detail="Attempt is already submitted or expired")
+        
+    submitted_attempt = await crud.submit_exam_attempt(db, attempt_id)
+    
+    # Fetch all answers for this attempt
+    from sqlalchemy.future import select
+    import models as m
+    result = await db.execute(select(m.ExamAttemptAnswer).where(m.ExamAttemptAnswer.attempt_id == attempt.id))
+    answers = result.scalars().all()
+    
+    answers_dict = {str(a.question_id): a.selected_answer for a in answers}
+    
+    # Call grading service
+    import httpx
+    from config import settings
+    try:
+        async with httpx.AsyncClient() as client:
+            payload = {
+                "exam_id": str(attempt.exam_id),
+                "user_id": attempt.user_id,
+                "answers": answers_dict,
+                "metadata_info": {"attempt_id": str(attempt.id)}
+            }
+            # Create a system token for internal communication if needed, or pass current user token
+            # We'll just pass a system token
+            import jwt
+            token = jwt.encode({"sub": current_user["id"], "role": current_user["role"]}, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+            headers = {"Authorization": f"Bearer {token}"}
+            await client.post(f"{settings.GRADING_SERVICE_URL}/api/v1/grading/submit", json=payload, headers=headers)
+    except Exception as e:
+        print(f"Error calling grading service: {e}")
+        
+    return submitted_attempt

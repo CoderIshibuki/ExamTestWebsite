@@ -150,7 +150,7 @@ async def refresh_token(request: Request, body: RefreshTokenRequest, db: AsyncSe
     
     return {"access_token": access_token, "refresh_token": new_refresh_token, "token_type": "bearer"}
 
-@app.get("/api/v1/auth/users", response_model=list[schemas.UserResponse])
+@app.get("/users", response_model=list[schemas.UserResponse])
 async def list_users(
     skip: int = 0, limit: int = 100, role: str = None, 
     current_user: models.User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
@@ -164,7 +164,7 @@ async def list_users(
     result = await db.execute(query)
     return result.scalars().all()
 
-@app.put("/api/v1/auth/users/{user_id}", response_model=schemas.UserResponse)
+@app.put("/users/{user_id}", response_model=schemas.UserResponse)
 async def update_user(
     user_id: str, user_update: schemas.UserUpdate, 
     db: AsyncSession = Depends(get_db),
@@ -186,7 +186,7 @@ async def update_user(
     await db.refresh(user)
     return user
 
-@app.delete("/api/v1/auth/users/{user_id}")
+@app.delete("/users/{user_id}")
 async def delete_user(
     user_id: str, 
     db: AsyncSession = Depends(get_db),

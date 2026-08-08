@@ -90,3 +90,35 @@ class GenerateExamRequest(BaseModel):
     num_questions: int = Field(gt=0)
     question_types: List[str]
     point_per_question: float = 1.0
+
+class ExamAttemptBase(BaseModel):
+    pass
+
+class ExamAttemptCreate(ExamAttemptBase):
+    pass
+
+class ExamAttemptResponse(ExamAttemptBase):
+    id: UUID
+    exam_id: UUID
+    user_id: str
+    attempt_number: int
+    status: str
+    started_at: datetime
+    expires_at: datetime
+    submitted_at: Optional[datetime] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class ExamAttemptAnswerCreate(BaseModel):
+    question_id: str
+    selected_answer: str
+
+class ExamAttemptAnswerResponse(BaseModel):
+    id: UUID
+    attempt_id: UUID
+    question_id: str
+    selected_answer: str
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

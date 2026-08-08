@@ -4,6 +4,8 @@ from routes import exams, questions, schedules, assignments
 from contextlib import asynccontextmanager
 from database import engine
 import models
+import os
+import json
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

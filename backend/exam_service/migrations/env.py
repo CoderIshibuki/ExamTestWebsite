@@ -60,8 +60,8 @@ def run_migrations_offline() -> None:
 
 
 def include_object(object, name, type_, reflected, compare_to):
-    if type_ == "table" and name in ("users", "alembic_version"):
-        return False
+    if type_ == "table":
+        return name in target_metadata.tables
     return True
 
 def do_run_migrations(connection: Connection) -> None:

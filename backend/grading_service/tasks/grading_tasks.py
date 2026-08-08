@@ -20,7 +20,7 @@ from jose import jwt
 
 async def get_exam_questions(exam_id: str):
     client = ExamClient()
-    secret = os.getenv("JWT_SECRET", "your-super-secret-key-change-in-production")
+    secret = os.environ["JWT_SECRET"]
     algorithm = os.getenv("JWT_ALGORITHM", "HS256")
     token = jwt.encode({"sub": "system", "role": "admin"}, secret, algorithm=algorithm)
     return await client.get_exam_questions(exam_id, token)
@@ -75,7 +75,7 @@ async def save_result(exam_id: str, user_id: str, result_data: dict, started_at:
             await session.rollback()
             raise
 
-async def process_grading(submission_id: str, exam_id: str, user_id: str, answers: dict, started_at: datetime = None):
+async def process_grading(submission_id: str, exam_id: str, user_id: str, answers: dict, started_at: datetime = None, metadata_info: dict = None):
     # 1. Lấy danh sách câu hỏi của exam
     questions = await get_exam_questions(exam_id)
     
@@ -89,6 +89,20 @@ async def process_grading(submission_id: str, exam_id: str, user_id: str, answer
     # 4. Cập nhật trạng thái
     await update_submission_status(submission_id, "processed")
     
+    # 5. Cập nhật ExamAttempt sang graded
+    if metadata_info and metadata_info.get("attempt_id"):
+        attempt_id = metadata_info.get("attempt_id")
+        from sqlalchemy import text
+        async with async_session_maker() as session:
+            try:
+                await session.execute(
+                    text("UPDATE exam_attempts SET status='graded' WHERE id = :attempt_id"),
+                    {"attempt_id": attempt_id}
+                )
+                await session.commit()
+            except Exception as e:
+                logger.error(f"Failed to update exam_attempts: {e}")
+                
     return result
 
 @celery_app.task(
@@ -98,13 +112,13 @@ async def process_grading(submission_id: str, exam_id: str, user_id: str, answer
     acks_late=True,
     reject_on_worker_lost=True
 )
-def grade_exam(self, submission_id: str, exam_id: str, user_id: str, answers: dict, started_at: str = None):
+def grade_exam(self, submission_id: str, exam_id: str, user_id: str, answers: dict, started_at: str = None, metadata_info: dict = None):
     """Task chấm điểm bất đồng bộ"""
     try:
         dt_started_at = datetime.fromisoformat(started_at) if started_at else None
         
         result = asyncio.run(
-            process_grading(submission_id, exam_id, user_id, answers, dt_started_at)
+            process_grading(submission_id, exam_id, user_id, answers, dt_started_at, metadata_info)
         )
         return {"status": "success", "result": result}
         

@@ -78,10 +78,17 @@ async def update_question(
     question: schemas.QuestionUpdate,
     current_user: dict = Depends(require_role(["teacher", "admin"]))
 ):
+    existing_q = await crud.get_question(id)
+    if not existing_q:
+        raise HTTPException(status_code=404, detail="Question not found")
+        
+    if current_user["role"] != "admin" and existing_q.get("created_by") != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Permission denied")
+        
     update_data = question.model_dump(exclude_unset=True)
     q = await crud.update_question(id, update_data)
     if not q:
-        raise HTTPException(status_code=404, detail="Question not found or update failed")
+        raise HTTPException(status_code=404, detail="Update failed")
     await cache.invalidate_pattern("questions:list:*")
     await cache.invalidate(f"question:{id}")
     return q
@@ -89,11 +96,18 @@ async def update_question(
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_question(
     id: str,
-    current_user: dict = Depends(require_role(["admin"]))
+    current_user: dict = Depends(require_role(["teacher", "admin"]))
 ):
+    existing_q = await crud.get_question(id)
+    if not existing_q:
+        raise HTTPException(status_code=404, detail="Question not found")
+        
+    if current_user["role"] != "admin" and existing_q.get("created_by") != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Permission denied")
+        
     success = await crud.delete_question(id)
     if not success:
-        raise HTTPException(status_code=404, detail="Question not found")
+        raise HTTPException(status_code=404, detail="Delete failed")
     await cache.invalidate_pattern("questions:list:*")
     await cache.invalidate(f"question:{id}")
     return None
