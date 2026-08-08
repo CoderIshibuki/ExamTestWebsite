@@ -209,10 +209,9 @@ async def submit_exam(
                 "answers": answers_dict,
                 "metadata_info": {"attempt_id": str(attempt.id)}
             }
-            # Create a system token for internal communication if needed, or pass current user token
-            # We'll just pass a system token
+            # Create a system token for internal communication
             import jwt
-            token = jwt.encode({"sub": current_user["id"], "role": current_user["role"]}, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+            token = jwt.encode({"sub": "system", "role": "system"}, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
             headers = {"Authorization": f"Bearer {token}"}
             await client.post(f"{settings.GRADING_SERVICE_URL}/api/v1/grading/submit", json=payload, headers=headers)
     except Exception as e:

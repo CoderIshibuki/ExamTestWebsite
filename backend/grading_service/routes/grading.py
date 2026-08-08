@@ -17,8 +17,8 @@ async def submit_exam(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    if str(submission.user_id) != current_user["id"] and current_user["role"] not in ["admin", "teacher"]:
-        raise HTTPException(status_code=403, detail="Cannot submit for another user")
+    if current_user.get("role") != "system":
+        raise HTTPException(status_code=403, detail="Direct grading submission not allowed. Internal route only.")
         
     # Check if result already exists for this attempt
     attempt_id = submission.metadata_info.get("attempt_id") if submission.metadata_info else None
