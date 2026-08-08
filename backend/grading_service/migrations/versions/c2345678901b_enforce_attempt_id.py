@@ -28,9 +28,11 @@ def upgrade() -> None:
     print(f"Migration: Found {results_null} results and {submissions_null} submissions with NULL attempt_id.")
     
     if results_null > 0 or submissions_null > 0:
-        print("Migration: Deleting legacy orphan records without attempt_id to preserve data integrity.")
-        bind.execute(sa.text("DELETE FROM results WHERE attempt_id IS NULL"))
-        bind.execute(sa.text("DELETE FROM submissions WHERE attempt_id IS NULL"))
+        raise Exception(
+            f"Migration failed safely: Found {results_null} legacy results and {submissions_null} legacy submissions "
+            f"with NULL attempt_id. Do not silently delete or corrupt this data. "
+            f"Please manually map these records to their corresponding ExamAttempt before applying this constraint."
+        )
 
     # 2. Alter column to NOT NULL
     op.alter_column('results', 'attempt_id', existing_type=postgresql.UUID(as_uuid=True), nullable=False)
