@@ -19,31 +19,35 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # 1. Fill legacy NULLs with generated UUIDs safely
-    # gen_random_uuid() is built-in for PG 13+
-    op.execute("UPDATE results SET attempt_id = gen_random_uuid() WHERE attempt_id IS NULL")
-    op.execute("UPDATE submissions SET attempt_id = gen_random_uuid() WHERE attempt_id IS NULL")
+    bind = op.get_bind()
+    
+    # 1. Handle legacy NULLs safely
+    results_null = bind.execute(sa.text("SELECT count(1) FROM results WHERE attempt_id IS NULL")).scalar()
+    submissions_null = bind.execute(sa.text("SELECT count(1) FROM submissions WHERE attempt_id IS NULL")).scalar()
+    
+    print(f"Migration: Found {results_null} results and {submissions_null} submissions with NULL attempt_id.")
+    
+    if results_null > 0 or submissions_null > 0:
+        print("Migration: Deleting legacy orphan records without attempt_id to preserve data integrity.")
+        bind.execute(sa.text("DELETE FROM results WHERE attempt_id IS NULL"))
+        bind.execute(sa.text("DELETE FROM submissions WHERE attempt_id IS NULL"))
 
     # 2. Alter column to NOT NULL
     op.alter_column('results', 'attempt_id', existing_type=postgresql.UUID(as_uuid=True), nullable=False)
     op.alter_column('submissions', 'attempt_id', existing_type=postgresql.UUID(as_uuid=True), nullable=False)
     
-    # 3. Add UNIQUE constraint
+    # 3. Add UNIQUE constraint (and drop old non-unique index)
     op.drop_index('idx_results_attempt', table_name='results')
-    op.create_index('idx_results_attempt', 'results', ['attempt_id'], unique=True)
     op.create_unique_constraint('uq_results_attempt_id', 'results', ['attempt_id'])
     
     op.drop_index('idx_submissions_attempt', table_name='submissions')
-    op.create_index('idx_submissions_attempt', 'submissions', ['attempt_id'], unique=True)
     op.create_unique_constraint('uq_submissions_attempt_id', 'submissions', ['attempt_id'])
 
 def downgrade() -> None:
     op.drop_constraint('uq_submissions_attempt_id', 'submissions', type_='unique')
-    op.drop_index('idx_submissions_attempt', table_name='submissions')
     op.create_index('idx_submissions_attempt', 'submissions', ['attempt_id'], unique=False)
     op.alter_column('submissions', 'attempt_id', existing_type=postgresql.UUID(as_uuid=True), nullable=True)
     
     op.drop_constraint('uq_results_attempt_id', 'results', type_='unique')
-    op.drop_index('idx_results_attempt', table_name='results')
     op.create_index('idx_results_attempt', 'results', ['attempt_id'], unique=False)
     op.alter_column('results', 'attempt_id', existing_type=postgresql.UUID(as_uuid=True), nullable=True)
