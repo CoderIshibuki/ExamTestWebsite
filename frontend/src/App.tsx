@@ -43,7 +43,7 @@ function App() {
               </ExamProvider>
             </PrivateRoute>
           } />
-          <Route path="/result/:examId" element={
+          <Route path="/result/:attemptId" element={
             <PrivateRoute>
               <ResultSummary />
             </PrivateRoute>

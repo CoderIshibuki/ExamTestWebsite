@@ -4,10 +4,10 @@ from datetime import datetime
 from uuid import UUID
 
 class SubmissionCreate(BaseModel):
+    attempt_id: UUID
     exam_id: UUID
     user_id: str
     answers: Dict[str, str]
-    metadata_info: Optional[Dict] = None
 
 class QuestionResultSchema(BaseModel):
     question_id: str

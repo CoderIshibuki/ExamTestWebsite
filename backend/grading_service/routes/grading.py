@@ -21,44 +21,32 @@ async def submit_exam(
         raise HTTPException(status_code=403, detail="Direct grading submission not allowed. Internal route only.")
         
     # Check if result already exists for this attempt
-    attempt_id = submission.metadata_info.get("attempt_id") if submission.metadata_info else None
+    attempt_id = str(submission.attempt_id)
     
-    if attempt_id:
-        stmt = select(models.Result).where(models.Result.attempt_id == UUID(attempt_id))
-        result = await db.execute(stmt)
-        if result.scalars().first():
-            raise HTTPException(status_code=400, detail="Attempt already graded")
-    else:
-        # Legacy fallback
-        stmt = select(models.Result).where(
-            models.Result.exam_id == submission.exam_id,
-            models.Result.user_id == submission.user_id
-        )
-        result = await db.execute(stmt)
-        if result.scalars().first():
-            raise HTTPException(status_code=400, detail="Exam already submitted")
+    stmt = select(models.Result).where(models.Result.attempt_id == UUID(attempt_id))
+    result = await db.execute(stmt)
+    if result.scalars().first():
+        raise HTTPException(status_code=400, detail="Attempt already graded")
 
     # Create submission record
     db_submission = models.Submission(
-        attempt_id=UUID(attempt_id) if attempt_id else None,
+        attempt_id=UUID(attempt_id),
         exam_id=submission.exam_id,
         user_id=submission.user_id,
-        answers=submission.answers,
-        metadata_info=submission.metadata_info
+        answers=submission.answers
     )
     db.add(db_submission)
     await db.commit()
     await db.refresh(db_submission)
 
     # Queue Celery task
-    # Note: We pass started_at if we had it, but for now just pass None
     grade_exam.delay(
         str(db_submission.id),
         str(submission.exam_id),
         str(submission.user_id),
         submission.answers,
         None,
-        submission.metadata_info
+        {"attempt_id": attempt_id}
     )
 
     return {
@@ -67,25 +55,23 @@ async def submit_exam(
         "message": "Exam submitted and is being graded."
     }
 
-@router.get("/result/{exam_id}/{user_id}", response_model=schemas.ResultResponse)
+@router.get("/result/{attempt_id}", response_model=schemas.ResultResponse)
 async def get_exam_result(
-    exam_id: UUID,
-    user_id: str,
+    attempt_id: UUID,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    if str(user_id) != current_user["id"] and current_user["role"] not in ["admin", "teacher"]:
-        raise HTTPException(status_code=403, detail="Access denied")
-        
     stmt = select(models.Result).where(
-        models.Result.exam_id == exam_id,
-        models.Result.user_id == user_id
-    ).order_by(models.Result.created_at.desc())
+        models.Result.attempt_id == attempt_id
+    )
     result = await db.execute(stmt)
     db_result = result.scalars().first()
     
     if not db_result:
         raise HTTPException(status_code=404, detail="Result not found or not graded yet")
+        
+    if str(db_result.user_id) != current_user["id"] and current_user["role"] not in ["admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Access denied")
         
     return db_result
 

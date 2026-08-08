@@ -16,8 +16,8 @@ export interface ExamResult {
 }
 
 export const gradingApi = {
-  getExamResult: async (examId: string, userId: string): Promise<ExamResult> => {
-    const response = await apiClient.get(`/v1/grading/result/${examId}/${userId}`);
+  getExamResult: async (attemptId: string): Promise<ExamResult> => {
+    const response = await apiClient.get(`/v1/grading/result/${attemptId}`);
     return response.data;
   }
 };

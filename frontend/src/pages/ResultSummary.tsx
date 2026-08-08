@@ -6,24 +6,24 @@ import { gradingApi } from '../api/gradingApi';
 import type { ExamResult } from '../api/gradingApi';
 
 const ResultSummary: React.FC = () => {
-  const { examId } = useParams<{ examId: string }>();
+  const { attemptId } = useParams<{ attemptId: string }>();
   const navigate = useNavigate();
   const [result, setResult] = useState<ExamResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const userId = 'current_user_id'; // In a real app, this would come from AuthContext
+  // In a real app, this would come from AuthContext
 
   useEffect(() => {
-    if (examId) {
+    if (attemptId) {
       setLoading(true);
       setError(null);
       gradingApi
-        .getExamResult(examId, userId)
+        .getExamResult(attemptId)
         .then(setResult)
         .catch(() => setError('Không thể tải kết quả. Vui lòng thử lại sau.'))
         .finally(() => setLoading(false));
     }
-  }, [examId]);
+  }, [attemptId]);
 
   if (loading) {
     return (

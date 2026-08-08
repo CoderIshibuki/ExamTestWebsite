@@ -49,7 +49,7 @@ const ExamRoom: React.FC = () => {
     setStatus('submitting');
     try {
       await examApi.submitExam(state.attemptId);
-      navigate(`/result/${examId}`);
+      navigate(`/result/${state.attemptId}`);
     } catch (err) {
       console.error('Failed to submit exam:', err);
       setStatus('error');

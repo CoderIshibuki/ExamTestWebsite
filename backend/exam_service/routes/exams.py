@@ -204,10 +204,10 @@ async def submit_exam(
     try:
         async with httpx.AsyncClient() as client:
             payload = {
+                "attempt_id": attempt_id,
                 "exam_id": str(attempt.exam_id),
-                "user_id": attempt.user_id,
-                "answers": answers_dict,
-                "metadata_info": {"attempt_id": str(attempt.id)}
+                "user_id": str(attempt.user_id),
+                "answers": answers_dict
             }
             # Create a system token for internal communication
             import jwt

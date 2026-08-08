@@ -186,19 +186,6 @@ async def submit_exam_attempt(db: AsyncSession, attempt_id: str):
         )
         .values(status="submitted", submitted_at=now)
     )
-    if result.rowcount > 0:
-        await db.commit()
-        return await get_exam_attempt(db, attempt_id), True
-        
-    result_expired = await db.execute(
-        update(models.ExamAttempt)
-        .where(
-            models.ExamAttempt.id == UUID(attempt_id), 
-            models.ExamAttempt.status == "in_progress",
-            models.ExamAttempt.expires_at < now
-        )
-        .values(status="submitted", submitted_at=now)
-    )
-    updated = result_expired.rowcount > 0
+    updated = result.rowcount > 0
     await db.commit()
     return await get_exam_attempt(db, attempt_id), updated
