@@ -26,7 +26,29 @@ async def submit_exam(
     stmt = select(models.Result).where(models.Result.attempt_id == UUID(attempt_id))
     result = await db.execute(stmt)
     if result.scalars().first():
-        raise HTTPException(status_code=400, detail="Attempt already graded")
+        # Check if submission exists
+        sub_stmt = select(models.Submission).where(models.Submission.attempt_id == UUID(attempt_id))
+        sub_res = await db.execute(sub_stmt)
+        existing_sub = sub_res.scalars().first()
+        if existing_sub:
+            return {
+                "submission_id": str(existing_sub.id),
+                "status": "already_processed",
+                "message": "Attempt already graded"
+            }
+        else:
+            raise HTTPException(status_code=400, detail="Attempt already graded but submission missing")
+
+    # Check if submission already exists (idempotency)
+    sub_stmt = select(models.Submission).where(models.Submission.attempt_id == UUID(attempt_id))
+    sub_res = await db.execute(sub_stmt)
+    existing_sub = sub_res.scalars().first()
+    if existing_sub:
+        return {
+            "submission_id": str(existing_sub.id),
+            "status": "already_submitted",
+            "message": "Exam already submitted and is being graded."
+        }
 
     # Create submission record
     db_submission = models.Submission(
@@ -36,8 +58,23 @@ async def submit_exam(
         answers=submission.answers
     )
     db.add(db_submission)
-    await db.commit()
-    await db.refresh(db_submission)
+    from sqlalchemy.exc import IntegrityError
+    try:
+        await db.commit()
+        await db.refresh(db_submission)
+    except IntegrityError:
+        await db.rollback()
+        # Race condition happened, return idempotently
+        sub_stmt = select(models.Submission).where(models.Submission.attempt_id == UUID(attempt_id))
+        sub_res = await db.execute(sub_stmt)
+        existing_sub = sub_res.scalars().first()
+        if existing_sub:
+            return {
+                "submission_id": str(existing_sub.id),
+                "status": "already_submitted",
+                "message": "Exam already submitted and is being graded."
+            }
+        raise HTTPException(status_code=500, detail="Database integrity error on submission")
 
     # Queue Celery task
     grade_exam.delay(
