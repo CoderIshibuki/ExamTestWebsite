@@ -1,0 +1,79 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List
+import crud, schemas
+from database import get_db
+from dependencies import get_current_user, require_teacher_or_admin
+
+router = APIRouter(prefix="/api/v1/exams", tags=["Exams"])
+
+@router.get("/", response_model=List[schemas.ExamResponse])
+async def list_exams(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
+    exams = await crud.get_exams(db, skip=skip, limit=limit)
+    return exams
+
+@router.post("/", response_model=schemas.ExamResponse, status_code=status.HTTP_201_CREATED)
+async def create_exam(
+    exam: schemas.ExamCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_teacher_or_admin)
+):
+    return await crud.create_exam(db, exam, current_user["id"])
+
+@router.get("/{exam_id}", response_model=schemas.ExamResponse)
+async def get_exam(exam_id: str, db: AsyncSession = Depends(get_db)):
+    exam = await crud.get_exam_by_id(db, exam_id)
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    return exam
+
+@router.put("/{exam_id}", response_model=schemas.ExamResponse)
+async def update_exam(
+    exam_id: str,
+    exam_update: schemas.ExamUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_teacher_or_admin)
+):
+    exam = await crud.get_exam_by_id(db, exam_id)
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    
+    if current_user["role"] != "admin" and str(exam.created_by) != current_user["id"]:
+        raise HTTPException(status_code=403, detail="You don't have permission")
+        
+    updated = await crud.update_exam(db, exam_id, exam_update)
+    return updated
+
+@router.delete("/{exam_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_exam(
+    exam_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_teacher_or_admin)
+):
+    exam = await crud.get_exam_by_id(db, exam_id)
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+        
+    if current_user["role"] != "admin" and str(exam.created_by) != current_user["id"]:
+        raise HTTPException(status_code=403, detail="You don't have permission")
+        
+    await crud.delete_exam(db, exam_id)
+
+@router.post("/{exam_id}/publish", response_model=schemas.ExamResponse)
+async def publish_exam(
+    exam_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_teacher_or_admin)
+):
+    exam = await crud.get_exam_by_id(db, exam_id)
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+        
+    if current_user["role"] != "admin" and str(exam.created_by) != current_user["id"]:
+        raise HTTPException(status_code=403, detail="You don't have permission")
+        
+    if exam.status != "draft":
+        raise HTTPException(status_code=409, detail="Only draft exams can be published")
+        
+    update_data = schemas.ExamUpdate(status="published")
+    return await crud.update_exam(db, exam_id, update_data)

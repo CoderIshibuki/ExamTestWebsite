@@ -77,6 +77,50 @@ services:
     networks:
       - exam_network
 
+  question_service:
+    build:
+      context: ./backend/question_service
+    container_name: question_service
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8001:8000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - exam_network
+
+  exam_service:
+    build: ./backend/exam_service
+    container_name: exam-exam-service
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-exam_db}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-key-change-in-production}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      QUESTION_SERVICE_URL: http://question_service:8000
+    ports:
+      - "8002:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      question_service:
+        condition: service_healthy
+    volumes:
+      - ./backend/exam_service:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - exam_network
+
   nginx:
     image: nginx:alpine
     container_name: api_gateway
