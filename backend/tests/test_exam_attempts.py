@@ -64,6 +64,12 @@ def test_timer_validation_expired(mock_crud):
     mock_crud.get_exam_attempt = AsyncMock(return_value=attempt)
     mock_crud.upsert_exam_attempt_answer = AsyncMock()
     
+    async def mock_submit(*args, **kwargs):
+        attempt.status = "submitted"
+        return attempt, True
+        
+    mock_crud.submit_exam_attempt = AsyncMock(side_effect=mock_submit)
+    
     response = client.post(
         f"/api/v1/exams/attempts/{ATTEMPT_ID}/answers",
         json={"question_id": "q1", "selected_answer": "A"}
@@ -99,7 +105,6 @@ def test_authorization_idor(mock_crud):
 
 @patch("routes.exams.crud")
 @patch("httpx.AsyncClient.post")
-def test_submit_success(mock_post, mock_crud):
 def test_submit_success(mock_post, mock_crud, monkeypatch):
     from routes.exams import crud
     attempt = DummyAttempt()

@@ -1,5 +1,6 @@
 import { Box, Typography, Button, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, TextField, DialogContentText, Chip } from '@mui/material';
-import { DataGrid, GridColDef, GridToolbar } from '@mui/x-data-grid';
+import { DataGrid, GridToolbar } from '@mui/x-data-grid';
+import type { GridColDef } from '@mui/x-data-grid';
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { adminApi } from '../api/adminApi';
@@ -151,7 +152,7 @@ const AdminUsers = () => {
       </Paper>
 
       {/* Add User Dialog */}
-      <Dialog open={open} onClose={() => setOpen(false)} PaperProps={{ sx: { borderRadius: 3, minWidth: 400 } }}>
+      <Dialog open={open} onClose={() => setOpen(false)} slotProps={{ paper: { sx: { borderRadius: 3, minWidth: 400 } } }}>
         <DialogTitle sx={{ fontWeight: 'bold' }}>Add New User</DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           <form id="edit-user-form" onSubmit={handleSubmit(onSubmit)}>
@@ -182,7 +183,7 @@ const AdminUsers = () => {
       </Dialog>
 
       {/* Delete Confirmation */}
-      <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, id: null })} PaperProps={{ sx: { borderRadius: 3, p: 1 } }}>
+      <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, id: null })} slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}>
         <DialogTitle sx={{ fontWeight: 'bold', color: '#e74c3c' }}>Delete User</DialogTitle>
         <DialogContent>
           <DialogContentText>

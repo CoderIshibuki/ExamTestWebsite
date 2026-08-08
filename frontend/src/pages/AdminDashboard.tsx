@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Card, CardContent, Grid, CircularProgress, Alert, Skeleton, Paper } from '@mui/material';
+import { Box, Typography, Card, CardContent, Grid, Alert, Skeleton, Paper } from '@mui/material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { adminApi } from '../api/adminApi';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -43,7 +43,7 @@ const AdminDashboard = () => {
         <Skeleton variant="text" height={60} width="30%" />
         <Grid container spacing={3} sx={{ mb: 4 }}>
           {[1, 2, 3].map(i => (
-            <Grid item xs={12} sm={4} key={i}>
+            <Grid size={{ xs: 12, sm: 4 }} key={i}>
               <Skeleton variant="rectangular" height={120} sx={{ borderRadius: 2 }} />
             </Grid>
           ))}
@@ -72,7 +72,7 @@ const AdminDashboard = () => {
           { label: 'Total Exams', value: stats.total_exams, color: '#2ecc71' },
           { label: 'Total Questions', value: stats.total_questions, color: '#9b59b6' }
         ].map((stat, i) => (
-          <Grid item xs={12} sm={4} key={i}>
+          <Grid size={{ xs: 12, sm: 4 }} key={i}>
             <Card sx={{ 
               borderRadius: 3, 
               boxShadow: '0 8px 24px rgba(0,0,0,0.05)',

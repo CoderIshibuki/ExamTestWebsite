@@ -1,4 +1,4 @@
-import { Box, Typography, Paper, Alert, Skeleton, Grid, Card, CardContent } from '@mui/material';
+import { Box, Typography, Paper, Alert, Skeleton, Grid } from '@mui/material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useState, useEffect } from 'react';
 import { adminApi } from '../api/adminApi';
@@ -56,7 +56,7 @@ const AdminReports = () => {
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
       <Grid container spacing={4}>
-        <Grid item xs={12} lg={8}>
+        <Grid size={{ xs: 12, lg: 8 }}>
           <Paper sx={{ height: 500, width: '100%', p: 4, borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.05)' }}>
             <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold', color: '#34495e' }}>Pass/Fail Ratio per Subject</Typography>
             <ResponsiveContainer width="100%" height="90%">
@@ -72,13 +72,13 @@ const AdminReports = () => {
             </ResponsiveContainer>
           </Paper>
         </Grid>
-        <Grid item xs={12} lg={4}>
+        <Grid size={{ xs: 12, lg: 4 }}>
           <Paper sx={{ height: 500, width: '100%', p: 4, borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
             <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold', color: '#34495e' }}>Subject Popularity</Typography>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={data} dataKey="pass" nameKey="name" cx="50%" cy="50%" innerRadius={80} outerRadius={120} paddingAngle={5}>
-                  {data.map((entry, index) => (
+                  {data.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>

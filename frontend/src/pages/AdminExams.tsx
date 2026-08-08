@@ -1,5 +1,6 @@
 import { Box, Typography, Button, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText } from '@mui/material';
-import { DataGrid, GridColDef, GridToolbar } from '@mui/x-data-grid';
+import { DataGrid, GridToolbar } from '@mui/x-data-grid';
+import type { GridColDef } from '@mui/x-data-grid';
 import { useState, useEffect } from 'react';
 import { adminApi } from '../api/adminApi';
 import { Visibility as VisibilityIcon, Delete as DeleteIcon, Assignment as AssignmentIcon } from '@mui/icons-material';
@@ -146,7 +147,7 @@ const AdminExams = () => {
       <Dialog
         open={deleteDialog.open}
         onClose={() => setDeleteDialog({ open: false, id: null })}
-        PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+        slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}
       >
         <DialogTitle sx={{ fontWeight: 'bold', color: '#e74c3c' }}>Delete Exam</DialogTitle>
         <DialogContent>

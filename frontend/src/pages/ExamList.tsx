@@ -14,7 +14,7 @@ import {
   Avatar,
   Paper
 } from '@mui/material';
-import { PlayArrow, AccessTime, Autorenew, ErrorOutline } from '@mui/icons-material';
+import { PlayArrow, AccessTime, Autorenew, ErrorOutlined } from '@mui/icons-material';
 import { examApi } from '../api/examApi';
 import type { Exam } from '../api/examApi';
 import { useNavigate } from 'react-router-dom';
@@ -89,7 +89,7 @@ const ExamList: React.FC = () => {
           </Grid>
         ) : error ? (
           <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 4 }} role="alert">
-            <ErrorOutline color="error" sx={{ fontSize: 48, mb: 2 }} />
+            <ErrorOutlined color="error" sx={{ fontSize: 48, mb: 2 }} />
             <Typography variant="h6" color="error">{error}</Typography>
             <Button variant="contained" sx={{ mt: 3 }} onClick={() => window.location.reload()} aria-label="Thử lại">
               Thử lại
