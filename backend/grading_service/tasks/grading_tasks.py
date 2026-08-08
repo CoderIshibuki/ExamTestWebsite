@@ -36,11 +36,12 @@ async def update_submission_status(submission_id: str, status_msg: str, error_ms
         except Exception as e:
             logger.error(f"Failed to update submission status: {e}")
 
-async def save_result(exam_id: str, user_id: str, result_data: dict, started_at: datetime):
+async def save_result(exam_id: str, user_id: str, result_data: dict, started_at: datetime, attempt_id: str = None):
     async with async_session_maker() as session:
         try:
             # Create Result
             db_result = Result(
+                attempt_id=UUID(attempt_id) if attempt_id else None,
                 exam_id=UUID(exam_id),
                 user_id=user_id,
                 score=result_data["score"],
@@ -84,7 +85,8 @@ async def process_grading(submission_id: str, exam_id: str, user_id: str, answer
     result = engine.grade(answers)
     
     # 3. Lưu kết quả vào database
-    await save_result(exam_id, user_id, result, started_at)
+    attempt_id = metadata_info.get("attempt_id") if metadata_info else None
+    await save_result(exam_id, user_id, result, started_at, attempt_id)
     
     # 4. Cập nhật trạng thái
     await update_submission_status(submission_id, "processed")

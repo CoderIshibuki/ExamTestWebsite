@@ -9,6 +9,7 @@ class Result(Base):
     __tablename__ = "results"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    attempt_id = Column(UUID(as_uuid=True), nullable=True) # allow null for legacy
     exam_id = Column(UUID(as_uuid=True), nullable=False)
     user_id = Column(String(50), nullable=False)
     score = Column(Float, nullable=True)
@@ -29,6 +30,7 @@ class Result(Base):
 
     __table_args__ = (
         Index('idx_results_exam_user', 'exam_id', 'user_id'),
+        Index('idx_results_attempt', 'attempt_id'),
         Index('idx_results_status', 'status'),
     )
 
@@ -56,6 +58,7 @@ class Submission(Base):
     __tablename__ = "submissions"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    attempt_id = Column(UUID(as_uuid=True), nullable=True)
     exam_id = Column(UUID(as_uuid=True), nullable=False)
     user_id = Column(String(50), nullable=False)
     answers = Column(JSONB, nullable=False) # e.g. {"0": "A"}
@@ -65,4 +68,5 @@ class Submission(Base):
     
     __table_args__ = (
         Index('idx_submissions_exam_user', 'exam_id', 'user_id'),
+        Index('idx_submissions_attempt', 'attempt_id'),
     )

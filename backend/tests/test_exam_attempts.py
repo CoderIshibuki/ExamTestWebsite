@@ -100,12 +100,17 @@ def test_authorization_idor(mock_crud):
 @patch("routes.exams.crud")
 @patch("httpx.AsyncClient.post")
 def test_submit_success(mock_post, mock_crud):
+def test_submit_success(mock_post, mock_crud, monkeypatch):
+    from routes.exams import crud
     attempt = DummyAttempt()
     mock_crud.get_exam_attempt = AsyncMock(return_value=attempt)
-    submitted_attempt = DummyAttempt(status="submitted")
-    submitted_attempt.submitted_at = datetime.datetime.now(datetime.timezone.utc)
-    mock_crud.submit_exam_attempt = AsyncMock(return_value=submitted_attempt)
-    mock_post = AsyncMock()
+    
+    async def mock_submit(*args, **kwargs):
+        dummy = DummyAttempt()
+        dummy.status = "submitted"
+        return dummy, True
+    
+    monkeypatch.setattr(crud, "submit_exam_attempt", mock_submit)
     
     async def mock_execute_return(*args, **kwargs):
         class MockResult:

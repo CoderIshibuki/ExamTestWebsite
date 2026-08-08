@@ -20,17 +20,27 @@ async def submit_exam(
     if str(submission.user_id) != current_user["id"] and current_user["role"] not in ["admin", "teacher"]:
         raise HTTPException(status_code=403, detail="Cannot submit for another user")
         
-    # Check if result already exists
-    stmt = select(models.Result).where(
-        models.Result.exam_id == submission.exam_id,
-        models.Result.user_id == submission.user_id
-    )
-    result = await db.execute(stmt)
-    if result.scalars().first():
-        raise HTTPException(status_code=400, detail="Exam already submitted")
+    # Check if result already exists for this attempt
+    attempt_id = submission.metadata_info.get("attempt_id") if submission.metadata_info else None
+    
+    if attempt_id:
+        stmt = select(models.Result).where(models.Result.attempt_id == UUID(attempt_id))
+        result = await db.execute(stmt)
+        if result.scalars().first():
+            raise HTTPException(status_code=400, detail="Attempt already graded")
+    else:
+        # Legacy fallback
+        stmt = select(models.Result).where(
+            models.Result.exam_id == submission.exam_id,
+            models.Result.user_id == submission.user_id
+        )
+        result = await db.execute(stmt)
+        if result.scalars().first():
+            raise HTTPException(status_code=400, detail="Exam already submitted")
 
     # Create submission record
     db_submission = models.Submission(
+        attempt_id=UUID(attempt_id) if attempt_id else None,
         exam_id=submission.exam_id,
         user_id=submission.user_id,
         answers=submission.answers,
@@ -70,7 +80,7 @@ async def get_exam_result(
     stmt = select(models.Result).where(
         models.Result.exam_id == exam_id,
         models.Result.user_id == user_id
-    )
+    ).order_by(models.Result.created_at.desc())
     result = await db.execute(stmt)
     db_result = result.scalars().first()
     

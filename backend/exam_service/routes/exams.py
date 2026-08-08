@@ -37,13 +37,11 @@ async def get_exam_stats_overview(
     current_user: dict = Depends(require_teacher_or_admin)
 ):
     total_exams = await crud.count_exams(db)
-    # Mocking other stats for now, in a real system we'd query other microservices
-    # or an aggregated database
     return {
         "total_exams": total_exams,
-        "total_questions": 150,  # mock
-        "total_users": 1200,     # mock
-        "total_results": 450     # mock
+        "total_questions": 0,
+        "total_users": 0,
+        "total_results": 0
     }
 
 
@@ -159,9 +157,7 @@ async def save_answer(
         
     import datetime
     if datetime.datetime.now(datetime.timezone.utc) > attempt.expires_at:
-        attempt.status = "submitted"
-        attempt.submitted_at = datetime.datetime.now(datetime.timezone.utc)
-        await db.commit()
+        await crud.submit_exam_attempt(db, attempt_id)
         raise HTTPException(status_code=400, detail="Exam time expired")
         
     saved_answer = await crud.upsert_exam_attempt_answer(db, attempt_id, answer.question_id, answer.selected_answer)
@@ -185,12 +181,14 @@ async def submit_exam(
         
     import datetime
     if datetime.datetime.now(datetime.timezone.utc) > attempt.expires_at:
-        attempt.status = "submitted" # Or auto_submitted, but submitted works
-        attempt.submitted_at = datetime.datetime.now(datetime.timezone.utc)
-        await db.commit()
-        # Even if expired, we trigger grading. The student just submitted late, no new answers were saved.
-        
-    submitted_attempt = await crud.submit_exam_attempt(db, attempt_id)
+        submitted_attempt, updated = await crud.submit_exam_attempt(db, attempt_id)
+    else:
+        submitted_attempt, updated = await crud.submit_exam_attempt(db, attempt_id)
+    
+    # Check if this was a fresh submit transition
+    if not updated:
+        # Already submitted before by another concurrent request
+        return submitted_attempt
     
     # Fetch all answers for this attempt
     from sqlalchemy.future import select

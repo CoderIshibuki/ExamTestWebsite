@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.sql import func
+from sqlalchemy import func, update
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 import models, schemas
@@ -162,11 +162,12 @@ async def upsert_exam_attempt_answer(db: AsyncSession, attempt_id: str, question
     await db.refresh(answer)
     return answer
 
-async def submit_exam_attempt(db: AsyncSession, attempt_id: str) -> models.ExamAttempt:
-    attempt = await get_exam_attempt(db, attempt_id)
-    if attempt and attempt.status == "in_progress":
-        attempt.status = "submitted"
-        attempt.submitted_at = datetime.now(timezone.utc)
-        await db.commit()
-        await db.refresh(attempt)
-    return attempt
+async def submit_exam_attempt(db: AsyncSession, attempt_id: str):
+    result = await db.execute(
+        update(models.ExamAttempt)
+        .where(models.ExamAttempt.id == UUID(attempt_id), models.ExamAttempt.status == "in_progress")
+        .values(status="submitted", submitted_at=datetime.now(timezone.utc))
+    )
+    updated = result.rowcount > 0
+    await db.commit()
+    return await get_exam_attempt(db, attempt_id), updated
