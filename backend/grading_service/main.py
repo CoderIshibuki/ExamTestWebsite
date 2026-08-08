@@ -11,11 +11,19 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(models.Base.metadata.create_all)
     yield
 
-app = FastAPI(title="Grading Service", lifespan=lifespan)
+app = FastAPI(title="Grading Service API", lifespan=lifespan)
+
+origins_str = os.getenv("CORS_ORIGINS", '["http://localhost:3000", "http://localhost:5173"]')
+try:
+    origins = json.loads(origins_str)
+except Exception:
+    origins = []
+if "http://localhost:5173" not in origins:
+    origins.append("http://localhost:5173")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

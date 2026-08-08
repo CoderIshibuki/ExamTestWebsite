@@ -17,8 +17,6 @@ from jose import JWTError, jwt
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(models.Base.metadata.create_all)
     yield
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,10 +34,10 @@ origins_str = os.getenv("CORS_ORIGINS", '["http://localhost:3000", "http://local
 try:
     origins = json.loads(origins_str)
 except Exception:
-    origins = ["*"]
-    
+    origins = []
+
 # Always add localhost:5173 for Vite dev server if not present
-if "http://localhost:5173" not in origins and "*" not in origins:
+if "http://localhost:5173" not in origins:
     origins.append("http://localhost:5173")
 
 app.add_middleware(
@@ -110,7 +108,7 @@ async def get_current_user(token: str = Depends(auth.oauth2_scheme), db: AsyncSe
     except JWTError:
         raise credentials_exception
         
-    query = select(models.User).where(models.User.id == int(user_id))
+    query = select(models.User).where(models.User.id == user_id)
     result = await db.execute(query)
     user = result.scalars().first()
     if user is None:
@@ -141,7 +139,7 @@ async def refresh_token(request: Request, body: RefreshTokenRequest, db: AsyncSe
     except JWTError:
         raise credentials_exception
         
-    query = select(models.User).where(models.User.id == int(user_id))
+    query = select(models.User).where(models.User.id == user_id)
     result = await db.execute(query)
     user = result.scalars().first()
     if user is None:
@@ -168,8 +166,9 @@ async def list_users(
 
 @app.put("/api/v1/auth/users/{user_id}", response_model=schemas.UserResponse)
 async def update_user(
-    user_id: int, user_update: schemas.UserUpdate, 
-    current_user: models.User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+    user_id: str, user_update: schemas.UserUpdate, 
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
 ):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not enough permissions")
@@ -189,8 +188,9 @@ async def update_user(
 
 @app.delete("/api/v1/auth/users/{user_id}")
 async def delete_user(
-    user_id: int, 
-    current_user: models.User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+    user_id: str, 
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
 ):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not enough permissions")

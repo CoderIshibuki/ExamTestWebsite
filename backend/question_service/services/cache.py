@@ -15,3 +15,12 @@ class CacheService:
         serialized = json.dumps(jsonable_encoder(data))
         await self.redis.setex(key, ttl, serialized)
         return data
+
+    async def invalidate(self, *keys: str):
+        if keys:
+            await self.redis.delete(*keys)
+
+    async def invalidate_pattern(self, pattern: str):
+        keys = await self.redis.keys(pattern)
+        if keys:
+            await self.redis.delete(*keys)

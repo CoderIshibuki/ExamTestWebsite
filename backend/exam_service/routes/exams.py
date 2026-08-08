@@ -27,7 +27,9 @@ async def create_exam(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_teacher_or_admin)
 ):
-    return await crud.create_exam(db, exam, current_user["id"])
+    new_exam = await crud.create_exam(db, exam, current_user["id"])
+    await cache.invalidate_pattern("exams:list:*")
+    return new_exam
 
 @router.get("/stats/overview")
 async def get_exam_stats_overview(
@@ -47,7 +49,11 @@ async def get_exam_stats_overview(
 
 @router.get("/{exam_id}", response_model=schemas.ExamResponse)
 async def get_exam(exam_id: str, db: AsyncSession = Depends(get_db)):
-    exam = await crud.get_exam_by_id(db, exam_id)
+    async def fetch_data():
+        return await crud.get_exam_by_id(db, exam_id)
+    
+    key = f"exam:{exam_id}"
+    exam = await cache.get_or_set(key, fetch_data, ttl=300)
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
     return exam
@@ -67,6 +73,8 @@ async def update_exam(
         raise HTTPException(status_code=403, detail="You don't have permission")
         
     updated = await crud.update_exam(db, exam_id, exam_update)
+    await cache.invalidate_pattern("exams:list:*")
+    await cache.invalidate(f"exam:{exam_id}")
     return updated
 
 @router.delete("/{exam_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -83,6 +91,8 @@ async def delete_exam(
         raise HTTPException(status_code=403, detail="You don't have permission")
         
     await crud.delete_exam(db, exam_id)
+    await cache.invalidate_pattern("exams:list:*")
+    await cache.invalidate(f"exam:{exam_id}")
 
 @router.post("/{exam_id}/publish", response_model=schemas.ExamResponse)
 async def publish_exam(
@@ -101,4 +111,7 @@ async def publish_exam(
         raise HTTPException(status_code=409, detail="Only draft exams can be published")
         
     update_data = schemas.ExamUpdate(status="published")
-    return await crud.update_exam(db, exam_id, update_data)
+    updated = await crud.update_exam(db, exam_id, update_data)
+    await cache.invalidate_pattern("exams:list:*")
+    await cache.invalidate(f"exam:{exam_id}")
+    return updated

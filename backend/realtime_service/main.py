@@ -12,7 +12,15 @@ app = FastAPI(title="Real-time Service")
 # Setup Socket.IO Server
 # We use async_mode='asgi' for FastAPI integration
 # logger=True and engineio_logger=True can be enabled for debugging
-sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
+origins_str = os.getenv("CORS_ORIGINS", '["http://localhost:3000", "http://localhost:5173"]')
+try:
+    origins = json.loads(origins_str)
+except Exception:
+    origins = []
+if "http://localhost:5173" not in origins:
+    origins.append("http://localhost:5173")
+
+sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins=origins)
 
 # Mount Socket.IO to FastAPI app
 socket_app = socketio.ASGIApp(sio, socketio_path="/")

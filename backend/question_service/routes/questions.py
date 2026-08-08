@@ -45,6 +45,7 @@ async def create_question(
     new_q = await crud.create_question(question_data)
     if not new_q:
         raise HTTPException(status_code=400, detail="Failed to create question")
+    await cache.invalidate_pattern("questions:list:*")
     return new_q
 
 from typing import List
@@ -61,6 +62,7 @@ async def create_questions_bulk(
     if not questions_data:
         return {"inserted": 0}
     inserted_count = await crud.create_questions_bulk(questions_data)
+    await cache.invalidate_pattern("questions:list:*")
     return {"inserted": inserted_count}
 
 @router.get("/{id}", response_model=schemas.QuestionResponse)
@@ -80,6 +82,8 @@ async def update_question(
     q = await crud.update_question(id, update_data)
     if not q:
         raise HTTPException(status_code=404, detail="Question not found or update failed")
+    await cache.invalidate_pattern("questions:list:*")
+    await cache.invalidate(f"question:{id}")
     return q
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -90,4 +94,6 @@ async def delete_question(
     success = await crud.delete_question(id)
     if not success:
         raise HTTPException(status_code=404, detail="Question not found")
+    await cache.invalidate_pattern("questions:list:*")
+    await cache.invalidate(f"question:{id}")
     return None

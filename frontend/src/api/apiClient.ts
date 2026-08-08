@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-// Generic API instance (no baseURL prefix) for non-auth service calls
+// Generic API instance
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_URL || '/api',
 });
 
 apiClient.interceptors.request.use(

@@ -16,12 +16,13 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Question Service API", lifespan=lifespan)
 
 # Setup CORS
+origins_str = os.getenv("CORS_ORIGINS", '["http://localhost:3000", "http://localhost:5173"]')
 try:
-    origins = json.loads(settings.CORS_ORIGINS)
+    origins = json.loads(origins_str)
 except Exception:
-    origins = ["*"]
-    
-if "http://localhost:5173" not in origins and "*" not in origins:
+    origins = []
+
+if "http://localhost:5173" not in origins:
     origins.append("http://localhost:5173")
 
 app.add_middleware(

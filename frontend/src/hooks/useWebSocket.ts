@@ -56,19 +56,19 @@ export const useWebSocket = ({
   }, [examId, token, onQuestion, onAnswerSaved, onExamSubmitted, onError]);
 
   const joinExam = useCallback(() => {
-    socketRef.current?.emit('join_exam', { examId });
+    socketRef.current?.emit('join_exam', { exam_id: examId });
   }, [examId]);
 
   const startExam = useCallback(() => {
-    socketRef.current?.emit('start_exam', { examId });
+    socketRef.current?.emit('start_exam', { exam_id: examId });
   }, [examId]);
 
   const submitAnswer = useCallback((questionId: string, answer: string) => {
-    socketRef.current?.emit('submit_answer', { examId, questionId, answer });
+    socketRef.current?.emit('submit_answer', { exam_id: examId, question_id: questionId, answer });
   }, [examId]);
 
   const submitExam = useCallback(() => {
-    socketRef.current?.emit('submit_exam', { examId });
+    socketRef.current?.emit('submit_exam', { exam_id: examId });
   }, [examId]);
 
   return { status, joinExam, startExam, submitAnswer, submitExam };

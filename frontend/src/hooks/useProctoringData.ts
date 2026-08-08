@@ -17,7 +17,18 @@ export const useProctoringData = (examId: string) => {
         setLoading(true);
         // Fetch students
         const studentsRes = await apiClient.get(`/v1/realtime/exams/${examId}/students`);
-        setStudents(studentsRes.data);
+        
+        // Backend returns: { exam_id: string, online_students: string[] }
+        const userIds = studentsRes.data.online_students || [];
+        const mappedStudents: StudentSession[] = userIds.map((id: string) => ({
+          user_id: id,
+          name: 'Student ' + id.substring(0, 4), // Placeholder since realtime_service only returns IDs
+          is_online: true,
+          risk_score: 0,
+          violations_count: 0
+        }));
+        
+        setStudents(mappedStudents);
 
         // Fetch violations
         const violationsData = await proctoringApi.getViolations(examId);
@@ -43,7 +54,16 @@ export const useProctoringData = (examId: string) => {
           if (exists) {
             return prev.map((s) => s.user_id === lastEvent.payload.user_id ? { ...s, is_online: true } : s);
           }
-          return [...prev, { ...lastEvent.payload, is_online: true }];
+          return [
+            ...prev,
+            {
+              user_id: lastEvent.payload.user_id,
+              name: 'Student ' + String(lastEvent.payload.user_id).substring(0, 4),
+              is_online: true,
+              risk_score: 0,
+              violations_count: 0,
+            }
+          ];
         });
       } else if (lastEvent.type === 'student_left') {
         setStudents((prev) => prev.map((s) => s.user_id === lastEvent.payload.user_id ? { ...s, is_online: false } : s));

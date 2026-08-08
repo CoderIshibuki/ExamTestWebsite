@@ -17,6 +17,7 @@ import AdminUsers from './pages/AdminUsers';
 import AdminQuestions from './pages/AdminQuestions';
 import AdminExams from './pages/AdminExams';
 import AdminReports from './pages/AdminReports';
+import AdminLayout from './components/AdminLayout';
 
 function App() {
   return (
@@ -61,27 +62,37 @@ function App() {
           {/* Admin Routes */}
           <Route path="/admin/dashboard" element={
             <AdminRoute>
-              <AdminDashboard />
+              <AdminLayout>
+                <AdminDashboard />
+              </AdminLayout>
             </AdminRoute>
           } />
           <Route path="/admin/users" element={
             <AdminRoute>
-              <AdminUsers />
+              <AdminLayout>
+                <AdminUsers />
+              </AdminLayout>
             </AdminRoute>
           } />
           <Route path="/admin/questions" element={
             <AdminRoute>
-              <AdminQuestions />
+              <AdminLayout>
+                <AdminQuestions />
+              </AdminLayout>
             </AdminRoute>
           } />
           <Route path="/admin/exams" element={
             <AdminRoute>
-              <AdminExams />
+              <AdminLayout>
+                <AdminExams />
+              </AdminLayout>
             </AdminRoute>
           } />
           <Route path="/admin/reports" element={
             <AdminRoute>
-              <AdminReports />
+              <AdminLayout>
+                <AdminReports />
+              </AdminLayout>
             </AdminRoute>
           } />
           

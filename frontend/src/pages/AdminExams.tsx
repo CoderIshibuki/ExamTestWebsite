@@ -11,15 +11,35 @@ interface Exam {
   date: string;
 }
 
-const columns: GridColDef[] = [
-  { field: 'id', headerName: 'ID', width: 200 },
+import { Button } from '@mui/material';
+import { Visibility as VisibilityIcon } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+
+const columns = (navigate: any): GridColDef[] => [
+  { field: 'id', headerName: 'ID', width: 220 },
   { field: 'title', headerName: 'Title', width: 300 },
-  { field: 'status', headerName: 'Status', width: 150 },
-  { field: 'date', headerName: 'Date', width: 200 },
+  { field: 'status', headerName: 'Status', width: 120 },
+  { 
+    field: 'actions', 
+    headerName: 'Actions', 
+    width: 150,
+    renderCell: (params) => (
+      <Button 
+        variant="contained" 
+        color="error" 
+        size="small"
+        startIcon={<VisibilityIcon />}
+        onClick={() => navigate(`/proctor/${params.row.id}`)}
+      >
+        Proctor
+      </Button>
+    )
+  },
 ];
 
 const AdminExams = () => {
   const [exams, setExams] = useState<Exam[]>([]);
+  const navigate = useNavigate();
 
   const fetchExams = async () => {
     try {
@@ -41,7 +61,7 @@ const AdminExams = () => {
       </Typography>
       <DataGrid
         rows={exams}
-        columns={columns}
+        columns={columns(navigate)}
         initialState={{
           pagination: {
             paginationModel: { page: 0, pageSize: 10 },

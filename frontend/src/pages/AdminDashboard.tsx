@@ -1,5 +1,7 @@
-import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
+import { useState, useEffect } from 'react';
+import { Box, Typography, Card, CardContent, Grid, CircularProgress } from '@mui/material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { adminApi } from '../api/adminApi';
 
 const data = [
   { name: 'Mon', users: 4000, exams: 2400 },
@@ -12,6 +14,31 @@ const data = [
 ];
 
 const AdminDashboard = () => {
+  const [stats, setStats] = useState({ total_users: 0, total_exams: 0, total_questions: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      adminApi.getUsers(),
+      adminApi.getExams(),
+      adminApi.getQuestions()
+    ])
+      .then(([users, exams, questions]) => {
+        setStats({
+          total_users: users.length || 0,
+          total_exams: exams.length || 0,
+          total_questions: questions.length || 0
+        });
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Error fetching stats:', err);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}><CircularProgress /></Box>;
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3 }}>
@@ -23,7 +50,7 @@ const AdminDashboard = () => {
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>Total Users</Typography>
-              <Typography variant="h5">1,234</Typography>
+              <Typography variant="h5">{stats.total_users}</Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -31,7 +58,7 @@ const AdminDashboard = () => {
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>Total Exams</Typography>
-              <Typography variant="h5">56</Typography>
+              <Typography variant="h5">{stats.total_exams}</Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -39,7 +66,7 @@ const AdminDashboard = () => {
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>Total Questions</Typography>
-              <Typography variant="h5">8,901</Typography>
+              <Typography variant="h5">{stats.total_questions}</Typography>
             </CardContent>
           </Card>
         </Grid>

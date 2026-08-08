@@ -91,7 +91,13 @@ async def process_grading(submission_id: str, exam_id: str, user_id: str, answer
     
     return result
 
-@celery_app.task(bind=True)
+@celery_app.task(
+    bind=True, 
+    max_retries=3, 
+    default_retry_delay=5,
+    acks_late=True,
+    reject_on_worker_lost=True
+)
 def grade_exam(self, submission_id: str, exam_id: str, user_id: str, answers: dict, started_at: str = None):
     """Task chấm điểm bất đồng bộ"""
     try:
@@ -103,6 +109,6 @@ def grade_exam(self, submission_id: str, exam_id: str, user_id: str, answers: di
         return {"status": "success", "result": result}
         
     except Exception as e:
-        logger.error(f"Grading failed: {e}")
+        logger.error(f"Grading failed: {e}. Retrying...")
         asyncio.run(update_submission_status(submission_id, "failed", str(e)))
-        raise
+        raise self.retry(exc=e)
