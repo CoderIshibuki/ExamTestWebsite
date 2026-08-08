@@ -29,7 +29,11 @@ class GradingEngine:
             
             # Multiple choice / True/False
             if question.get("type") in ["multiple_choice", "true_false"]:
-                is_correct = user_answer == correct_answer
+                options = question.get("options", [])
+                correct_options = [str(opt.get("id")) for opt in options if opt.get("is_correct")]
+                correct_answer = correct_options[0] if correct_options else None
+                
+                is_correct = str(user_answer) == correct_answer
                 point_earned = point_possible if is_correct else 0.0
                 
                 if is_correct:

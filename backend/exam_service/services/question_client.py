@@ -8,7 +8,7 @@ async def fetch_questions(filters: dict, token: str, retries: int = 3):
         for attempt in range(retries):
             try:
                 response = await client.get(
-                    f"{settings.QUESTION_SERVICE_URL}/api/v1/questions",
+                    f"{settings.QUESTION_SERVICE_URL}/api/v1/questions/",
                     params=filters,
                     headers={"Authorization": f"Bearer {token}"}
                 )

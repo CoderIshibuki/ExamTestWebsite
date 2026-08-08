@@ -58,6 +58,7 @@ async def register(user: schemas.UserCreate, db: AsyncSession = Depends(get_db))
         username=user.username,
         email=user.email,
         full_name=user.full_name,
+        role=user.role,
         hashed_password=hashed_password
     )
     db.add(db_user)
@@ -78,8 +79,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
             headers={"WWW-Authenticate": "Bearer"},
         )
         
-    access_token = auth.create_access_token(data={"sub": user.username})
-    refresh_token = auth.create_refresh_token(data={"sub": user.username})
+    access_token = auth.create_access_token(data={"sub": str(user.id), "role": user.role})
+    refresh_token = auth.create_refresh_token(data={"sub": str(user.id), "role": user.role})
     
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
@@ -91,14 +92,13 @@ async def get_current_user(token: str = Depends(auth.oauth2_scheme), db: AsyncSe
     )
     try:
         payload = jwt.decode(token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        user_id: str = payload.get("sub")
+        if user_id is None:
             raise credentials_exception
-        token_data = schemas.TokenData(username=username)
     except JWTError:
         raise credentials_exception
         
-    query = select(models.User).where(models.User.username == token_data.username)
+    query = select(models.User).where(models.User.id == int(user_id))
     result = await db.execute(query)
     user = result.scalars().first()
     if user is None:
@@ -122,20 +122,20 @@ async def refresh_token(request: RefreshTokenRequest, db: AsyncSession = Depends
     )
     try:
         payload = jwt.decode(request.refresh_token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        user_id: str = payload.get("sub")
+        if user_id is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
         
-    query = select(models.User).where(models.User.username == username)
+    query = select(models.User).where(models.User.id == int(user_id))
     result = await db.execute(query)
     user = result.scalars().first()
     if user is None:
         raise credentials_exception
         
-    access_token = auth.create_access_token(data={"sub": user.username})
-    new_refresh_token = auth.create_refresh_token(data={"sub": user.username})
+    access_token = auth.create_access_token(data={"sub": str(user.id), "role": user.role})
+    new_refresh_token = auth.create_refresh_token(data={"sub": str(user.id), "role": user.role})
     
     return {"access_token": access_token, "refresh_token": new_refresh_token, "token_type": "bearer"}
 

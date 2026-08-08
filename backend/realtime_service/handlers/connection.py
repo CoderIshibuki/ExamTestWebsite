@@ -17,7 +17,7 @@ def register_connection_handlers(sio):
             user = validate_token(token)
             
             # Save user session details in socketio session
-            await sio.save_session(sid, {'user_id': user['id']})
+            await sio.save_session(sid, {'user_id': user['id'], 'token': token})
             
             print(f"Client {sid} connected with user_id: {user['id']}")
             return True

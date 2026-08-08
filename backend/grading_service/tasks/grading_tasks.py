@@ -15,12 +15,14 @@ from models import Result, QuestionResult, Submission
 
 logger = logging.getLogger(__name__)
 
+import os
+from jose import jwt
+
 async def get_exam_questions(exam_id: str):
-    # This might need a JWT token in reality. We assume internal requests bypass it or use a service token.
-    # For now, we will just use a dummy token or assume Exam Service has internal endpoints.
     client = ExamClient()
-    # Mock token or fetch from internal auth
-    token = "internal_service_token"
+    secret = os.getenv("JWT_SECRET", "your-super-secret-key-change-in-production")
+    algorithm = os.getenv("JWT_ALGORITHM", "HS256")
+    token = jwt.encode({"sub": "system", "role": "admin"}, secret, algorithm=algorithm)
     return await client.get_exam_questions(exam_id, token)
 
 async def update_submission_status(submission_id: str, status_msg: str, error_msg: str = None):
@@ -40,7 +42,7 @@ async def save_result(exam_id: str, user_id: str, result_data: dict, started_at:
             # Create Result
             db_result = Result(
                 exam_id=UUID(exam_id),
-                user_id=UUID(user_id),
+                user_id=user_id,
                 score=result_data["score"],
                 total_possible=result_data["total_possible"],
                 percentage=result_data["percentage"],

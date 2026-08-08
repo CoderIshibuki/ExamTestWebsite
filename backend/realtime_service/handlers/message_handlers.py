@@ -10,20 +10,17 @@ def register_message_handlers(sio):
     async def join_exam(sid, data):
         session = await sio.get_session(sid)
         user_id = session['user_id']
+        token = session.get('token')
+        
         exam_id = data.get('exam_id')
         session_id = data.get('session_id')
-        
-        # We need token to call exam_client if we haven't loaded questions yet
-        # Normally the token is in the handshake, we can extract from env or require it in payload
-        # For this prototype, we'll assume the client sends it in data or we fetch from session if we saved it
-        token = data.get('token')
 
         if not exam_id:
             await sio.emit('error', {'code': 400, 'message': 'exam_id is required'}, room=sid)
             return
 
         # Join Socket.IO room
-        sio.enter_room(sid, exam_id)
+        await sio.enter_room(sid, exam_id)
         
         # Keep track of exam_id in socket session for disconnect cleanup
         await sio.save_session(sid, {'user_id': user_id, 'exam_id': exam_id, 'token': token})
@@ -148,9 +145,13 @@ def register_message_handlers(sio):
             try:
                 # Submit to Exam Service
                 result_data = {
-                    "answers": exam_session.answers,
-                    "started_at": exam_session.started_at.isoformat(),
-                    "submitted_at": exam_session.submitted_at.isoformat()
+                    "exam_id": exam_id,
+                    "user_id": user_id,
+                    "answers": {str(k): v for k, v in exam_session.answers.items()},
+                    "metadata_info": {
+                        "started_at": exam_session.started_at.isoformat(),
+                        "submitted_at": exam_session.submitted_at.isoformat()
+                    }
                 }
                 response = await exam_client.submit_exam_result(exam_id, user_id, result_data, token)
                 await sio.emit('exam_submitted', response, room=sid)

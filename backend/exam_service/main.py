@@ -1,8 +1,17 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes import exams, questions, schedules, assignments
+from contextlib import asynccontextmanager
+from database import engine
+import models
 
-app = FastAPI(title="Exam Service")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with engine.begin() as conn:
+        await conn.run_sync(models.Base.metadata.create_all)
+    yield
+
+app = FastAPI(title="Exam Service", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

@@ -18,7 +18,7 @@ class Exam(Base):
     shuffle_options = Column(Boolean, default=True)
     show_result_after_submit = Column(Boolean, default=True)
     status = Column(String(20), default="draft")
-    created_by = Column(UUID(as_uuid=True), nullable=False)
+    created_by = Column(String(50), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -69,7 +69,7 @@ class ExamAssignment(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     exam_id = Column(UUID(as_uuid=True), ForeignKey("exams.id", ondelete="CASCADE"), nullable=False)
-    teacher_id = Column(UUID(as_uuid=True), nullable=False)
+    teacher_id = Column(String(50), nullable=False)
     role = Column(String(20), default="proctor")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

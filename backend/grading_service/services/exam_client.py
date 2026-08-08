@@ -19,7 +19,19 @@ class ExamClient:
             )
             
             if response.status_code == 200:
-                return response.json()
+                exam_questions = response.json()
+                questions = []
+                async with httpx.AsyncClient() as q_client:
+                    for eq in exam_questions:
+                        q_id = eq.get("question_id")
+                        if not q_id: continue
+                        q_res = await q_client.get(f"{self.question_url}/api/v1/questions/{q_id}")
+                        if q_res.status_code == 200:
+                            q_data = q_res.json()
+                            q_data["point_possible"] = eq.get("point_value", 1.0)
+                            q_data["id"] = q_data.get("_id", q_id)
+                            questions.append(q_data)
+                return questions
             
             # Fallback if the endpoint does not exist yet or doesn't return full details:
             # 1. We might fetch question_ids from exam service

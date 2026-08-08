@@ -7,7 +7,7 @@ from uuid import UUID
 
 # --- Exams ---
 async def create_exam(db: AsyncSession, exam: schemas.ExamCreate, user_id: str) -> models.Exam:
-    db_exam = models.Exam(**exam.model_dump(), created_by=UUID(user_id))
+    db_exam = models.Exam(**exam.model_dump(), created_by=user_id)
     db.add(db_exam)
     await db.commit()
     await db.refresh(db_exam)
@@ -63,6 +63,14 @@ async def delete_exam_question(db: AsyncSession, question_id: str) -> bool:
     await db.commit()
     return True
 
+async def get_exam_questions(db: AsyncSession, exam_id: str) -> List[models.ExamQuestion]:
+    result = await db.execute(
+        select(models.ExamQuestion)
+        .filter(models.ExamQuestion.exam_id == UUID(exam_id))
+        .order_by(models.ExamQuestion.question_order)
+    )
+    return result.scalars().all()
+
 # --- Exam Schedules ---
 async def add_exam_schedule(db: AsyncSession, exam_id: str, schedule: schemas.ExamScheduleCreate) -> models.ExamSchedule:
     db_schedule = models.ExamSchedule(**schedule.model_dump(), exam_id=UUID(exam_id))
@@ -74,6 +82,7 @@ async def add_exam_schedule(db: AsyncSession, exam_id: str, schedule: schemas.Ex
 # --- Exam Assignments ---
 async def add_exam_assignment(db: AsyncSession, exam_id: str, assignment: schemas.ExamAssignmentCreate) -> models.ExamAssignment:
     db_assignment = models.ExamAssignment(**assignment.model_dump(), exam_id=UUID(exam_id))
+    db_assignment.teacher_id = assignment.teacher_id
     db.add(db_assignment)
     await db.commit()
     await db.refresh(db_assignment)

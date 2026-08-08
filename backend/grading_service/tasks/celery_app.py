@@ -4,7 +4,8 @@ import os
 celery_app = Celery(
     "grading_service",
     broker=os.getenv("REDIS_URL", "redis://redis:6379/0"),
-    backend=os.getenv("REDIS_URL", "redis://redis:6379/1")
+    backend=os.getenv("REDIS_URL", "redis://redis:6379/1"),
+    include=['tasks.grading_tasks']
 )
 
 celery_app.conf.update(

@@ -7,6 +7,18 @@ from services.exam_generator import generate_exam_from_bank
 
 router = APIRouter(prefix="/api/v1/exams/{exam_id}", tags=["Exam Questions"])
 
+@router.get("/questions", response_model=list[schemas.ExamQuestionResponse])
+async def get_exam_questions(
+    exam_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    exam = await crud.get_exam_by_id(db, exam_id)
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+        
+    return await crud.get_exam_questions(db, exam_id)
+
 @router.post("/questions", response_model=schemas.ExamQuestionResponse, status_code=status.HTTP_201_CREATED)
 async def add_question_to_exam(
     exam_id: str,

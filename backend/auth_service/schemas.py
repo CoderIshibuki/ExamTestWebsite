@@ -9,6 +9,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    role: Optional[str] = "student"
 
 class UserResponse(UserBase):
     id: int

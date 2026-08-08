@@ -59,7 +59,7 @@ async def submit_exam(
 @router.get("/result/{exam_id}/{user_id}", response_model=schemas.ResultResponse)
 async def get_exam_result(
     exam_id: UUID,
-    user_id: UUID,
+    user_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):

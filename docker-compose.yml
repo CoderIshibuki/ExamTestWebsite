@@ -182,6 +182,8 @@ services:
       REDIS_URL: redis://redis:6379
       EXAM_SERVICE_URL: http://exam_service:8000
       QUESTION_SERVICE_URL: http://question_service:8000
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-key-change-in-production}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
     depends_on:
       postgres:
         condition: service_healthy

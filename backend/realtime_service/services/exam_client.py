@@ -13,7 +13,21 @@ class ExamClient:
                 headers={"Authorization": f"Bearer {token}"}
             )
             response.raise_for_status()
-            return response.json()
+            exam_questions = response.json()
+            
+            questions = []
+            question_url = settings.QUESTION_SERVICE_URL if hasattr(settings, 'QUESTION_SERVICE_URL') else "http://question_service:8000"
+            async with httpx.AsyncClient() as q_client:
+                for eq in exam_questions:
+                    q_id = eq.get("question_id")
+                    if not q_id: continue
+                    q_res = await q_client.get(f"{question_url}/api/v1/questions/{q_id}")
+                    if q_res.status_code == 200:
+                        q_data = q_res.json()
+                        q_data["point_possible"] = eq.get("point_value", 1.0)
+                        q_data["id"] = q_data.get("_id", q_id)
+                        questions.append(q_data)
+            return questions
 
     async def get_exam_schedule(self, exam_id: str, token: str) -> dict:
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -26,12 +40,14 @@ class ExamClient:
 
     async def submit_exam_result(self, exam_id: str, user_id: str, result: dict, token: str):
         async with httpx.AsyncClient(timeout=10.0) as client:
-            # We will send this to grading service in the future, for now mock or send to exam service
+            # Get grading service url from env or hardcode for now if missing
+            grading_url = settings.GRADING_SERVICE_URL if hasattr(settings, 'GRADING_SERVICE_URL') else "http://grading_service:8000"
             response = await client.post(
-                f"{self.base_url}/api/v1/exams/{exam_id}/submit",
-                json={"user_id": user_id, "result": result},
+                f"{grading_url}/api/v1/grading/submit",
+                json=result,
                 headers={"Authorization": f"Bearer {token}"}
             )
-            return response.json() if response.status_code == 200 else {}
+            response.raise_for_status()
+            return response.json()
 
 exam_client = ExamClient()

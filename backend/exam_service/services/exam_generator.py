@@ -13,21 +13,24 @@ async def generate_exam_from_bank(
     filters = {
         "subject": request.subject,
         "difficulty": request.difficulty,
-        "limit": 1000
+        "limit": 100
     }
     
     response_data = await fetch_questions(filters, token)
     
-    # Assuming Question Service returns [total, list_of_questions]
-    # We should unpack based on how question_service works.
-    # In Task 1.1, question_service get_questions returns (total, questions) but API returns it as JSON array or object?
-    # Let's inspect what Question Service actually returns.
-    
-    questions = response_data if isinstance(response_data, list) else response_data.get("data", [])
-    if isinstance(questions, dict) and "items" in questions:
-        questions = questions["items"]
+    if isinstance(response_data, dict):
+        if "items" in response_data:
+            questions = response_data["items"]
+        elif "data" in response_data:
+            questions = response_data["data"]
+        else:
+            questions = []
+    elif isinstance(response_data, list):
+        questions = response_data
     elif len(response_data) == 2 and isinstance(response_data[1], list):
-        questions = response_data[1]  # (total, list) tuple format
+        questions = response_data[1]
+    else:
+        questions = []
         
     if request.question_types:
         questions = [q for q in questions if q.get("type") in request.question_types]

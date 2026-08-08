@@ -10,7 +10,7 @@ class Result(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     exam_id = Column(UUID(as_uuid=True), nullable=False)
-    user_id = Column(UUID(as_uuid=True), nullable=False)
+    user_id = Column(String(50), nullable=False)
     score = Column(Float, nullable=True)
     total_possible = Column(Float, nullable=True)
     percentage = Column(Float, nullable=True)
@@ -57,7 +57,7 @@ class Submission(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     exam_id = Column(UUID(as_uuid=True), nullable=False)
-    user_id = Column(UUID(as_uuid=True), nullable=False)
+    user_id = Column(String(50), nullable=False)
     answers = Column(JSONB, nullable=False) # e.g. {"0": "A"}
     metadata_info = Column(JSONB, nullable=True) # "metadata" is reserved word in SQLAlchemy
     submitted_at = Column(DateTime(timezone=True), server_default=func.now())
