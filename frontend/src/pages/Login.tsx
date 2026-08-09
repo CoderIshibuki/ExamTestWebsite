@@ -6,6 +6,7 @@ import { Box, Button, TextField, Typography, Container, Card, CardContent, Alert
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { API_URL } from '../api/authInterceptors';
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Username or Email is required'),
@@ -34,7 +35,6 @@ const Login = () => {
       formData.append('username', data.username);
       formData.append('password', data.password);
 
-      const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
       const response = await axios.post(`${API_URL}/auth/login`, formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',

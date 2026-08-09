@@ -35,7 +35,7 @@
 | **Authentication**     | python-jose          | 3.3.0+    | Tạo và xác thực JWT                             |
 | **Password Hashing**   | Passlib + bcrypt     | 1.7.4+    | Hash mật khẩu                                   |
 | **Async Tasks**        | Celery               | 5.3.4+    | Xử lý tác vụ nặng bất đồng bộ                   |
-| **Message Broker**     | RabbitMQ             | 3.12+     | Hoặc Redis Streams cho event-driven             |
+| **Async Task Broker**  | Redis                | 7+        | Celery dùng Redis làm broker (không dùng RabbitMQ) |
 | **HTTP Client**        | httpx                | 0.25.0+   | Gọi API giữa các service                        |
 | **Testing**            | pytest               | 7.4.0+    | Unit testing                                    |
 | **Testing Async**      | pytest-asyncio       | 0.21.0+   | Hỗ trợ async test                               |
@@ -501,7 +501,7 @@ const engine = ProctoringEngine.getInstance({
 │  │ Python 3.11 + FastAPI 0.104 + Uvicorn                  │   │
 │  │ SQLAlchemy 2.0 + Alembic + asyncpg                     │   │
 │  │ Motor (MongoDB) + Redis Client                         │   │
-│  │ Celery + RabbitMQ (Async Tasks)                        │   │
+│  │ Celery + Redis broker (Async Tasks)                     │   │
 │  │ Pytest + Pytest-asyncio (Testing)                      │   │
 │  └─────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘

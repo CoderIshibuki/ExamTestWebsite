@@ -1,31 +1,11 @@
 import axios from 'axios';
+import { attachAuthInterceptors, API_URL } from './authInterceptors';
 
-// Generic API instance
+// Instance dùng chung cho exam/grading/proctoring/admin,... (baseURL không có /auth).
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: API_URL,
 });
 
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('access_token');
-    if (token && config.headers) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
+attachAuthInterceptors(apiClient);
 
 export default apiClient;

@@ -1,75 +1,43 @@
-import axios from 'axios';
+import apiClient from './apiClient';
 
 export const adminApi = {
   getUsers: async () => {
-    const response = await axios.get(`/api/v1/auth/users`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('access_token')}`
-      }
-    });
+    const response = await apiClient.get('/v1/auth/users');
     return response.data;
   },
-  
+
   createUser: async (data: any) => {
-    const response = await axios.post(`/api/v1/auth/users`, data, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('access_token')}`
-      }
-    });
+    const response = await apiClient.post('/v1/auth/users', data);
     return response.data;
   },
-  
+
   updateUser: async (id: string, data: any) => {
-    const response = await axios.put(`/api/v1/auth/users/${id}`, data, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('access_token')}`
-      }
-    });
+    const response = await apiClient.put(`/v1/auth/users/${id}`, data);
     return response.data;
   },
 
   getQuestions: async () => {
-    const response = await axios.get(`/api/v1/questions`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('access_token')}`
-      }
-    });
+    const response = await apiClient.get('/v1/questions');
     return response.data;
   },
 
   importQuestionsBulk: async (questions: any[]) => {
-    const response = await axios.post(`/api/v1/questions/bulk`, questions, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('access_token')}`
-      }
-    });
+    const response = await apiClient.post('/v1/questions/bulk', questions);
     return response.data;
   },
 
   getExams: async () => {
-    const response = await axios.get(`/api/v1/exams`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('access_token')}`
-      }
-    });
+    const response = await apiClient.get('/v1/exams');
     return response.data;
   },
-  
+
   getOverviewStats: async () => {
-    const response = await axios.get(`/api/v1/exams/stats/overview`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('access_token')}`
-      }
-    });
+    const response = await apiClient.get('/v1/exams/stats/overview');
     return response.data;
   },
-  
+
   getReports: async () => {
-    const response = await axios.get(`/api/v1/exams/stats/reports`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('access_token')}`
-      }
-    });
+    const response = await apiClient.get('/v1/exams/stats/reports');
     return response.data;
   }
 };

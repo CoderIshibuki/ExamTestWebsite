@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState, useContext } from 'react';
+import React, { useEffect, useCallback, useState, useContext, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography, Button, CircularProgress, Paper, Grid, Container } from '@mui/material';
 import { ErrorOutlined } from '@mui/icons-material';
@@ -17,7 +17,7 @@ const ExamRoom: React.FC = () => {
   const { user } = useContext(AuthContext);
 
   
-  const { state, setStatus, setQuestions, setAnswer, nextQuestion, prevQuestion, setExamId, setAttemptId } = useExamContext();
+  const { state, setStatus, setQuestions, setAnswer, nextQuestion, prevQuestion, goToQuestion, setExamId, setAttemptId } = useExamContext();
   const { isActive, violationCount } = useProctoring(examId || '', state.attemptId || '');
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
 
@@ -60,15 +60,15 @@ const ExamRoom: React.FC = () => {
     }
   }, [state.attemptId, setStatus, navigate, examId]);
 
-  // Calculate remaining time
-  const calculateTimeLeft = () => {
+  // Số giây còn lại tính từ thời điểm hết hạn (expires_at), chỉ cần tính khi
+  // expiresAt thay đổi (tức là khi bài thi vừa load xong), không tính lại mỗi render.
+  const initialSecondsLeft = useMemo(() => {
     if (!expiresAt) return 0;
-    const now = new Date();
-    const diff = Math.floor((expiresAt.getTime() - now.getTime()) / 1000);
+    const diff = Math.floor((expiresAt.getTime() - Date.now()) / 1000);
     return diff > 0 ? diff : 0;
-  };
+  }, [expiresAt]);
 
-  const { formattedTime, isWarning } = useTimer(calculateTimeLeft(), submitExam);
+  const { timeLeft, formattedTime, isWarning } = useTimer(initialSecondsLeft, submitExam);
 
   const handleAnswerSelect = async (answer: string) => {
     const currentQ = state.questions[state.currentQuestionIndex];
@@ -119,7 +119,7 @@ const ExamRoom: React.FC = () => {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#F9FAFB', display: 'flex', flexDirection: 'column', pb: 8 }}>
       <Paper elevation={2} sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 0, position: 'sticky', top: 0, zIndex: 1100 }}>
-        <Timer timeLeft={calculateTimeLeft()} isWarning={isWarning} formattedTime={formattedTime} />
+        <Timer timeLeft={timeLeft} isWarning={isWarning} formattedTime={formattedTime} />
         <Typography variant="h6" sx={{ fontWeight: 600, display: { xs: 'none', sm: 'block' } }}>
           Câu hỏi {state.currentQuestionIndex + 1} / {state.totalQuestions}
         </Typography>
@@ -159,14 +159,7 @@ const ExamRoom: React.FC = () => {
                     variant={state.answers[q.id] ? 'contained' : 'outlined'}
                     color={state.currentQuestionIndex === idx ? 'primary' : state.answers[q.id] ? 'success' : 'inherit'}
                     sx={{ minWidth: 0, height: 48, borderRadius: 2, fontWeight: 600, p: 0 }}
-                    onClick={() => {
-                        const distance = idx - state.currentQuestionIndex;
-                        if (distance > 0) {
-                            for(let i = 0; i < distance; i++) nextQuestion();
-                        } else {
-                            for(let i = 0; i < Math.abs(distance); i++) prevQuestion();
-                        }
-                    }}
+                    onClick={() => goToQuestion(idx)}
                     aria-label={`Đi tới câu hỏi ${idx + 1}`}
                     aria-current={state.currentQuestionIndex === idx ? 'true' : 'false'}
                   >

@@ -25,6 +25,7 @@ interface ExamContextType {
   setAnswer: (questionId: string, answer: string) => void;
   nextQuestion: () => void;
   prevQuestion: () => void;
+  goToQuestion: (index: number) => void;
   setStatus: (status: ExamState['status']) => void;
   setExamId: (examId: string) => void;
   setAttemptId: (attemptId: string) => void;
@@ -69,6 +70,13 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }));
   }, []);
 
+  const goToQuestion = useCallback((index: number) => {
+    setState((prev) => ({
+      ...prev,
+      currentQuestionIndex: Math.max(0, Math.min(index, prev.totalQuestions - 1))
+    }));
+  }, []);
+
   const setStatus = useCallback((status: ExamState['status']) => {
     setState((prev) => ({ ...prev, status }));
   }, []);
@@ -82,7 +90,7 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   return (
-    <ExamContext.Provider value={{ state, setQuestions, setAnswer, nextQuestion, prevQuestion, setStatus, setExamId, setAttemptId }}>
+    <ExamContext.Provider value={{ state, setQuestions, setAnswer, nextQuestion, prevQuestion, goToQuestion, setStatus, setExamId, setAttemptId }}>
       {children}
     </ExamContext.Provider>
   );

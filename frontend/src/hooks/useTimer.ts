@@ -1,13 +1,19 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
-export const useTimer = (durationMinutes: number, onExpire: () => void) => {
-  const [timeLeft, setTimeLeft] = useState(durationMinutes * 60);
+export const useTimer = (durationSeconds: number, onExpire: () => void) => {
+  const [timeLeft, setTimeLeft] = useState(durationSeconds);
   const [isRunning, setIsRunning] = useState(false);
+  // Only re-sync from the parent-provided duration once, when it first becomes
+  // available (e.g. after the exam attempt loads). Re-running this on every
+  // parent re-render would reset the countdown each second instead of ticking.
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
-    setTimeLeft(durationMinutes * 60);
+    if (durationSeconds <= 0 || hasInitialized.current) return;
+    hasInitialized.current = true;
+    setTimeLeft(durationSeconds);
     setIsRunning(true);
-  }, [durationMinutes]);
+  }, [durationSeconds]);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;

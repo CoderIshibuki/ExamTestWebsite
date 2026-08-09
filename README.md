@@ -1,65 +1,123 @@
 # Exam Test Website
 
-This is a microservice-based application for an exam testing platform.
+Hệ thống thi trực tuyến kiến trúc **microservices**, hỗ trợ nhiều loại câu hỏi, chấm điểm tự động và giám sát chống gian lận (proctoring) thời gian thực.
 
-## Architecture
+## Mục lục
 
-The system consists of the following microservices (FastAPI):
-- **auth_service**: Manages user authentication and roles.
-- **exam_service**: Manages exam attempts, questions, and lifecycle.
-- **question_service**: Handles question bank.
-- **grading_service**: Grades exams.
-- **proctoring_service**: Anti-cheat and proctoring.
-- **realtime_service**: WebSocket service for exam progress.
+- [Kiến trúc hệ thống](#kiến-trúc-hệ-thống)
+- [Yêu cầu môi trường](#yêu-cầu-môi-trường)
+- [Bắt đầu nhanh (Docker)](#bắt-đầu-nhanh-docker)
+- [Chạy frontend riêng để phát triển](#chạy-frontend-riêng-để-phát-triển)
+- [Chạy không dùng Docker](#chạy-không-dùng-docker)
+- [Kiểm thử (Testing)](#kiểm-thử-testing)
+- [Database Migrations](#database-migrations)
+- [Tài liệu chi tiết](#tài-liệu-chi-tiết)
+- [Bảo mật](#bảo-mật)
 
-The frontend is a React application using Vite and Material-UI.
-Infrastructure:
-- PostgreSQL
-- MongoDB
-- Redis
-- Celery worker
-- Nginx (API Gateway)
+## Kiến trúc hệ thống
 
-## Prerequisites
+| Service | Vai trò | Cổng (local) |
+|---|---|---|
+| `auth_service` | Xác thực, JWT, quản lý người dùng | 8000 |
+| `question_service` | Ngân hàng câu hỏi (MongoDB) | 8001 |
+| `exam_service` | Quản lý kỳ thi, lịch thi, lượt làm bài | 8002 |
+| `realtime_service` | WebSocket / Socket.IO đồng bộ trạng thái thi | 8003 |
+| `grading_service` | Chấm điểm tự động (+ Celery worker) | 8004 |
+| `proctoring_service` | Nhận & xử lý sự kiện giám sát, tính điểm rủi ro | 8005 |
+| `nginx` | API Gateway, định tuyến `/api/...` tới các service trên | 80 / 443 |
 
-- Docker and Docker Compose
-- Node.js (v18+)
+**Hạ tầng dữ liệu:** PostgreSQL (dữ liệu quan hệ), MongoDB (ngân hàng câu hỏi), Redis (cache, pub/sub, broker cho Celery).
 
-## How to run the project
+**Frontend:** React 18 + TypeScript + Vite + Material UI, giao tiếp với backend qua API Gateway (nginx).
 
-To run the full stack locally:
+> Sơ đồ kiến trúc chi tiết: [`docs/SoDoKienTrucTongThe.md`](docs/SoDoKienTrucTongThe.md)
+
+## Yêu cầu môi trường
+
+- **Docker** + **Docker Compose** (khuyến nghị — xem [tại sao](docs/SETUP.md#vì-sao-nên-dùng-docker))
+- **Node.js 18+** nếu muốn chạy frontend độc lập ngoài Docker
+- **Python 3.11+** chỉ cần nếu chạy backend không qua Docker
+
+## Bắt đầu nhanh (Docker)
+
 ```bash
-docker-compose up -d --build
+git clone https://github.com/CoderIshibuki/ExamTestWebsite.git
+cd ExamTestWebsite
+
+# Tạo file .env từ mẫu, điền giá trị thật (không commit file .env lên Git)
+cp .env.example .env
+cp frontend/.env.example frontend/.env
+
+# Tạo SSL cert dev (tự sinh, không commit — xem phần Bảo mật)
+python scripts/generate_ssl.py
+
+# Dựng toàn bộ hệ thống
+docker compose up --build
 ```
-This will start all microservices, databases, and the API gateway on `localhost`.
-The frontend can be run locally for development:
+
+Sau khi chạy xong, truy cập:
+- Ứng dụng: `http://localhost` (qua nginx gateway)
+- Swagger docs của Auth service: `http://localhost/docs`
+
+Hướng dẫn chi tiết từng bước, biến môi trường, và cách xử lý khi thiếu Docker: xem **[docs/SETUP.md](docs/SETUP.md)**.
+
+## Chạy frontend riêng để phát triển
+
+Nếu chỉ cần sửa giao diện và có backend chạy sẵn ở nơi khác (VD: Docker ở máy chính, hoặc server dùng chung):
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-## How to run tests
+Xem thêm [`frontend/README.md`](frontend/README.md).
 
-### Backend Tests
-Ensure you have the backend virtual environment set up and `pytest` installed.
+## Chạy không dùng Docker
+
+Có thể chạy nhưng cần tự cài PostgreSQL, MongoDB, Redis và chạy tay từng service Python — xem hướng dẫn đầy đủ tại **[docs/SETUP.md](docs/SETUP.md#chạy-không-dùng-docker)**.
+
+## Kiểm thử (Testing)
+
+### Backend
 ```bash
 pytest backend/tests/
 ```
 
-### Frontend Tests
-Run lint and build to verify frontend correctness:
+### Frontend
 ```bash
 cd frontend
 npm run lint
 npm run build
 ```
 
-### E2E Tests
-To run the full end-to-end integration test (requires backend running via Docker):
+### End-to-end (yêu cầu backend đang chạy qua Docker)
 ```bash
 python scripts/e2e_test.py
 ```
 
 ## Database Migrations
-Migrations are managed via Alembic per-service. To run them from scratch, the `docker-compose` setup initializes the DBs. To run manually, use `alembic upgrade head` in each service's directory (e.g. `backend/auth_service`, `backend/exam_service`, etc.).
+
+Migration được quản lý bằng Alembic, riêng cho từng service dùng PostgreSQL (`auth_service`, `exam_service`, `grading_service`, `proctoring_service`). Docker Compose tự khởi tạo DB khi chạy lần đầu; để chạy tay:
+
+```bash
+cd backend/<tên_service>
+alembic upgrade head
+```
+
+## Tài liệu chi tiết
+
+| Tài liệu | Nội dung |
+|---|---|
+| [docs/SETUP.md](docs/SETUP.md) | Hướng dẫn dựng môi trường dev đầy đủ (Docker & không Docker) |
+| [docs/ENV_VARS.md](docs/ENV_VARS.md) | Danh sách toàn bộ biến môi trường cần thiết cho từng service |
+| [docs/SoDoKienTrucTongThe.md](docs/SoDoKienTrucTongThe.md) | Sơ đồ kiến trúc tổng thể (Mermaid) |
+| [docs/SoDoLuongRealTime.md](docs/SoDoLuongRealTime.md) | Sơ đồ luồng real-time lúc thi (Mermaid sequence diagram) |
+| [docs/CongNgheSuDung.md](docs/CongNgheSuDung.md) | Danh sách công nghệ/thư viện sử dụng theo từng tầng |
+| [docs/ChucNang.docx](docs/ChucNang.docx) | Đặc tả chức năng (Word) |
+| [CHANGELOG.md](CHANGELOG.md) | Lịch sử thay đổi |
+| [SECURITY.md](SECURITY.md) | Quy tắc xử lý secret & báo cáo lỗ hổng |
+
+## Bảo mật
+
+⚠️ Không commit file `.env`, SSL cert/key hoặc bất kỳ secret nào lên Git — xem [SECURITY.md](SECURITY.md) để biết chi tiết và sự cố đã xảy ra trước đây trong repo này.

@@ -5,6 +5,7 @@ import * as z from 'zod';
 import { Box, Button, TextField, Typography, Container, Card, CardContent, Alert, Link } from '@mui/material';
 import axios from 'axios';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { API_URL } from '../api/authInterceptors';
 
 const registerSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters'),
@@ -32,7 +33,6 @@ const Register = () => {
   const onSubmit = async (data: RegisterSchema) => {
     try {
       setError(null);
-      const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
       await axios.post(`${API_URL}/auth/register`, data, {
         headers: {
           'Content-Type': 'application/json',

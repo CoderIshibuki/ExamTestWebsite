@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext';
 import RoleRoute from './components/RoleRoute';
 import AdminRoute from './components/AdminRoute';
-import RootRedirect from './components/RootRedirect';
 import Home from './pages/Home';
 import Unauthorized from './pages/Unauthorized';
 
