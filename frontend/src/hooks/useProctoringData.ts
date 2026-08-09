@@ -8,6 +8,7 @@ export const useProctoringData = (examId: string) => {
   const [students, setStudents] = useState<StudentSession[]>([]);
   const [violations, setViolations] = useState<Violation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [unauthorized, setUnauthorized] = useState(false);
 
   const { alerts, clearAlerts, events } = useProctorWebSocket(examId);
 
@@ -33,7 +34,10 @@ export const useProctoringData = (examId: string) => {
         // Fetch violations
         const violationsData = await proctoringApi.getViolations(examId);
         setViolations(violationsData);
-      } catch (error) {
+      } catch (error: any) {
+        if (error.response && error.response.status === 403) {
+          setUnauthorized(true);
+        }
         console.error('Error fetching proctoring data:', error);
       } finally {
         setLoading(false);
@@ -79,5 +83,5 @@ export const useProctoringData = (examId: string) => {
     }
   }, [events]);
 
-  return { students, violations, alerts, clearAlerts, loading };
+  return { students, violations, alerts, clearAlerts, loading, unauthorized };
 };

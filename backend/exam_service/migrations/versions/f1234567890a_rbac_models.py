@@ -28,7 +28,7 @@ def upgrade() -> None:
     # 2. Check for invalid UUIDs in created_by before casting
     try:
         # Regex to validate UUID format
-        invalid_rows = connection.execute(sa.text("SELECT id, created_by FROM exams WHERE created_by !~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' AND created_by IS NOT NULL")).fetchall()
+        invalid_rows = connection.execute(sa.text("SELECT id, created_by FROM exams WHERE created_by::text !~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' AND created_by IS NOT NULL")).fetchall()
         if invalid_rows:
             print(f"\nCRITICAL ERROR: Migration safely stopped. Invalid UUIDs found in exams.created_by: {invalid_rows}")
             raise Exception("Invalid UUID format in created_by column")

@@ -3,10 +3,12 @@ import { AuthProvider } from './context/AuthContext';
 import RoleRoute from './components/RoleRoute';
 import AdminRoute from './components/AdminRoute';
 import RootRedirect from './components/RootRedirect';
+import Home from './pages/Home';
 import Unauthorized from './pages/Unauthorized';
 
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ChangePassword from './pages/ChangePassword';
 import Dashboard from './pages/Dashboard';
 import ExamList from './pages/ExamList';
 import ExamRoom from './pages/ExamRoom';
@@ -30,16 +32,20 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="/change-password" element={
+            <RoleRoute allowedRoles={['student', 'teacher', 'admin']}>
+              <ChangePassword />
+            </RoleRoute>
+          } />
           
-          <Route path="/" element={<RootRedirect />} />
-          <Route path="/dashboard" element={<RootRedirect />} />
-
-          {/* Student Routes */}
-          <Route path="/student/dashboard" element={
-            <RoleRoute allowedRoles={['student', 'admin']}>
+          <Route path="/" element={<Home />} />
+          <Route path="/dashboard" element={
+            <RoleRoute allowedRoles={['student', 'teacher', 'admin']}>
               <Dashboard />
             </RoleRoute>
           } />
+
+          {/* Student Routes */}
           <Route path="/student/exams" element={
             <RoleRoute allowedRoles={['student', 'admin']}>
               <ExamList />
@@ -64,11 +70,6 @@ function App() {
           } />
 
           {/* Teacher Routes */}
-          <Route path="/teacher/dashboard" element={
-            <RoleRoute allowedRoles={['teacher', 'admin']}>
-              <Dashboard />
-            </RoleRoute>
-          } />
           <Route path="/teacher/exams" element={
             <RoleRoute allowedRoles={['teacher', 'admin']}>
               <ExamList />

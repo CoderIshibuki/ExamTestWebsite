@@ -150,6 +150,40 @@ async def refresh_token(request: Request, body: RefreshTokenRequest, db: AsyncSe
     
     return {"access_token": access_token, "refresh_token": new_refresh_token, "token_type": "bearer"}
 
+@app.post("/users", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)
+async def create_user_admin(
+    user_in: schemas.AdminUserCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+    
+    query = select(models.User).where((models.User.username == user_in.username) | (models.User.email == user_in.email))
+    result = await db.execute(query)
+    if result.scalars().first():
+        raise HTTPException(status_code=400, detail="Username or email already registered")
+
+    requires_reset = False
+    password_to_hash = user_in.password
+    if not password_to_hash:
+        password_to_hash = "123456"
+        requires_reset = True
+
+    hashed_password = auth.get_password_hash(password_to_hash)
+    db_user = models.User(
+        username=user_in.username,
+        email=user_in.email,
+        full_name=user_in.full_name,
+        role=user_in.role or "student",
+        hashed_password=hashed_password,
+        requires_password_change=requires_reset
+    )
+    db.add(db_user)
+    await db.commit()
+    await db.refresh(db_user)
+    return db_user
+
 @app.get("/users", response_model=list[schemas.UserResponse])
 async def list_users(
     skip: int = 0, limit: int = 100, role: str = None, 
@@ -204,3 +238,19 @@ async def delete_user(
     user.is_active = False
     await db.commit()
     return {"detail": "User soft deleted"}
+
+@app.post("/change-password")
+async def change_password(
+    data: schemas.PasswordChangeRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    if not auth.verify_password(data.old_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect old password")
+        
+    new_hashed = auth.get_password_hash(data.new_password)
+    current_user.hashed_password = new_hashed
+    current_user.requires_password_change = False
+    
+    await db.commit()
+    return {"detail": "Password changed successfully"}

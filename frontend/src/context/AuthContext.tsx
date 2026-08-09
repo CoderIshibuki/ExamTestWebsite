@@ -8,12 +8,14 @@ interface User {
   email: string;
   full_name: string | null;
   role: string;
+  requires_password_change: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
   accessToken: string | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (token: string, refresh: string) => void;
   logout: () => void;
 }
@@ -22,6 +24,7 @@ export const AuthContext = createContext<AuthContextType>({
   user: null,
   accessToken: null,
   isAuthenticated: false,
+  isLoading: true,
   login: () => {},
   logout: () => {},
 });
@@ -29,6 +32,7 @@ export const AuthContext = createContext<AuthContextType>({
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(localStorage.getItem('access_token'));
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   
   const login = (token: string, refresh: string) => {
     localStorage.setItem('access_token', token);
@@ -41,6 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem('refresh_token');
     setAccessToken(null);
     setUser(null);
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -51,7 +56,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(response.data);
         } catch (error) {
           logout();
+        } finally {
+          setIsLoading(false);
         }
+      } else {
+        setIsLoading(false);
       }
     };
     fetchUser();
@@ -60,7 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isAuthenticated = !!accessToken;
 
   return (
-    <AuthContext.Provider value={{ user, accessToken, isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ user, accessToken, isAuthenticated, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

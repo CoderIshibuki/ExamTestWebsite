@@ -4,26 +4,26 @@ import { AuthContext } from '../context/AuthContext';
 import { Box, CircularProgress } from '@mui/material';
 
 const RootRedirect = () => {
-  const { user, isAuthenticated } = useContext(AuthContext);
+  const { user, isAuthenticated, isLoading } = useContext(AuthContext);
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (isLoading) return;
+
     if (!isAuthenticated) {
       navigate('/login');
     } else if (user) {
-      if (user.role === 'admin') {
-        navigate('/admin/dashboard');
-      } else if (user.role === 'teacher') {
-        navigate('/teacher/dashboard');
+      if (user.requires_password_change) {
+        navigate('/change-password');
       } else {
-        navigate('/student/dashboard');
+        navigate('/dashboard');
       }
     }
-  }, [user, isAuthenticated, navigate]);
+  }, [user, isAuthenticated, isLoading, navigate]);
 
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      <CircularProgress />
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', bgcolor: '#0f172a' }}>
+      <CircularProgress size={60} thickness={4} sx={{ color: '#38bdf8' }} />
     </Box>
   );
 };

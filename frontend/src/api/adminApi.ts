@@ -10,6 +10,15 @@ export const adminApi = {
     return response.data;
   },
   
+  createUser: async (data: any) => {
+    const response = await axios.post(`/api/v1/auth/users`, data, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('access_token')}`
+      }
+    });
+    return response.data;
+  },
+  
   updateUser: async (id: string, data: any) => {
     const response = await axios.put(`/api/v1/auth/users/${id}`, data, {
       headers: {
@@ -56,7 +65,11 @@ export const adminApi = {
   },
   
   getReports: async () => {
-    // Placeholder endpoint for analytics
-    return { data: [] };
+    const response = await axios.get(`/api/v1/exams/stats/reports`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('access_token')}`
+      }
+    });
+    return response.data;
   }
 };

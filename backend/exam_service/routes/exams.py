@@ -66,6 +66,39 @@ async def get_exam_stats_overview(
         "total_results": 0
     }
 
+@router.get("/stats/reports")
+async def get_exam_reports(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_permission("exam:read"))
+):
+    from sqlalchemy import select, func
+    from models import ExamAttempt, Exam
+    
+    # We will aggregate attempts by exam title/category
+    query = select(
+        Exam.title,
+        func.count(ExamAttempt.id).label("total"),
+        func.sum(
+            func.cast(ExamAttempt.status == 'GRADED', db.bind.dialect.type_compiler.dialect.type_descriptor(Integer))
+        ).label("graded")
+    ).outerjoin(ExamAttempt, Exam.id == ExamAttempt.exam_id).group_by(Exam.title)
+    
+    result = await db.execute(query)
+    rows = result.all()
+    
+    reports = []
+    for row in rows:
+        title, total, graded = row
+        # mock pass/fail logic using graded status for now, since we don't have score logic fully seeded
+        reports.append({
+            "name": title or "Unknown",
+            "pass": int(graded or 0),
+            "fail": int(total or 0) - int(graded or 0)
+        })
+        
+    return {"data": reports}
+
+
 
 @router.get("/{exam_id}", response_model=schemas.ExamResponse)
 async def get_exam(exam_id: str, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):

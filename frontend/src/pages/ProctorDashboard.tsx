@@ -9,7 +9,18 @@ import VideocamOffIcon from '@mui/icons-material/VideocamOff';
 
 const ProctorDashboard = () => {
   const { examId } = useParams<{ examId: string }>();
-  const { students, violations, alerts, clearAlerts, loading } = useProctoringData(examId || '');
+  const { students, violations, alerts, clearAlerts, loading, unauthorized } = useProctoringData(examId || '');
+
+  if (unauthorized) {
+    return (
+      <Box sx={{ p: 4, height: '100vh', bgcolor: '#0f172a' }}>
+        <Alert severity="error" variant="filled" sx={{ borderRadius: 2 }}>
+          Unauthorized
+          You are not assigned as a proctor for this exam, or the exam does not exist.
+        </Alert>
+      </Box>
+    );
+  }
 
   if (loading) {
     return (

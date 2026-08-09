@@ -12,10 +12,19 @@ class UserCreate(UserBase):
     password: str
     role: Optional[str] = "student"
 
+class AdminUserCreate(UserBase):
+    password: Optional[str] = None
+    role: Optional[str] = "student"
+
+class PasswordChangeRequest(BaseModel):
+    old_password: str
+    new_password: str
+
 class UserResponse(UserBase):
     id: UUID
     role: str
     is_active: bool
+    requires_password_change: bool = False
     created_at: Optional[datetime]
 
     model_config = ConfigDict(from_attributes=True)

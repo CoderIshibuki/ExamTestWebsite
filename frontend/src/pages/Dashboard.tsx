@@ -71,6 +71,44 @@ const Dashboard = () => {
           {/* Quick Actions */}
           <Grid size={{ xs: 12, md: 8 }}>
             <Grid container spacing={3}>
+              {user?.role === 'admin' && (
+                <Grid size={{ xs: 12 }}>
+                  <Card sx={{ borderRadius: 4, bgcolor: '#EEF2FF', border: '1px solid #C7D2FE', transition: 'all 0.3s ease', '&:hover': { boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' } }}>
+                    <CardContent sx={{ p: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Avatar sx={{ bgcolor: '#4F46E5', color: '#fff', mr: 3, display: { xs: 'none', sm: 'flex' } }} aria-hidden="true"><VerifiedUser /></Avatar>
+                        <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
+                          <Typography variant="h6" sx={{ fontWeight: 700, color: '#1E1B4B' }}>Trang quản trị (Admin Portal)</Typography>
+                          <Typography sx={{ color: '#4338CA', mt: 0.5 }}>Quản lý người dùng, câu hỏi, kỳ thi và hệ thống.</Typography>
+                        </Box>
+                      </Box>
+                      <Button variant="contained" size="large" sx={{ bgcolor: '#4F46E5', '&:hover': { bgcolor: '#4338CA' }, whiteSpace: 'nowrap' }} onClick={() => navigate(`/admin/dashboard`)} aria-label="Vào trang Admin">
+                        Vào trang Admin
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              )}
+
+              {user?.role === 'teacher' && (
+                <Grid size={{ xs: 12 }}>
+                  <Card sx={{ borderRadius: 4, bgcolor: '#ECFDF5', border: '1px solid #A7F3D0', transition: 'all 0.3s ease', '&:hover': { boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' } }}>
+                    <CardContent sx={{ p: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Avatar sx={{ bgcolor: '#10B981', color: '#fff', mr: 3, display: { xs: 'none', sm: 'flex' } }} aria-hidden="true"><School /></Avatar>
+                        <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
+                          <Typography variant="h6" sx={{ fontWeight: 700, color: '#064E3B' }}>Quản lý kỳ thi (Teacher Portal)</Typography>
+                          <Typography sx={{ color: '#047857', mt: 0.5 }}>Tạo mới, chỉnh sửa và theo dõi kỳ thi của bạn.</Typography>
+                        </Box>
+                      </Box>
+                      <Button variant="contained" size="large" sx={{ bgcolor: '#10B981', '&:hover': { bgcolor: '#059669' }, whiteSpace: 'nowrap' }} onClick={() => navigate(`/teacher/exams`)} aria-label="Vào trang Teacher">
+                        Vào trang Teacher
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              )}
+
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Card sx={{ height: '100%', borderRadius: 4, transition: 'all 0.3s ease', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' } }}>
                   <CardContent sx={{ p: 4 }}>

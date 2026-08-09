@@ -15,6 +15,11 @@ const registerSchema = z.object({
 
 type RegisterSchema = z.infer<typeof registerSchema>;
 
+const BG_DARK = '#121212';
+const CARD_BG = '#1e1e1e';
+const TEXT_LIGHT = '#ffffff';
+const TEXT_MUTED = '#a0a0a0';
+
 const Register = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
@@ -41,75 +46,125 @@ const Register = () => {
   };
 
   return (
-    <Container maxWidth="sm">
-      <Box sx={{ mt: 8 }}>
-        <Card elevation={3}>
-          <CardContent sx={{ p: 4 }}>
-            <Typography variant="h4" component="h1" gutterBottom align="center">
-              Register
+    <Box sx={{ minHeight: '100vh', bgcolor: BG_DARK, color: TEXT_LIGHT, fontFamily: '"Inter", "Helvetica Neue", Helvetica, Arial, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3, background: 'radial-gradient(circle at 50% 0%, #1f2937 0%, #111827 50%, #030712 100%)' }}>
+      <Container maxWidth="md">
+        <Card sx={{ bgcolor: CARD_BG, color: TEXT_LIGHT, borderRadius: 4, border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.7)', overflow: 'hidden', display: 'flex', flexDirection: { xs: 'column', md: 'row' } }}>
+          
+          {/* Left Side - Branding */}
+          <Box sx={{ flex: 1, background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', p: 6, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative', overflow: 'hidden' }}>
+            <Box sx={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', filter: 'blur(30px)' }} />
+            <Box sx={{ position: 'absolute', bottom: -50, left: -50, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', filter: 'blur(30px)' }} />
+            
+            <Box>
+              <Typography variant="h4" sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', cursor: 'pointer', mb: 2 }} onClick={() => navigate('/')}>
+                <Box sx={{ display: 'flex', mr: 1.5 }}>
+                  <Box sx={{ width: 14, height: 14, bgcolor: '#fff', borderRadius: '4px', mr: 0.5, opacity: 0.9 }} />
+                  <Box sx={{ width: 14, height: 14, bgcolor: '#fff', borderRadius: '4px', mr: 0.5, opacity: 0.7 }} />
+                  <Box sx={{ width: 14, height: 14, bgcolor: '#fff', borderRadius: '4px', opacity: 0.5 }} />
+                </Box>
+                <Box>
+                  <Typography component="span" sx={{ lineHeight: 1, color: '#fff', fontWeight: 800, fontSize: '1.5rem', letterSpacing: '-0.5px' }}>exam</Typography>
+                  <Typography component="span" sx={{ lineHeight: 1, color: 'rgba(255,255,255,0.7)', fontWeight: 800, fontSize: '1.5rem', letterSpacing: '-0.5px' }}>system</Typography>
+                </Box>
+              </Typography>
+              <Typography variant="h5" sx={{ fontWeight: 700, mt: 4, mb: 2, color: '#fff' }}>
+                Bắt đầu hành trình học tập
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.8)', lineHeight: 1.6 }}>
+                Đăng ký tài khoản ngay hôm nay để tham gia các kỳ thi trực tuyến và đánh giá năng lực cá nhân.
+              </Typography>
+            </Box>
+            
+            <Box sx={{ mt: 8 }}>
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)' }}>
+                © 2026 ExamSystem. All rights reserved.
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Right Side - Form */}
+          <Box sx={{ flex: 1, p: { xs: 4, md: 6 }, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <Typography variant="h5" component="h1" gutterBottom sx={{ fontWeight: 700, mb: 1 }}>
+              Đăng ký
             </Typography>
-            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-            {success && <Alert severity="success" sx={{ mb: 2 }}>Registration successful! Redirecting to login...</Alert>}
+            <Typography variant="body2" sx={{ color: TEXT_MUTED, mb: 3 }}>
+              Tạo tài khoản mới hoàn toàn miễn phí.
+            </Typography>
+            
+            {error && <Alert severity="error" sx={{ mb: 3, bgcolor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', '& .MuiAlert-icon': { color: '#ef4444' } }}>{error}</Alert>}
+            {success && <Alert severity="success" sx={{ mb: 3, bgcolor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)', '& .MuiAlert-icon': { color: '#10b981' } }}>Đăng ký thành công! Đang chuyển hướng...</Alert>}
             
             <form onSubmit={handleSubmit(onSubmit)}>
               <TextField
                 fullWidth
-                label="Username"
+                label="Tên đăng nhập"
                 margin="normal"
+                variant="outlined"
                 {...register('username')}
                 error={!!errors.username}
                 helperText={errors.username?.message}
+                slotProps={{ inputLabel: { style: { color: TEXT_MUTED } } }}
+                sx={{ mb: 2, '& .MuiOutlinedInput-root': { color: '#fff', bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&.Mui-focused fieldset': { borderColor: '#3b82f6', borderWidth: '2px' } } }}
               />
               <TextField
                 fullWidth
                 label="Email"
                 type="email"
                 margin="normal"
+                variant="outlined"
                 {...register('email')}
                 error={!!errors.email}
                 helperText={errors.email?.message}
+                slotProps={{ inputLabel: { style: { color: TEXT_MUTED } } }}
+                sx={{ mb: 2, '& .MuiOutlinedInput-root': { color: '#fff', bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&.Mui-focused fieldset': { borderColor: '#3b82f6', borderWidth: '2px' } } }}
               />
               <TextField
                 fullWidth
-                label="Full Name"
+                label="Họ và tên"
                 margin="normal"
+                variant="outlined"
                 {...register('full_name')}
                 error={!!errors.full_name}
                 helperText={errors.full_name?.message}
+                slotProps={{ inputLabel: { style: { color: TEXT_MUTED } } }}
+                sx={{ mb: 2, '& .MuiOutlinedInput-root': { color: '#fff', bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&.Mui-focused fieldset': { borderColor: '#3b82f6', borderWidth: '2px' } } }}
               />
               <TextField
                 fullWidth
-                label="Password"
+                label="Mật khẩu"
                 type="password"
                 margin="normal"
+                variant="outlined"
                 {...register('password')}
                 error={!!errors.password}
                 helperText={errors.password?.message}
+                slotProps={{ inputLabel: { style: { color: TEXT_MUTED } } }}
+                sx={{ mb: 3, '& .MuiOutlinedInput-root': { color: '#fff', bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&.Mui-focused fieldset': { borderColor: '#3b82f6', borderWidth: '2px' } } }}
               />
               <Button
                 type="submit"
                 fullWidth
                 variant="contained"
-                color="primary"
                 size="large"
-                sx={{ mt: 3, mb: 2 }}
+                disableElevation
                 disabled={success}
+                sx={{ mb: 3, py: 1.5, bgcolor: '#10b981', color: '#fff', fontWeight: 600, fontSize: '1rem', borderRadius: 2, textTransform: 'none', '&:hover': { bgcolor: '#059669' }, '&.Mui-disabled': { bgcolor: 'rgba(16, 185, 129, 0.3)', color: 'rgba(255,255,255,0.5)' } }}
               >
-                Sign Up
+                Tạo tài khoản
               </Button>
             </form>
-            <Box sx={{ textAlign: "center", mt: 2 }}>
-              <Typography variant="body2">
-                Already have an account?{' '}
-                <Link component={RouterLink} to="/login">
-                  Login here
+            <Box sx={{ textAlign: "center" }}>
+              <Typography variant="body2" sx={{ color: TEXT_MUTED }}>
+                Đã có tài khoản?{' '}
+                <Link component={RouterLink} to="/login" sx={{ color: '#34d399', textDecoration: 'none', fontWeight: 600, '&:hover': { textDecoration: 'underline' } }}>
+                  Đăng nhập
                 </Link>
               </Typography>
             </Box>
-          </CardContent>
+          </Box>
         </Card>
-      </Box>
-    </Container>
+      </Container>
+    </Box>
   );
 };
 
