@@ -31,7 +31,7 @@ async def get_results_by_exam(
         result = await db.execute(stmt)
         return result.scalars().all()
 
-    key = f"results:exam:{exam_id}"
+    key = f"results:exam:{exam_id}:user:{current_user['id']}"
     return await cache.get_or_set(key, fetch_data, ttl=300)
 
 @router.get("/{attempt_id}")
