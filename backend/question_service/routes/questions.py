@@ -86,6 +86,7 @@ async def update_question(
         raise HTTPException(status_code=403, detail="Permission denied")
         
     update_data = question.model_dump(exclude_unset=True)
+    update_data.pop("created_by", None) # Prevent transferring ownership
     q = await crud.update_question(id, update_data)
     if not q:
         raise HTTPException(status_code=404, detail="Update failed")

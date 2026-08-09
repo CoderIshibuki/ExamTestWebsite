@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from config import settings
@@ -7,6 +7,14 @@ from sqlalchemy import text
 from database import get_db
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+
+def require_internal_token(x_internal_token: str = Header(None)):
+    if not x_internal_token or x_internal_token != settings.JWT_SECRET:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid internal service token"
+        )
+    return True
 
 ROLE_PERMISSIONS = {
     "student": ["exam:read", "attempt:create", "attempt:answer", "attempt:submit", "result:read_own"],

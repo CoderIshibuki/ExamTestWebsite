@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 import crud, schemas
 from database import get_db
-from dependencies import get_current_user, require_permission
+from dependencies import get_current_user, require_permission, require_internal_token
 import os
 from services.cache import CacheService
 
@@ -19,7 +19,7 @@ async def list_exams(skip: int = 0, limit: int = 100, db: AsyncSession = Depends
     
     async def fetch_data():
         exams = await crud.get_exams(db, skip=skip, limit=limit)
-        if role in ["admin", "system"]:
+        if role == "admin":
             return exams
         
         filtered = []
@@ -78,8 +78,8 @@ async def get_exam(exam_id: str, db: AsyncSession = Depends(get_db), current_use
         raise HTTPException(status_code=404, detail="Exam not found")
         
     role = current_user["role"]
-    if role in ["admin", "system"]:
-        pass # Admin and internal system calls can read any exam
+    if role == "admin":
+        pass # Admin can read any exam
     elif role == "teacher":
         is_owner = str(exam.owner_id) == current_user["id"]
         is_collaborator = any(str(c.user_id) == current_user["id"] for c in exam.collaborators)
@@ -234,11 +234,9 @@ async def publish_exam(
 async def get_exam_snapshots(
     exam_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    internal_valid: bool = Depends(require_internal_token)
 ):
-    # This endpoint is primarily for grading service
-    if current_user["role"] != "system" and current_user["role"] not in ["admin", "teacher"]:
-        raise HTTPException(status_code=403, detail="Access denied")
+    # This endpoint is strictly for grading service
     
     snapshots = await crud.get_exam_snapshots(db, exam_id)
     return snapshots
@@ -342,10 +340,8 @@ async def submit_exam(
                 "user_id": str(attempt.user_id),
                 "answers": answers_dict
             }
-            # Create a system token for internal communication
-            from jose import jwt
-            token = jwt.encode({"sub": "system", "role": "system"}, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
-            headers = {"Authorization": f"Bearer {token}"}
+            # Use internal service token
+            headers = {"X-Internal-Token": settings.JWT_SECRET}
             await client.post(f"{settings.GRADING_SERVICE_URL}/api/v1/grading/submit", json=payload, headers=headers)
     except Exception as e:
         print(f"Error calling grading service: {e}")

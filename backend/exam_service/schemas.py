@@ -70,9 +70,11 @@ class ExamScheduleResponse(ExamScheduleBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+from typing import Literal
+
 class ExamCollaboratorCreate(BaseModel):
     user_id: UUID
-    role: str = "CO_TEACHER"
+    role: Literal["CO_TEACHER"] = "CO_TEACHER"
 
 class ExamProctorCreate(BaseModel):
     user_id: UUID
