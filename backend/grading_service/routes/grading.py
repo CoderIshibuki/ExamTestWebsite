@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import schemas, models
 from database import get_db
 from dependencies import get_current_user
+from dependencies import get_current_user, require_internal_token
 from tasks.grading_tasks import grade_exam
 
 router = APIRouter(prefix="/api/v1/grading", tags=["Grading"])
@@ -15,11 +16,8 @@ router = APIRouter(prefix="/api/v1/grading", tags=["Grading"])
 async def submit_exam(
     submission: schemas.SubmissionCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    internal_valid: bool = Depends(require_internal_token)
 ):
-    if current_user.get("role") != "system":
-        raise HTTPException(status_code=403, detail="Direct grading submission not allowed. Internal route only.")
-        
     # Check if result already exists for this attempt
     attempt_id = str(submission.attempt_id)
     

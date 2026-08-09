@@ -10,12 +10,21 @@ from dependencies import require_permission
 
 router = APIRouter(prefix="/api/v1/grading/statistics", tags=["Statistics"])
 
+from services.exam_client import ExamClient
+
 @router.get("/{exam_id}")
 async def get_exam_statistics(
     exam_id: UUID,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_permission("result:read_managed"))
 ):
+    role = current_user["role"]
+    if role == "teacher":
+        exam_client = ExamClient()
+        access = await exam_client.verify_exam_access(str(exam_id), current_user["token"])
+        if not access or (not access.get("is_owner") and not access.get("is_collaborator")):
+            raise HTTPException(status_code=403, detail="Not authorized to view statistics for this exam")
+
     stmt = select(models.Result).where(models.Result.exam_id == exam_id)
     result = await db.execute(stmt)
     results = result.scalars().all()

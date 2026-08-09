@@ -70,20 +70,15 @@ class ExamScheduleResponse(ExamScheduleBase):
 
     model_config = ConfigDict(from_attributes=True)
 
-class ExamAssignmentBase(BaseModel):
+class ExamCollaboratorCreate(BaseModel):
     user_id: UUID
-    type: str
-    role: Optional[str] = None
+    role: str = "CO_TEACHER"
 
-class ExamAssignmentCreate(ExamAssignmentBase):
-    pass
+class ExamProctorCreate(BaseModel):
+    user_id: UUID
 
-class ExamAssignmentResponse(ExamAssignmentBase):
-    id: UUID
-    exam_id: UUID
-    created_at: datetime
-
-    model_config = ConfigDict(from_attributes=True)
+class ExamRosterCreate(BaseModel):
+    user_id: UUID
 
 class GenerateExamRequest(BaseModel):
     subject: str

@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from config import settings
@@ -7,6 +7,14 @@ from sqlalchemy import text
 from database import get_db
 
 oauth2_scheme = HTTPBearer()
+
+def require_internal_token(x_internal_token: str = Header(None)):
+    if not x_internal_token or x_internal_token != settings.JWT_SECRET:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid internal service token"
+        )
+    return True
 
 ROLE_PERMISSIONS = {
     "student": ["exam:read", "attempt:create", "attempt:answer", "attempt:submit", "result:read_own"],
@@ -33,11 +41,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(o
     try:
         payload = jwt.decode(credentials.credentials, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
         user_id: str = payload.get("sub")
-        if user_id is None:
+        if user_id is None or user_id == "system":
             raise credentials_exception
-            
-        if user_id == "system":
-            return {"id": "system", "role": "system", "token": credentials.credentials}
             
     except JWTError:
         raise credentials_exception

@@ -8,14 +8,11 @@ class ExamClient:
         self.question_url = settings.QUESTION_SERVICE_URL
         
     async def get_exam_questions(self, exam_id: str, token: str) -> List[Dict[str, Any]]:
-        # In a complete microservices architecture, Exam Service would have an endpoint 
-        # to fetch all questions for an exam. Since Exam Service only stores question_ids,
-        # it would aggregate from Question Service.
-        # Assuming Exam Service HAS this endpoint:
+        # This will be replaced by the subagent but I'll leave it intact here
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"{self.base_url}/api/v1/exams/{exam_id}/snapshots",
-                headers={"Authorization": f"Bearer {token}"}
+                f"{self.question_url}/api/v1/snapshots/{exam_id}",
+                headers={"X-Internal-Token": token}
             )
             
             if response.status_code == 200:
@@ -31,10 +28,14 @@ class ExamClient:
                     }
                     questions.append(q_data)
                 return questions
-            
-            # Fallback if the endpoint does not exist yet or doesn't return full details:
-            # 1. We might fetch question_ids from exam service
-            # 2. Fetch full details from question service
-            
-            # Mock data if we can't reach the real services for now
             return []
+
+    async def verify_exam_access(self, exam_id: str, token: str) -> Dict[str, Any]:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{self.base_url}/api/v1/exams/{exam_id}/verify-access",
+                headers={"Authorization": f"Bearer {token}"}
+            )
+            if response.status_code == 200:
+                return response.json()
+            return {}

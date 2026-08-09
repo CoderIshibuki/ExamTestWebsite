@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 
 from config import settings
 from database import connect_to_mongo, close_mongo_connection
-from routes import questions, categories, import_export
+from routes import questions, categories, import_export, snapshots
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -37,6 +37,7 @@ app.add_middleware(
 app.include_router(questions.router, prefix="/api/v1/questions", tags=["questions"])
 app.include_router(categories.router, prefix="/api/v1/categories", tags=["categories"])
 app.include_router(import_export.router, prefix="/api/v1/questions", tags=["import_export"])
+app.include_router(snapshots.router, prefix="/api/v1/snapshots", tags=["snapshots"])
 
 @app.get("/health")
 def health_check():

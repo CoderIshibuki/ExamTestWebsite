@@ -29,7 +29,6 @@ async def get_exam_by_id(db: AsyncSession, exam_id: str) -> Optional[models.Exam
         .options(
             selectinload(models.Exam.questions), 
             selectinload(models.Exam.schedules), 
-            selectinload(models.Exam.assignments),
             selectinload(models.Exam.collaborators),
             selectinload(models.Exam.proctors),
             selectinload(models.Exam.roster)
@@ -107,24 +106,29 @@ async def add_exam_schedule(db: AsyncSession, exam_id: str, schedule: schemas.Ex
     return db_schedule
 
 # --- Exam Assignments ---
-async def add_exam_assignment(db: AsyncSession, exam_id: str, assignment: schemas.ExamAssignmentCreate):
+async def add_exam_collaborator(db: AsyncSession, exam_id: str, collaborator: schemas.ExamCollaboratorCreate):
     now = datetime.now(timezone.utc)
     assignment_id = uuid.uuid4()
-    if assignment.type == "collaborator":
-        stmt = text("INSERT INTO exam_collaborators (id, exam_id, user_id, role) VALUES (:id, :exam_id, :user_id, :role)")
-        await db.execute(stmt, {"id": assignment_id, "exam_id": exam_id, "user_id": str(assignment.user_id), "role": assignment.role or "edit"})
-    elif assignment.type == "proctor":
-        stmt = text("INSERT INTO exam_proctors (id, exam_id, user_id) VALUES (:id, :exam_id, :user_id)")
-        await db.execute(stmt, {"id": assignment_id, "exam_id": exam_id, "user_id": str(assignment.user_id)})
-    elif assignment.type == "roster":
-        stmt = text("INSERT INTO exam_roster (id, exam_id, user_id) VALUES (:id, :exam_id, :user_id)")
-        await db.execute(stmt, {"id": assignment_id, "exam_id": exam_id, "user_id": str(assignment.user_id)})
-    else:
-        raise ValueError("Invalid assignment type")
-    
+    stmt = text("INSERT INTO exam_collaborators (id, exam_id, user_id, role) VALUES (:id, :exam_id, :user_id, :role)")
+    await db.execute(stmt, {"id": assignment_id, "exam_id": exam_id, "user_id": str(collaborator.user_id), "role": collaborator.role})
     await db.commit()
-    # Dummy response to satisfy the response model (or we can just return a dict)
-    return schemas.ExamAssignmentResponse(id=assignment_id, exam_id=UUID(exam_id), user_id=assignment.user_id, type=assignment.type, role=assignment.role, created_at=now)
+    return {"id": assignment_id, "exam_id": exam_id, "user_id": str(collaborator.user_id), "role": collaborator.role}
+
+async def add_exam_proctor(db: AsyncSession, exam_id: str, proctor: schemas.ExamProctorCreate):
+    now = datetime.now(timezone.utc)
+    assignment_id = uuid.uuid4()
+    stmt = text("INSERT INTO exam_proctors (id, exam_id, user_id) VALUES (:id, :exam_id, :user_id)")
+    await db.execute(stmt, {"id": assignment_id, "exam_id": exam_id, "user_id": str(proctor.user_id)})
+    await db.commit()
+    return {"id": assignment_id, "exam_id": exam_id, "user_id": str(proctor.user_id)}
+
+async def add_exam_roster(db: AsyncSession, exam_id: str, roster: schemas.ExamRosterCreate):
+    now = datetime.now(timezone.utc)
+    assignment_id = uuid.uuid4()
+    stmt = text("INSERT INTO exam_roster (id, exam_id, user_id) VALUES (:id, :exam_id, :user_id)")
+    await db.execute(stmt, {"id": assignment_id, "exam_id": exam_id, "user_id": str(roster.user_id)})
+    await db.commit()
+    return {"id": assignment_id, "exam_id": exam_id, "user_id": str(roster.user_id)}
 
 # --- Exam Attempts ---
 from datetime import datetime, timedelta, timezone

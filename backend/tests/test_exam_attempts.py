@@ -32,6 +32,8 @@ class DummyExam:
         self.status = status
         self.max_attempts = max_attempts
         self.duration_minutes = duration_minutes
+        self.roster = []
+        self.is_public = True
 
 class DummyAttempt:
     def __init__(self, user_id=USER_ID, status="in_progress", expires_in_mins=60):

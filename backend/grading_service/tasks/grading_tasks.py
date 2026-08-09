@@ -26,9 +26,8 @@ def _make_session_maker():
 
 async def get_exam_questions(exam_id: str):
     client = ExamClient()
-    secret = os.environ["JWT_SECRET"]
-    algorithm = os.getenv("JWT_ALGORITHM", "HS256")
-    token = jwt.encode({"sub": "system", "role": "admin"}, secret, algorithm=algorithm)
+    token = os.environ.get("JWT_SECRET", "default_secret")
+    # Using the JWT_SECRET directly as the internal service token
     return await client.get_exam_questions(exam_id, token)
 
 async def update_submission_status(session_maker, submission_id: str, status_msg: str, error_msg: str = None):

@@ -15,16 +15,26 @@ cache = CacheService(redis_url)
 
 router = APIRouter(prefix="/api/v1/results", tags=["Results"])
 
+from services.exam_client import ExamClient
+
 @router.get("/exam/{exam_id}")
 async def get_results_by_exam(
     exam_id: UUID,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    # Teachers/admins can see all results for the exam
-    # Students can only see their own results
+    role = current_user["role"]
+    if role == "proctor":
+        raise HTTPException(status_code=403, detail="Proctors cannot view results")
+        
+    if role == "teacher":
+        exam_client = ExamClient()
+        access = await exam_client.verify_exam_access(str(exam_id), current_user["token"])
+        if not access or (not access.get("is_owner") and not access.get("is_collaborator")):
+            raise HTTPException(status_code=403, detail="Not authorized to view these results")
+
     async def fetch_data():
-        if current_user["role"] in ["admin", "teacher"]:
+        if role in ["admin", "teacher"]:
             stmt = select(models.Result).where(models.Result.exam_id == exam_id)
         else:
             stmt = select(models.Result).where(models.Result.exam_id == exam_id, models.Result.user_id == current_user["id"])
@@ -47,8 +57,18 @@ async def get_result(
     if not db_result:
         raise HTTPException(status_code=404, detail="Result not found")
         
-    if current_user["role"] not in ["admin", "teacher"] and str(db_result.user_id) != str(current_user["id"]):
+    role = current_user["role"]
+    if role == "proctor":
+        raise HTTPException(status_code=403, detail="Proctors cannot view results")
+        
+    if role == "student" and str(db_result.user_id) != str(current_user["id"]):
         raise HTTPException(status_code=403, detail="Not authorized to view this result")
+        
+    if role == "teacher":
+        exam_client = ExamClient()
+        access = await exam_client.verify_exam_access(str(db_result.exam_id), current_user["token"])
+        if not access or (not access.get("is_owner") and not access.get("is_collaborator")):
+            raise HTTPException(status_code=403, detail="Not authorized to view this result")
         
     return db_result
 

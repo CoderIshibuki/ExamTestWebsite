@@ -30,7 +30,9 @@ async def add_question_to_exam(
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
         
-    if current_user["role"] != "admin" and str(exam.owner_id) != current_user["id"]:
+    is_owner = str(exam.owner_id) == current_user["id"]
+    is_collaborator = any(str(c.user_id) == current_user["id"] for c in getattr(exam, 'collaborators', []))
+    if current_user["role"] != "admin" and not is_owner and not is_collaborator:
         raise HTTPException(status_code=403, detail="You don't have permission")
         
     if exam.status != "draft":
@@ -49,7 +51,9 @@ async def remove_question_from_exam(
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
         
-    if current_user["role"] != "admin" and str(exam.owner_id) != current_user["id"]:
+    is_owner = str(exam.owner_id) == current_user["id"]
+    is_collaborator = any(str(c.user_id) == current_user["id"] for c in getattr(exam, 'collaborators', []))
+    if current_user["role"] != "admin" and not is_owner and not is_collaborator:
         raise HTTPException(status_code=403, detail="You don't have permission")
         
     if exam.status != "draft":
@@ -70,7 +74,9 @@ async def generate_exam(
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
         
-    if current_user["role"] != "admin" and str(exam.owner_id) != current_user["id"]:
+    is_owner = str(exam.owner_id) == current_user["id"]
+    is_collaborator = any(str(c.user_id) == current_user["id"] for c in getattr(exam, 'collaborators', []))
+    if current_user["role"] != "admin" and not is_owner and not is_collaborator:
         raise HTTPException(status_code=403, detail="You don't have permission")
         
     if exam.status != "draft":

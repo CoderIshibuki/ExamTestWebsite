@@ -49,3 +49,20 @@ class QuestionModel(BaseModel):
         populate_by_name = True
         arbitrary_types_allowed = True
         json_encoders = {PyObjectId: str}
+
+class ExamQuestionSnapshot(BaseModel):
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    exam_id: str
+    question_id: str
+    question_version: int = 1
+    question_text: str
+    choices: list = []
+    correct_answer: Union[str, list]
+    points: float = 1.0
+    display_order: int = 0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    class Config:
+        populate_by_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {PyObjectId: str}

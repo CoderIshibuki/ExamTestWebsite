@@ -121,3 +121,17 @@ async def delete_category(category_id: str):
         return False
     result = await db_instance.db.categories.delete_one({"_id": ObjectId(category_id)})
     return result.deleted_count == 1
+
+# --- Exam Snapshots CRUD ---
+async def create_exam_snapshots(snapshots_data: list[dict]):
+    if not snapshots_data:
+        return 0
+    for s in snapshots_data:
+        s["created_at"] = datetime.utcnow()
+    result = await db_instance.db.exam_snapshots.insert_many(snapshots_data)
+    return len(result.inserted_ids)
+
+async def get_exam_snapshots(exam_id: str):
+    cursor = db_instance.db.exam_snapshots.find({"exam_id": exam_id})
+    snapshots = await cursor.to_list(length=1000)
+    return [serialize_doc(s) for s in snapshots]

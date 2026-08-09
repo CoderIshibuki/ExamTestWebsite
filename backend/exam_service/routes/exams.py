@@ -13,13 +13,35 @@ cache = CacheService(redis_url)
 router = APIRouter(prefix="/api/v1/exams", tags=["Exams"])
 
 @router.get("/", response_model=List[schemas.ExamResponse])
-async def list_exams(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
-    async def fetch_data():
-        return await crud.get_exams(db, skip=skip, limit=limit)
+async def list_exams(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    role = current_user["role"]
+    user_id = current_user["id"]
     
-    key = f"exams:list:{skip}:{limit}"
-    exams = await cache.get_or_set(key, fetch_data, ttl=300)
-    return exams
+    async def fetch_data():
+        exams = await crud.get_exams(db, skip=skip, limit=limit)
+        if role in ["admin", "system"]:
+            return exams
+        
+        filtered = []
+        for exam in exams:
+            if role == "teacher":
+                is_owner = str(exam.owner_id) == user_id
+                is_collab = any(str(c.user_id) == user_id for c in exam.collaborators)
+                if is_owner or is_collab:
+                    filtered.append(exam)
+            elif role == "student":
+                if exam.status == "published":
+                    is_roster = any(str(r.user_id) == user_id for r in exam.roster)
+                    if getattr(exam, 'is_public', False) or is_roster:
+                        filtered.append(exam)
+            elif role == "proctor":
+                is_proctor = any(str(p.user_id) == user_id for p in exam.proctors)
+                if is_proctor:
+                    filtered.append(exam)
+        return filtered
+    
+    key = f"exams:list:{role}:{user_id}:{skip}:{limit}"
+    return await cache.get_or_set(key, fetch_data, ttl=300)
 
 @router.post("/", response_model=schemas.ExamResponse, status_code=status.HTTP_201_CREATED)
 async def create_exam(
@@ -46,15 +68,56 @@ async def get_exam_stats_overview(
 
 
 @router.get("/{exam_id}", response_model=schemas.ExamResponse)
-async def get_exam(exam_id: str, db: AsyncSession = Depends(get_db)):
+async def get_exam(exam_id: str, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
     async def fetch_data():
         return await crud.get_exam_by_id(db, exam_id)
     
-    key = f"exam:{exam_id}"
-    exam = await cache.get_or_set(key, fetch_data, ttl=300)
+    # We shouldn't cache unauthorized access, so fetch the exam first.
+    exam = await crud.get_exam_by_id(db, exam_id)
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
+        
+    role = current_user["role"]
+    if role in ["admin", "system"]:
+        pass # Admin and internal system calls can read any exam
+    elif role == "teacher":
+        is_owner = str(exam.owner_id) == current_user["id"]
+        is_collaborator = any(str(c.user_id) == current_user["id"] for c in exam.collaborators)
+        if not is_owner and not is_collaborator:
+            raise HTTPException(status_code=403, detail="Not authorized to view this exam")
+    elif role == "proctor":
+        is_proctor = any(str(p.user_id) == current_user["id"] for p in getattr(exam, 'proctors', []))
+        if not is_proctor:
+            raise HTTPException(status_code=403, detail="Not authorized to view this exam")
+    elif role == "student":
+        if exam.status != "published":
+            raise HTTPException(status_code=404, detail="Exam not found") # Drafts are hidden from students
+        is_roster = any(str(r.user_id) == current_user["id"] for r in getattr(exam, 'roster', []))
+        if not getattr(exam, 'is_public', False) and not is_roster:
+            raise HTTPException(status_code=403, detail="Not authorized to view this private exam")
+            
     return exam
+
+@router.get("/{exam_id}/verify-access")
+async def verify_exam_access(exam_id: str, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    # Internal API used by other services to check ownership
+    exam = await crud.get_exam_by_id(db, exam_id)
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+        
+    is_owner = str(exam.owner_id) == current_user["id"]
+    is_collaborator = any(str(c.user_id) == current_user["id"] for c in getattr(exam, 'collaborators', []))
+    is_proctor = any(str(p.user_id) == current_user["id"] for p in getattr(exam, 'proctors', []))
+    is_roster = any(str(r.user_id) == current_user["id"] for r in getattr(exam, 'roster', []))
+    
+    return {
+        "is_owner": is_owner,
+        "is_collaborator": is_collaborator,
+        "is_proctor": is_proctor,
+        "is_roster": is_roster,
+        "is_public": getattr(exam, 'is_public', False),
+        "status": exam.status
+    }
 
 @router.put("/{exam_id}", response_model=schemas.ExamResponse)
 async def update_exam(
@@ -71,6 +134,11 @@ async def update_exam(
     is_collaborator = any(str(c.user_id) == current_user["id"] for c in exam.collaborators)
     if current_user["role"] != "admin" and not is_owner and not is_collaborator:
         raise HTTPException(status_code=403, detail="You don't have permission")
+        
+    if exam.status == "published":
+        dump = exam_update.model_dump(exclude_unset=True)
+        if any(k in dump for k in ["duration_minutes", "passing_score"]):
+            raise HTTPException(status_code=400, detail="Cannot modify duration or passing score of a published exam")
         
     updated = await crud.update_exam(db, exam_id, exam_update)
     await cache.invalidate_pattern("exams:list:*")
@@ -144,7 +212,17 @@ async def publish_exam(
             raise HTTPException(status_code=500, detail=f"Error fetching questions: {e}")
             
     if snapshots_data:
-        await crud.create_exam_snapshots(db, snapshots_data)
+        try:
+            async with httpx.AsyncClient() as client:
+                res = await client.post(
+                    f"{settings.QUESTION_SERVICE_URL}/api/v1/snapshots/bulk",
+                    json=snapshots_data,
+                    headers={"X-Internal-Token": settings.JWT_SECRET}
+                )
+                if res.status_code != 201:
+                    raise HTTPException(status_code=500, detail=f"Error saving snapshots: {res.text}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error saving snapshots to question service: {e}")
 
     update_data = schemas.ExamUpdate(status="published")
     updated = await crud.update_exam(db, exam_id, update_data)

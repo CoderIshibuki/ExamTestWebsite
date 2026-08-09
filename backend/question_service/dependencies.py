@@ -6,6 +6,15 @@ from config import settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
+from fastapi import Header
+def require_internal_token(x_internal_token: str = Header(None)):
+    if not x_internal_token or x_internal_token != settings.JWT_SECRET:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid internal service token"
+        )
+    return True
+
 ROLE_PERMISSIONS = {
     "student": ["exam:read", "attempt:create", "attempt:answer", "attempt:submit", "result:read_own"],
     "teacher": [
@@ -31,7 +40,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
         user_id = payload.get("sub")
-        if user_id is None:
+        if user_id is None or user_id == "system":
             raise credentials_exception
     except JWTError:
         raise credentials_exception

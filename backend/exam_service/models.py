@@ -25,7 +25,6 @@ class Exam(Base):
 
     questions = relationship("ExamQuestion", back_populates="exam", cascade="all, delete-orphan")
     schedules = relationship("ExamSchedule", back_populates="exam", cascade="all, delete-orphan")
-    assignments = relationship("ExamAssignment", back_populates="exam", cascade="all, delete-orphan")
     collaborators = relationship("ExamCollaborator", back_populates="exam", cascade="all, delete-orphan")
     proctors = relationship("ExamProctor", back_populates="exam", cascade="all, delete-orphan")
     roster = relationship("ExamRoster", back_populates="exam", cascade="all, delete-orphan")
@@ -69,20 +68,7 @@ class ExamSchedule(Base):
         Index("idx_exam_schedules_end_time", "end_time"),
     )
 
-class ExamAssignment(Base):
-    __tablename__ = "exam_assignments"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    exam_id = Column(UUID(as_uuid=True), ForeignKey("exams.id", ondelete="CASCADE"), nullable=False)
-    teacher_id = Column(String(50), nullable=False)
-    role = Column(String(20), default="proctor")
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    exam = relationship("Exam", back_populates="assignments")
-
-    __table_args__ = (
-        Index("idx_exam_assignments_teacher_id", "teacher_id"),
-    )
 
 class ExamAttempt(Base):
     __tablename__ = "exam_attempts"
