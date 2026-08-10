@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field
-from typing import List, Optional
+from typing import List, Optional, Union
 from datetime import datetime
 from uuid import UUID
 
@@ -54,6 +54,19 @@ class ExamQuestionResponse(ExamQuestionBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class ExamQuestionDetail(BaseModel):
+    """Trả về đầy đủ nội dung câu hỏi thật (lấy từ question_service) để hiển thị lúc thi/quản lý —
+    khác với ExamQuestionResponse (chỉ có question_id tham chiếu, không có nội dung).
+    correct_answer chỉ được trả về cho admin/teacher, luôn None với học sinh để tránh lộ đáp án."""
+    id: str
+    question_id: str
+    question_order: Optional[int] = None
+    point_value: float = 1.0
+    type: str = "multiple_choice"
+    content: dict = {}
+    options: list = []
+    correct_answer: Optional[Union[str, list]] = None
 
 class ExamScheduleBase(BaseModel):
     start_time: datetime

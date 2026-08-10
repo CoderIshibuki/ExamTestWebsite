@@ -18,11 +18,8 @@ import { PlayArrow, AccessTime, Autorenew, ErrorOutlined } from '@mui/icons-mate
 import { examApi } from '../api/examApi';
 import type { Exam } from '../api/examApi';
 import { useNavigate } from 'react-router-dom';
-import { useContext } from 'react';
-import { AuthContext } from '../context/AuthContext';
 
 const ExamList: React.FC = () => {
-  const { user } = useContext(AuthContext);
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +65,7 @@ const ExamList: React.FC = () => {
       </AppBar>
       
       <Box sx={{ 
-        background: 'linear-gradient(135deg, #4F46E5 0%, #3B82F6 100%)', 
+        bgcolor: 'primary.main',
         pt: 8, pb: 12, mb: -6 
       }}>
         <Container maxWidth="lg">
@@ -111,8 +108,8 @@ const ExamList: React.FC = () => {
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    '&:hover': { transform: 'translateY(-8px)', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)' },
+                    transition: 'border-color 0.2s ease',
+                    '&:hover': { borderColor: 'primary.main' },
                     borderRadius: 4,
                   }}
                 >
@@ -147,7 +144,7 @@ const ExamList: React.FC = () => {
                       fullWidth
                       size="large"
                       startIcon={<PlayArrow />}
-                      onClick={() => navigate(`/${user?.role}/exam/${exam.id}`)}
+                      onClick={() => navigate(`/student/exam/${exam.id}`)}
                       aria-label={`Bắt đầu bài thi ${exam.title}`}
                     >
                       Bắt đầu làm bài

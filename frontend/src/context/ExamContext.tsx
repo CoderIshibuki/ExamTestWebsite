@@ -1,18 +1,43 @@
 import React, { createContext, useState, useContext, useCallback } from 'react';
 import type { ReactNode } from 'react';
 
+export type QuestionType = 'multiple_choice' | 'true_false' | 'multiple_select' | 'matching' | 'essay';
+
+export interface QuestionOption {
+  id: string;
+  text: string;
+}
+
+export interface MatchingColumns {
+  left: QuestionOption[];
+  right: QuestionOption[];
+}
+
 export interface Question {
   id: string;
   content: string;
-  type: 'multiple_choice' | 'true_false';
-  options: { id: string; text: string }[];
+  type: QuestionType;
+  options: QuestionOption[];
+  /** Chỉ dùng với type === 'matching': 2 cột trái/phải để nối. */
+  matching?: MatchingColumns;
+  /** Gợi ý cho câu tự luận: cho phép chụp ảnh bài làm tay hay chỉ nhập text. */
+  essayMode?: 'text' | 'photo' | 'both';
 }
+
+/**
+ * Đáp án lưu trong state:
+ * - multiple_choice / true_false: string (id đáp án được chọn)
+ * - multiple_select: string[] (danh sách id đáp án được chọn)
+ * - matching: [string, string][] (danh sách cặp [left_id, right_id])
+ * - essay: string (nội dung text) hoặc data-URL/đường dẫn ảnh đã upload
+ */
+export type AnswerValue = string | string[] | [string, string][];
 
 export interface ExamState {
   examId: string | null;
   questions: Question[];
   currentQuestionIndex: number;
-  answers: Record<string, string>;
+  answers: Record<string, AnswerValue>;
   status: 'idle' | 'joining' | 'in_progress' | 'submitting' | 'submitted' | 'error';
   totalQuestions: number;
   sessionId: string | null;
@@ -22,7 +47,7 @@ export interface ExamState {
 interface ExamContextType {
   state: ExamState;
   setQuestions: (questions: Question[]) => void;
-  setAnswer: (questionId: string, answer: string) => void;
+  setAnswer: (questionId: string, answer: AnswerValue) => void;
   nextQuestion: () => void;
   prevQuestion: () => void;
   goToQuestion: (index: number) => void;
@@ -49,7 +74,7 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setState((prev) => ({ ...prev, questions, totalQuestions: questions.length }));
   }, []);
 
-  const setAnswer = useCallback((questionId: string, answer: string) => {
+  const setAnswer = useCallback((questionId: string, answer: AnswerValue) => {
     setState((prev) => ({
       ...prev,
       answers: { ...prev.answers, [questionId]: answer }

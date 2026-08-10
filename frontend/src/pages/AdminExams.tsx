@@ -1,24 +1,39 @@
-import { Box, Typography, Button, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText } from '@mui/material';
+import { Box, Typography, Button, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, TextField, Snackbar } from '@mui/material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import type { GridColDef } from '@mui/x-data-grid';
 import { useState, useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
 import { adminApi } from '../api/adminApi';
-import { Visibility as VisibilityIcon, Delete as DeleteIcon, Assignment as AssignmentIcon } from '@mui/icons-material';
+import { Visibility as VisibilityIcon, Delete as DeleteIcon, Assignment as AssignmentIcon, Add as AddIcon, Publish as PublishIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
 interface Exam {
   id: string;
   title: string;
   status: string;
-  date: string;
+  duration_minutes: number;
+}
+
+interface ExamFormValues {
+  title: string;
+  description: string;
+  duration_minutes: number;
+  passing_score: number;
+  max_attempts: number;
 }
 
 const AdminExams = () => {
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [deleteDialog, setDeleteDialog] = useState<{open: boolean, id: string | null}>({open: false, id: null});
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
+  const [createOpen, setCreateOpen] = useState(false);
   const navigate = useNavigate();
+
+  const { control, handleSubmit, reset, formState: { errors } } = useForm<ExamFormValues>({
+    defaultValues: { title: '', description: '', duration_minutes: 60, passing_score: 50, max_attempts: 1 },
+  });
 
   const fetchExams = async () => {
     try {
@@ -26,9 +41,9 @@ const AdminExams = () => {
       const data = await adminApi.getExams();
       setExams(data || []);
       setError('');
-    } catch (error) {
-      console.error('Failed to fetch exams', error);
-      setError('Failed to load exams. Please try again later.');
+    } catch (err) {
+      console.error('Failed to fetch exams', err);
+      setError('Không tải được danh sách đề thi. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -38,63 +53,107 @@ const AdminExams = () => {
     fetchExams();
   }, []);
 
+  const onCreateSubmit = async (data: ExamFormValues) => {
+    try {
+      await adminApi.createExam(data);
+      setCreateOpen(false);
+      reset();
+      setSnackbar({ open: true, message: 'Đã tạo đề thi thành công.', severity: 'success' });
+      fetchExams();
+    } catch (err) {
+      console.error('Failed to create exam', err);
+      setSnackbar({ open: true, message: 'Tạo đề thi thất bại.', severity: 'error' });
+    }
+  };
+
   const handleDeleteClick = (id: string) => {
     setDeleteDialog({ open: true, id });
   };
 
   const confirmDelete = async () => {
-    if (deleteDialog.id) {
-       setExams(exams.filter(e => e.id !== deleteDialog.id));
+    if (!deleteDialog.id) return;
+    try {
+      await adminApi.deleteExam(deleteDialog.id);
+      setExams((prev) => prev.filter((e) => e.id !== deleteDialog.id));
+      setSnackbar({ open: true, message: 'Đã xoá đề thi.', severity: 'success' });
+    } catch (err) {
+      console.error('Failed to delete exam', err);
+      setSnackbar({ open: true, message: 'Xoá đề thi thất bại.', severity: 'error' });
+    } finally {
+      setDeleteDialog({ open: false, id: null });
     }
-    setDeleteDialog({ open: false, id: null });
+  };
+
+  const handlePublish = async (id: string) => {
+    try {
+      await adminApi.publishExam(id);
+      setSnackbar({ open: true, message: 'Đã công bố đề thi.', severity: 'success' });
+      fetchExams();
+    } catch (err) {
+      console.error('Failed to publish exam', err);
+      setSnackbar({ open: true, message: 'Công bố đề thi thất bại (kiểm tra đề đã có câu hỏi chưa).', severity: 'error' });
+    }
   };
 
   const columns: GridColDef[] = [
     { field: 'id', headerName: 'Exam ID', width: 220, flex: 1 },
-    { field: 'title', headerName: 'Title', width: 300, flex: 2 },
-    { 
-      field: 'status', 
-      headerName: 'Status', 
-      width: 150,
+    { field: 'title', headerName: 'Tiêu đề', width: 260, flex: 2 },
+    { field: 'duration_minutes', headerName: 'Thời lượng (phút)', width: 150 },
+    {
+      field: 'status',
+      headerName: 'Trạng thái',
+      width: 130,
       renderCell: (params) => (
-        <Box sx={{ 
-          px: 2, py: 0.5, 
-          borderRadius: 4, 
-          bgcolor: params.value === 'active' ? '#e8f5e9' : '#f5f5f5',
-          color: params.value === 'active' ? '#2e7d32' : '#757575',
+        <Box sx={{
+          px: 2, py: 0.5,
+          borderRadius: 4,
+          bgcolor: params.value === 'published' ? '#e8f5e9' : '#f5f5f5',
+          color: params.value === 'published' ? '#2e7d32' : '#757575',
           fontWeight: 'bold',
           textTransform: 'capitalize'
         }}>
-          {params.value || 'Pending'}
+          {params.value || 'draft'}
         </Box>
       )
     },
-    { 
-      field: 'actions', 
-      headerName: 'Actions', 
-      width: 250,
+    {
+      field: 'actions',
+      headerName: 'Hành động',
+      width: 320,
       sortable: false,
       renderCell: (params) => (
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', height: '100%' }}>
-          <Button 
-            variant="outlined" 
-            color="primary" 
+          {params.row.status !== 'published' && (
+            <Button
+              variant="outlined"
+              color="success"
+              size="small"
+              startIcon={<PublishIcon />}
+              onClick={() => handlePublish(params.row.id)}
+              sx={{ borderRadius: 2, textTransform: 'none' }}
+            >
+              Publish
+            </Button>
+          )}
+          <Button
+            variant="outlined"
+            color="primary"
             size="small"
             startIcon={<VisibilityIcon />}
-            onClick={() => navigate(`/proctor/${params.row.id}`)}
+            onClick={() => navigate(`/proctor/exam/${params.row.id}`)}
             sx={{ borderRadius: 2, textTransform: 'none' }}
           >
             Proctor
           </Button>
-          <Button 
-            variant="outlined" 
-            color="error" 
+          <Button
+            variant="outlined"
+            color="error"
             size="small"
             startIcon={<DeleteIcon />}
             onClick={() => handleDeleteClick(params.row.id)}
             sx={{ borderRadius: 2, textTransform: 'none' }}
           >
-            Delete
+            Xoá
           </Button>
         </Box>
       )
@@ -102,17 +161,22 @@ const AdminExams = () => {
   ];
 
   return (
-    <Box sx={{ p: 4, minHeight: '100vh', bgcolor: '#f8f9fa' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-        <AssignmentIcon sx={{ fontSize: 36, color: 'primary.main', mr: 2 }} />
-        <Typography variant="h4" sx={{ fontWeight: 800, color: '#2c3e50' }}>
-          Exams Management
-        </Typography>
+    <Box sx={{ p: 4, minHeight: '100vh', bgcolor: 'background.default' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4, flexWrap: 'wrap', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <AssignmentIcon sx={{ fontSize: 36, color: 'primary.main', mr: 2 }} />
+          <Typography variant="h4" sx={{ fontWeight: 800 }}>
+            Quản lý Đề thi
+          </Typography>
+        </Box>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)} sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 'bold', px: 3, py: 1 }}>
+          Tạo đề thi mới
+        </Button>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>}
 
-      <Paper sx={{ height: 600, width: '100%', borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+      <Paper sx={{ height: 600, width: '100%', borderRadius: 3, overflow: 'hidden' }}>
         {loading ? (
           <Box sx={{ p: 3 }}>
             <Skeleton variant="rectangular" height={50} sx={{ mb: 2, borderRadius: 1 }} />
@@ -123,45 +187,80 @@ const AdminExams = () => {
             rows={exams}
             columns={columns}
             slots={{ toolbar: GridToolbar }}
-            slotProps={{
-              toolbar: {
-                showQuickFilter: true,
-                quickFilterProps: { debounceMs: 500 },
-              },
-            }}
-            initialState={{
-              pagination: { paginationModel: { page: 0, pageSize: 10 } },
-            }}
+            slotProps={{ toolbar: { showQuickFilter: true, quickFilterProps: { debounceMs: 500 } } }}
+            initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
             pageSizeOptions={[5, 10, 25]}
-            checkboxSelection
             disableRowSelectionOnClick
-            sx={{
-              border: 'none',
-              '& .MuiDataGrid-cell:focus': { outline: 'none' },
-              '& .MuiDataGrid-row:hover': { bgcolor: '#f5f7fa' }
-            }}
+            sx={{ border: 'none', '& .MuiDataGrid-cell:focus': { outline: 'none' } }}
           />
         )}
       </Paper>
 
-      <Dialog
-        open={deleteDialog.open}
-        onClose={() => setDeleteDialog({ open: false, id: null })}
-        slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}
-      >
-        <DialogTitle sx={{ fontWeight: 'bold', color: '#e74c3c' }}>Delete Exam</DialogTitle>
+      {/* Dialog tạo đề thi mới */}
+      <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>Tạo đề thi mới</DialogTitle>
+        <form onSubmit={handleSubmit(onCreateSubmit)}>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <Controller
+              name="title"
+              control={control}
+              rules={{ required: 'Vui lòng nhập tiêu đề' }}
+              render={({ field }) => (
+                <TextField {...field} label="Tiêu đề đề thi" fullWidth error={!!errors.title} helperText={errors.title?.message} />
+              )}
+            />
+            <Controller
+              name="description"
+              control={control}
+              render={({ field }) => <TextField {...field} label="Mô tả" fullWidth multiline rows={3} />}
+            />
+            <Controller
+              name="duration_minutes"
+              control={control}
+              rules={{ required: true, min: 1 }}
+              render={({ field }) => (
+                <TextField {...field} label="Thời lượng (phút)" type="number" fullWidth
+                  onChange={(e) => field.onChange(Number(e.target.value))} />
+              )}
+            />
+            <Controller
+              name="passing_score"
+              control={control}
+              render={({ field }) => (
+                <TextField {...field} label="Điểm đạt (%)" type="number" fullWidth
+                  onChange={(e) => field.onChange(Number(e.target.value))} />
+              )}
+            />
+            <Controller
+              name="max_attempts"
+              control={control}
+              render={({ field }) => (
+                <TextField {...field} label="Số lần làm bài tối đa" type="number" fullWidth
+                  onChange={(e) => field.onChange(Number(e.target.value))} />
+              )}
+            />
+          </DialogContent>
+          <DialogActions sx={{ p: 2 }}>
+            <Button onClick={() => setCreateOpen(false)} sx={{ borderRadius: 2, textTransform: 'none' }}>Huỷ</Button>
+            <Button type="submit" variant="contained" sx={{ borderRadius: 2, textTransform: 'none' }}>Tạo đề thi</Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+      <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, id: null })} slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}>
+        <DialogTitle sx={{ fontWeight: 'bold', color: 'error.main' }}>Xoá đề thi</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete this exam? This action is permanent and cannot be undone.
-          </DialogContentText>
+          <DialogContentText>Bạn có chắc muốn xoá đề thi này? Hành động này không thể hoàn tác.</DialogContentText>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setDeleteDialog({ open: false, id: null })} sx={{ borderRadius: 2, textTransform: 'none' }}>Cancel</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained" sx={{ borderRadius: 2, textTransform: 'none', boxShadow: 'none' }}>
-            Delete Exam
-          </Button>
+          <Button onClick={() => setDeleteDialog({ open: false, id: null })} sx={{ borderRadius: 2, textTransform: 'none' }}>Huỷ</Button>
+          <Button onClick={confirmDelete} color="error" variant="contained" sx={{ borderRadius: 2, textTransform: 'none' }}>Xoá đề thi</Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar((s) => ({ ...s, open: false }))}>
+        <Alert severity={snackbar.severity} sx={{ width: '100%' }}>{snackbar.message}</Alert>
+      </Snackbar>
     </Box>
   );
 };

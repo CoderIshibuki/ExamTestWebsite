@@ -15,9 +15,30 @@ export interface ExamResult {
   question_results: QuestionResult[];
 }
 
+export interface PendingManualGradeItem {
+  result_id: string;
+  attempt_id: string;
+  exam_id: string;
+  user_id: string;
+  question_id: string;
+  user_answer: string | null;
+  point_possible: number;
+}
+
 export const gradingApi = {
   getExamResult: async (attemptId: string): Promise<ExamResult> => {
     const response = await apiClient.get(`/v1/grading/result/${attemptId}`);
     return response.data;
-  }
+  },
+  getPendingManualGrading: async (examId?: string): Promise<PendingManualGradeItem[]> => {
+    const response = await apiClient.get('/v1/grading/pending-manual', { params: examId ? { exam_id: examId } : {} });
+    return response.data;
+  },
+  manualGradeQuestion: async (resultId: string, questionId: string, pointEarned: number, note?: string) => {
+    const response = await apiClient.post(`/v1/grading/manual-grade/${resultId}/${questionId}`, {
+      point_earned: pointEarned,
+      note,
+    });
+    return response.data;
+  },
 };

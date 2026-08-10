@@ -231,12 +231,16 @@ async def publish_exam(
                     res = await client.get(f"{settings.QUESTION_SERVICE_URL}/api/v1/questions/{q_id}", headers=headers)
                     if res.status_code == 200:
                         q_data = res.json()
+                        # QuestionResponse thật trả về content.text (không phải "question_text") và
+                        # options (không phải "choices") — mapping sai trước đây khiến snapshot luôn
+                        # rỗng, và thiếu "type" khiến grading_engine luôn chấm 0 điểm cho mọi câu hỏi.
                         snapshots_data.append({
                             "exam_id": exam.id,
                             "question_id": str(q_id),
                             "question_version": 1,
-                            "question_text": q_data.get("question_text", ""),
-                            "choices": q_data.get("choices", []),
+                            "question_text": (q_data.get("content") or {}).get("text", ""),
+                            "type": q_data.get("type", "multiple_choice"),
+                            "choices": q_data.get("options", []),
                             "correct_answer": q_data.get("correct_answer", ""),
                             "points": exam.questions[i].point_value if hasattr(exam.questions[i], 'point_value') else 1.0,
                             "display_order": exam.questions[i].question_order

@@ -37,7 +37,7 @@ const ResultSummary: React.FC = () => {
   if (error) {
     return (
       <Container maxWidth="sm" sx={{ mt: 10 }}>
-        <Paper elevation={3} sx={{ p: 5, textAlign: 'center', borderRadius: 4 }} role="alert">
+        <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 4, border: '1px solid', borderColor: 'divider' }} role="alert">
           <CancelOutlined color="error" sx={{ fontSize: 64, mb: 2 }} />
           <Typography variant="h5" color="error" gutterBottom>
             Đã xảy ra lỗi
@@ -56,7 +56,7 @@ const ResultSummary: React.FC = () => {
   if (!result) {
     return (
       <Container maxWidth="sm" sx={{ mt: 10 }}>
-        <Paper elevation={3} sx={{ p: 5, textAlign: 'center', borderRadius: 4 }} role="status">
+        <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 4, border: '1px solid', borderColor: 'divider' }} role="status">
           <Typography variant="h5" color="text.secondary" gutterBottom>
             Không tìm thấy kết quả.
           </Typography>
@@ -74,7 +74,7 @@ const ResultSummary: React.FC = () => {
     <Box sx={{ minHeight: '100vh', pt: 8, pb: 8, bgcolor: '#F3F4F6', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
       <Container maxWidth="sm">
         <Fade in={true} timeout={800}>
-          <Paper elevation={24} sx={{ p: { xs: 3, md: 5 }, textAlign: 'center', borderRadius: 4, background: 'white' }}>
+          <Paper sx={{ p: { xs: 3, md: 5 }, textAlign: 'center', borderRadius: 4, bgcolor: 'white', border: '1px solid', borderColor: 'divider' }}>
             <Box sx={{ mb: 3 }}>
               {passed ? (
                 <EmojiEvents sx={{ fontSize: 80, color: '#F59E0B' }} aria-hidden="true" />
@@ -116,7 +116,7 @@ const ResultSummary: React.FC = () => {
               variant="contained"
               size="large"
               fullWidth
-              sx={{ py: 1.5, fontSize: '1.1rem', fontWeight: 600, borderRadius: 2, textTransform: 'none', background: 'linear-gradient(to right, #4F46E5, #3B82F6)' }}
+              sx={{ py: 1.5, fontSize: '1.1rem', fontWeight: 600, borderRadius: 2, textTransform: 'none' }}
               onClick={() => navigate(`/${user?.role}/dashboard`)}
               startIcon={<Home />}
               aria-label="Trở về màn hình chính"

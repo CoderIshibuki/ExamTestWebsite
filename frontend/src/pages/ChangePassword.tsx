@@ -49,12 +49,12 @@ export default function ChangePassword() {
   };
 
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#f4f6f9' }}>
-      <Paper sx={{ p: 4, width: '100%', maxWidth: 450, borderRadius: 2, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-        <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold', textAlign: 'center', color: '#1b4f8a' }}>
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: 'background.default' }}>
+      <Paper sx={{ p: 4, width: '100%', maxWidth: 450, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+        <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold', textAlign: 'center', color: 'primary.main' }}>
           Action Required
         </Typography>
-        <Typography variant="body2" sx={{ mb: 3, textAlign: 'center', color: '#666' }}>
+        <Typography variant="body2" sx={{ mb: 3, textAlign: 'center', color: 'text.secondary' }}>
           For security reasons, you must change your default password before you can access the system.
         </Typography>
         

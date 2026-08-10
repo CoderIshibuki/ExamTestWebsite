@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Float, Integer, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, String, Float, Integer, Boolean, DateTime, ForeignKey, Index, Text
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -21,6 +21,7 @@ class Result(Base):
     started_at = Column(DateTime(timezone=True), nullable=True)
     submitted_at = Column(DateTime(timezone=True), nullable=True)
     status = Column(String(20), default="pending") # pending, grading, graded, failed
+    has_pending_manual_grading = Column(Boolean, default=False, nullable=False, server_default="false")
     grading_started_at = Column(DateTime(timezone=True), nullable=True)
     grading_completed_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -41,10 +42,13 @@ class QuestionResult(Base):
     result_id = Column(UUID(as_uuid=True), ForeignKey("results.id", ondelete="CASCADE"))
     question_id = Column(String(64), nullable=False) # MongoDB ObjectId string
     question_index = Column(Integer, nullable=True)
-    user_answer = Column(String(255), nullable=True)
+    user_answer = Column(Text, nullable=True)
     is_correct = Column(Boolean, nullable=True)
     point_earned = Column(Float, default=0.0)
     point_possible = Column(Float, default=1.0)
+    needs_manual_grading = Column(Boolean, default=False, nullable=False, server_default="false")
+    graded_by_user_id = Column(String(50), nullable=True)
+    manual_grading_note = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     result = relationship("Result", back_populates="question_results")

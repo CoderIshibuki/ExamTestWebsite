@@ -1,4 +1,4 @@
-import { Box, Typography, Button, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, TextField, DialogContentText, Chip } from '@mui/material';
+import { Box, Typography, Button, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, TextField, DialogContentText, Chip, MenuItem, FormControlLabel, Switch, Snackbar } from '@mui/material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import type { GridColDef } from '@mui/x-data-grid';
 import { useState, useEffect } from 'react';
@@ -8,20 +8,43 @@ import { People as PeopleIcon, PersonAdd as PersonAddIcon, Delete as DeleteIcon,
 
 interface User {
   id: string;
-  name: string;
+  username: string;
   email: string;
+  full_name?: string;
+  role: string;
+  is_active: boolean;
+}
+
+interface CreateFormValues {
+  username: string;
+  email: string;
+  full_name: string;
+  password: string;
   role: string;
 }
+
+interface EditFormValues {
+  role: string;
+  is_active: boolean;
+}
+
+const ROLES = ['student', 'teacher', 'admin'];
 
 const AdminUsers = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [open, setOpen] = useState(false);
-  const [deleteDialog, setDeleteDialog] = useState<{open: boolean, id: string | null}>({open: false, id: null});
-  
-  const { control, handleSubmit, reset } = useForm({
-    defaultValues: { name: '', email: '', role: '' }
+  const [editUser, setEditUser] = useState<User | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
+
+  const { control, handleSubmit, reset } = useForm<CreateFormValues>({
+    defaultValues: { username: '', email: '', full_name: '', password: '', role: 'student' },
+  });
+
+  const { control: editControl, handleSubmit: handleEditSubmit, reset: resetEdit } = useForm<EditFormValues>({
+    defaultValues: { role: 'student', is_active: true },
   });
 
   const fetchUsers = async () => {
@@ -30,9 +53,9 @@ const AdminUsers = () => {
       const data = await adminApi.getUsers();
       setUsers(data || []);
       setError('');
-    } catch (error) {
-      console.error('Failed to fetch users', error);
-      setError('Failed to load users.');
+    } catch (err) {
+      console.error('Failed to fetch users', err);
+      setError('Không tải được danh sách người dùng.');
     } finally {
       setLoading(false);
     }
@@ -42,48 +65,90 @@ const AdminUsers = () => {
     fetchUsers();
   }, []);
 
-  const onSubmit = async (data: any) => {
-    setUsers([...users, { id: Math.random().toString(), ...data }]);
-    setOpen(false);
-    reset();
+  const onSubmit = async (data: CreateFormValues) => {
+    try {
+      await adminApi.createUser(data);
+      setOpen(false);
+      reset();
+      setSnackbar({ open: true, message: 'Đã tạo tài khoản mới.', severity: 'success' });
+      fetchUsers();
+    } catch (err: any) {
+      console.error('Failed to create user', err);
+      setSnackbar({ open: true, message: err.response?.data?.detail || 'Tạo tài khoản thất bại.', severity: 'error' });
+    }
+  };
+
+  const openEditDialog = (user: User) => {
+    setEditUser(user);
+    resetEdit({ role: user.role, is_active: user.is_active });
+  };
+
+  const onEditSubmit = async (data: EditFormValues) => {
+    if (!editUser) return;
+    try {
+      await adminApi.updateUser(editUser.id, data);
+      setEditUser(null);
+      setSnackbar({ open: true, message: 'Đã cập nhật tài khoản.', severity: 'success' });
+      fetchUsers();
+    } catch (err) {
+      console.error('Failed to update user', err);
+      setSnackbar({ open: true, message: 'Cập nhật thất bại.', severity: 'error' });
+    }
   };
 
   const handleDeleteClick = (id: string) => {
     setDeleteDialog({ open: true, id });
   };
 
-  const confirmDelete = () => {
-    if (deleteDialog.id) {
-       setUsers(users.filter(u => u.id !== deleteDialog.id));
+  const confirmDelete = async () => {
+    if (!deleteDialog.id) return;
+    try {
+      await adminApi.deleteUser(deleteDialog.id);
+      setUsers((prev) => prev.filter((u) => u.id !== deleteDialog.id));
+      setSnackbar({ open: true, message: 'Đã xoá tài khoản.', severity: 'success' });
+    } catch (err) {
+      console.error('Failed to delete user', err);
+      setSnackbar({ open: true, message: 'Xoá tài khoản thất bại.', severity: 'error' });
+    } finally {
+      setDeleteDialog({ open: false, id: null });
     }
-    setDeleteDialog({ open: false, id: null });
   };
 
   const columns: GridColDef[] = [
-    { field: 'id', headerName: 'ID', width: 120 },
-    { field: 'name', headerName: 'Name', width: 250, flex: 1 },
-    { field: 'email', headerName: 'Email', width: 300, flex: 1 },
-    { 
-      field: 'role', 
-      headerName: 'Role', 
-      width: 150,
+    { field: 'username', headerName: 'Tên đăng nhập', width: 180 },
+    { field: 'full_name', headerName: 'Họ tên', width: 200, flex: 1 },
+    { field: 'email', headerName: 'Email', width: 260, flex: 1 },
+    {
+      field: 'role',
+      headerName: 'Vai trò',
+      width: 140,
       renderCell: (params) => (
-        <Chip 
-          label={params.value} 
-          color={params.value?.toLowerCase() === 'admin' ? 'secondary' : 'primary'} 
-          size="small" 
+        <Chip
+          label={params.value}
+          color={params.value === 'admin' ? 'secondary' : params.value === 'teacher' ? 'info' : 'primary'}
+          size="small"
           sx={{ fontWeight: 'bold', textTransform: 'capitalize' }}
         />
       )
     },
     {
+      field: 'is_active',
+      headerName: 'Trạng thái',
+      width: 120,
+      renderCell: (params) => (
+        <Chip label={params.value ? 'Active' : 'Disabled'} color={params.value ? 'success' : 'default'} size="small" />
+      )
+    },
+    {
       field: 'actions',
-      headerName: 'Actions',
-      width: 150,
+      headerName: 'Hành động',
+      width: 120,
       sortable: false,
       renderCell: (params) => (
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="text" color="primary" size="small" sx={{ minWidth: 0, p: 1 }}><EditIcon fontSize="small" /></Button>
+          <Button variant="text" color="primary" size="small" sx={{ minWidth: 0, p: 1 }} onClick={() => openEditDialog(params.row)}>
+            <EditIcon fontSize="small" />
+          </Button>
           <Button variant="text" color="error" size="small" onClick={() => handleDeleteClick(params.row.id)} sx={{ minWidth: 0, p: 1 }}>
             <DeleteIcon fontSize="small" />
           </Button>
@@ -93,108 +158,111 @@ const AdminUsers = () => {
   ];
 
   return (
-    <Box sx={{ p: 4, minHeight: '100vh', bgcolor: '#f8f9fa' }}>
+    <Box sx={{ p: 4, minHeight: '100vh', bgcolor: 'background.default' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <PeopleIcon sx={{ fontSize: 36, color: 'primary.main', mr: 2 }} />
-          <Typography variant="h4" sx={{ fontWeight: 800, color: '#2c3e50' }}>
-            Users Management
+          <Typography variant="h4" sx={{ fontWeight: 800 }}>
+            Quản lý Người dùng
           </Typography>
         </Box>
-        <Button 
-          variant="contained" 
+        <Button
+          variant="contained"
           startIcon={<PersonAddIcon />}
           onClick={() => setOpen(true)}
-          sx={{ 
-            borderRadius: 3, 
-            textTransform: 'none', 
-            fontWeight: 'bold',
-            px: 3, py: 1,
-            boxShadow: '0 4px 12px rgba(25, 118, 210, 0.2)'
-          }}
+          sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 'bold', px: 3, py: 1 }}
         >
-          Add User
+          Thêm người dùng
         </Button>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>}
 
-      <Paper sx={{ height: 600, width: '100%', borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+      <Paper sx={{ height: 600, width: '100%', borderRadius: 3, overflow: 'hidden' }}>
         {loading ? (
           <Box sx={{ p: 3 }}>
-             <Skeleton variant="rectangular" height={50} sx={{ mb: 2, borderRadius: 1 }} />
-             <Skeleton variant="rectangular" height={400} sx={{ borderRadius: 1 }} />
+            <Skeleton variant="rectangular" height={50} sx={{ mb: 2, borderRadius: 1 }} />
+            <Skeleton variant="rectangular" height={400} sx={{ borderRadius: 1 }} />
           </Box>
         ) : (
           <DataGrid
             rows={users}
             columns={columns}
             slots={{ toolbar: GridToolbar }}
-            slotProps={{
-              toolbar: {
-                showQuickFilter: true,
-                quickFilterProps: { debounceMs: 500 },
-              },
-            }}
-            initialState={{
-              pagination: { paginationModel: { page: 0, pageSize: 10 } },
-            }}
+            slotProps={{ toolbar: { showQuickFilter: true, quickFilterProps: { debounceMs: 500 } } }}
+            initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
             pageSizeOptions={[5, 10, 25]}
-            checkboxSelection
             disableRowSelectionOnClick
-            sx={{
-              border: 'none',
-              '& .MuiDataGrid-cell:focus': { outline: 'none' },
-              '& .MuiDataGrid-row:hover': { bgcolor: '#f5f7fa' }
-            }}
+            sx={{ border: 'none', '& .MuiDataGrid-cell:focus': { outline: 'none' } }}
           />
         )}
       </Paper>
 
-      {/* Add User Dialog */}
+      {/* Dialog thêm người dùng */}
       <Dialog open={open} onClose={() => setOpen(false)} slotProps={{ paper: { sx: { borderRadius: 3, minWidth: 400 } } }}>
-        <DialogTitle sx={{ fontWeight: 'bold' }}>Add New User</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>Thêm người dùng mới</DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
-          <form id="edit-user-form" onSubmit={handleSubmit(onSubmit)}>
-            <Controller
-              name="name"
-              control={control}
-              rules={{ required: true }}
-              render={({ field }) => <TextField {...field} label="Full Name" fullWidth sx={{ mb: 3, mt: 1 }} required />}
-            />
-            <Controller
-              name="email"
-              control={control}
-              rules={{ required: true }}
-              render={({ field }) => <TextField {...field} type="email" label="Email Address" fullWidth sx={{ mb: 3 }} required />}
-            />
-            <Controller
-              name="role"
-              control={control}
-              rules={{ required: true }}
-              render={({ field }) => <TextField {...field} label="Role (Admin/Student)" fullWidth sx={{ mb: 1 }} required />}
-            />
+          <form id="create-user-form" onSubmit={handleSubmit(onSubmit)}>
+            <Controller name="username" control={control} rules={{ required: true }}
+              render={({ field }) => <TextField {...field} label="Tên đăng nhập" fullWidth sx={{ mb: 3, mt: 1 }} required />} />
+            <Controller name="full_name" control={control}
+              render={({ field }) => <TextField {...field} label="Họ tên" fullWidth sx={{ mb: 3 }} />} />
+            <Controller name="email" control={control} rules={{ required: true }}
+              render={({ field }) => <TextField {...field} type="email" label="Email" fullWidth sx={{ mb: 3 }} required />} />
+            <Controller name="password" control={control}
+              render={({ field }) => <TextField {...field} type="password" label="Mật khẩu (để trống = mật khẩu mặc định, bắt buộc đổi khi đăng nhập)" fullWidth sx={{ mb: 3 }} />} />
+            <Controller name="role" control={control} rules={{ required: true }}
+              render={({ field }) => (
+                <TextField {...field} select label="Vai trò" fullWidth required>
+                  {ROLES.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
+                </TextField>
+              )} />
           </form>
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 0 }}>
-          <Button onClick={() => setOpen(false)} sx={{ borderRadius: 2, textTransform: 'none' }}>Cancel</Button>
-          <Button type="submit" form="edit-user-form" variant="contained" sx={{ borderRadius: 2, textTransform: 'none', boxShadow: 'none' }}>Save User</Button>
+          <Button onClick={() => setOpen(false)} sx={{ borderRadius: 2, textTransform: 'none' }}>Huỷ</Button>
+          <Button type="submit" form="create-user-form" variant="contained" sx={{ borderRadius: 2, textTransform: 'none' }}>Tạo</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Delete Confirmation */}
-      <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, id: null })} slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}>
-        <DialogTitle sx={{ fontWeight: 'bold', color: '#e74c3c' }}>Delete User</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to permanently delete this user?
-          </DialogContentText>
+      {/* Dialog sửa vai trò / trạng thái */}
+      <Dialog open={!!editUser} onClose={() => setEditUser(null)} slotProps={{ paper: { sx: { borderRadius: 3, minWidth: 380 } } }}>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>Sửa: {editUser?.username}</DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <form id="edit-user-form" onSubmit={handleEditSubmit(onEditSubmit)}>
+            <Controller name="role" control={editControl}
+              render={({ field }) => (
+                <TextField {...field} select label="Vai trò" fullWidth sx={{ mb: 2, mt: 1 }}>
+                  {ROLES.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
+                </TextField>
+              )} />
+            <Controller name="is_active" control={editControl}
+              render={({ field }) => (
+                <FormControlLabel control={<Switch checked={field.value} onChange={(e) => field.onChange(e.target.checked)} />} label="Tài khoản đang hoạt động" />
+              )} />
+          </form>
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setDeleteDialog({ open: false, id: null })} sx={{ borderRadius: 2, textTransform: 'none' }}>Cancel</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained" sx={{ borderRadius: 2, textTransform: 'none', boxShadow: 'none' }}>Delete</Button>
+        <DialogActions sx={{ p: 3, pt: 0 }}>
+          <Button onClick={() => setEditUser(null)} sx={{ borderRadius: 2, textTransform: 'none' }}>Huỷ</Button>
+          <Button type="submit" form="edit-user-form" variant="contained" sx={{ borderRadius: 2, textTransform: 'none' }}>Lưu</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Xác nhận xoá */}
+      <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, id: null })} slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}>
+        <DialogTitle sx={{ fontWeight: 'bold', color: 'error.main' }}>Xoá người dùng</DialogTitle>
+        <DialogContent>
+          <DialogContentText>Bạn có chắc muốn xoá vĩnh viễn người dùng này?</DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setDeleteDialog({ open: false, id: null })} sx={{ borderRadius: 2, textTransform: 'none' }}>Huỷ</Button>
+          <Button onClick={confirmDelete} color="error" variant="contained" sx={{ borderRadius: 2, textTransform: 'none' }}>Xoá</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar((s) => ({ ...s, open: false }))}>
+        <Alert severity={snackbar.severity} sx={{ width: '100%' }}>{snackbar.message}</Alert>
+      </Snackbar>
     </Box>
   );
 };

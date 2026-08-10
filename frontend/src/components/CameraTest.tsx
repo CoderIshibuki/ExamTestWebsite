@@ -55,7 +55,7 @@ const CameraTest: React.FC = () => {
   }, [stream]);
 
   return (
-    <Card elevation={3} sx={{ maxWidth: 600, margin: 'auto', mt: 4 }}>
+    <Card sx={{ maxWidth: 600, margin: 'auto', mt: 4 }}>
       <CardContent>
         <Typography variant="h5" gutterBottom align="center">
           Kiểm tra Camera (WebRTC PoC)

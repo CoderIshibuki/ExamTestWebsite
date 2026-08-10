@@ -22,7 +22,8 @@ class ExamClient:
                     q_data = {
                         "id": sn.get("question_id"),
                         "question_text": sn.get("question_text"),
-                        "choices": sn.get("choices"),
+                        "type": sn.get("type", "multiple_choice"),
+                        "options": sn.get("choices"),
                         "correct_answer": sn.get("correct_answer"),
                         "point_possible": sn.get("points", 1.0)
                     }

@@ -5,6 +5,7 @@ import { ErrorOutlined } from '@mui/icons-material';
 import { useTimer } from '../hooks/useTimer';
 import { useProctoring } from '../hooks/useProctoring';
 import { useExamContext } from '../context/ExamContext';
+import type { AnswerValue, Question } from '../context/ExamContext';
 import QuestionPanel from '../components/QuestionPanel';
 import Timer from '../components/Timer';
 import ProctoringStatus from '../components/ProctoringStatus';
@@ -26,12 +27,31 @@ const ExamRoom: React.FC = () => {
       setStatus('joining');
       setExamId(examId || '');
       
-      const [questions, attempt] = await Promise.all([
+      const [rawQuestions, attempt] = await Promise.all([
         examApi.getExamQuestions(examId || ''),
         examApi.startExam(examId || '')
       ]);
-      
-      setQuestions(questions as any);
+
+      // Chuyển shape backend (ExamQuestionDetail) sang shape dùng trong phòng thi (Question).
+      // Với câu nối cột: quy ước option id bắt đầu "L_" là cột trái, "R_" là cột phải.
+      const questions: Question[] = rawQuestions.map((q) => {
+        const isMatching = q.type === 'matching';
+        return {
+          id: q.question_id,
+          content: q.content?.text || '',
+          type: q.type,
+          options: isMatching ? [] : q.options.map((o) => ({ id: o.id, text: o.text })),
+          matching: isMatching
+            ? {
+                left: q.options.filter((o) => o.id.startsWith('L_')).map((o) => ({ id: o.id, text: o.text })),
+                right: q.options.filter((o) => o.id.startsWith('R_')).map((o) => ({ id: o.id, text: o.text })),
+              }
+            : undefined,
+          essayMode: q.type === 'essay' ? 'both' : undefined,
+        };
+      });
+
+      setQuestions(questions);
       setAttemptId(attempt.id);
       setExpiresAt(new Date(attempt.expires_at));
       setStatus('in_progress');
@@ -70,7 +90,7 @@ const ExamRoom: React.FC = () => {
 
   const { timeLeft, formattedTime, isWarning } = useTimer(initialSecondsLeft, submitExam);
 
-  const handleAnswerSelect = async (answer: string) => {
+  const handleAnswerSelect = async (answer: AnswerValue) => {
     const currentQ = state.questions[state.currentQuestionIndex];
     if (currentQ && state.attemptId) {
       setAnswer(currentQ.id, answer);
@@ -100,7 +120,7 @@ const ExamRoom: React.FC = () => {
   if (state.status === 'error') {
     return (
       <Box sx={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', bgcolor: 'background.default' }}>
-        <Paper elevation={3} sx={{ p: 5, textAlign: 'center', borderRadius: 4, maxWidth: 400 }}>
+        <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 4, maxWidth: 400, border: '1px solid', borderColor: 'divider' }}>
           <ErrorOutlined color="error" sx={{ fontSize: 60, mb: 2 }} />
           <Typography variant="h5" color="error" gutterBottom>Đã xảy ra lỗi</Typography>
           <Typography color="text.secondary" sx={{ mb: 4 }}>
@@ -118,7 +138,7 @@ const ExamRoom: React.FC = () => {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#F9FAFB', display: 'flex', flexDirection: 'column', pb: 8 }}>
-      <Paper elevation={2} sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 0, position: 'sticky', top: 0, zIndex: 1100 }}>
+      <Paper sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 0, borderBottom: '1px solid', borderColor: 'divider', position: 'sticky', top: 0, zIndex: 1100, bgcolor: 'white' }}>
         <Timer timeLeft={timeLeft} isWarning={isWarning} formattedTime={formattedTime} />
         <Typography variant="h6" sx={{ fontWeight: 600, display: { xs: 'none', sm: 'block' } }}>
           Câu hỏi {state.currentQuestionIndex + 1} / {state.totalQuestions}
@@ -134,7 +154,7 @@ const ExamRoom: React.FC = () => {
             {currentQuestion ? (
               <QuestionPanel
                 question={currentQuestion}
-                selectedAnswer={state.answers[currentQuestion.id] || ''}
+                selectedAnswer={state.answers[currentQuestion.id] ?? (currentQuestion.type === 'multiple_select' || currentQuestion.type === 'matching' ? [] : '')}
                 onSelectAnswer={handleAnswerSelect}
                 questionIndex={state.currentQuestionIndex}
                 totalQuestions={state.totalQuestions}
@@ -153,11 +173,14 @@ const ExamRoom: React.FC = () => {
             <Paper sx={{ p: 3, borderRadius: 3, position: { lg: 'sticky' }, top: 100 }}>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>Danh sách câu hỏi</Typography>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(48px, 1fr))', gap: 1.5, mt: 2 }} role="group" aria-label="Điều hướng câu hỏi">
-                {state.questions.map((q, idx) => (
+                {state.questions.map((q, idx) => {
+                  const ans = state.answers[q.id];
+                  const answered = Array.isArray(ans) ? ans.length > 0 : !!ans;
+                  return (
                   <Button
                     key={q.id}
-                    variant={state.answers[q.id] ? 'contained' : 'outlined'}
-                    color={state.currentQuestionIndex === idx ? 'primary' : state.answers[q.id] ? 'success' : 'inherit'}
+                    variant={answered ? 'contained' : 'outlined'}
+                    color={state.currentQuestionIndex === idx ? 'primary' : answered ? 'success' : 'inherit'}
                     sx={{ minWidth: 0, height: 48, borderRadius: 2, fontWeight: 600, p: 0 }}
                     onClick={() => goToQuestion(idx)}
                     aria-label={`Đi tới câu hỏi ${idx + 1}`}
@@ -165,14 +188,15 @@ const ExamRoom: React.FC = () => {
                   >
                     {idx + 1}
                   </Button>
-                ))}
+                  );
+                })}
               </Box>
             </Paper>
           </Grid>
         </Grid>
       </Container>
 
-      <Paper elevation={4} sx={{ p: 1.5, display: 'flex', justifyContent: 'center', borderRadius: 0, position: 'fixed', bottom: 0, width: '100%', zIndex: 1200, bgcolor: 'white' }}>
+      <Paper sx={{ p: 1.5, display: 'flex', justifyContent: 'center', borderRadius: 0, borderTop: '1px solid', borderColor: 'divider', position: 'fixed', bottom: 0, width: '100%', zIndex: 1200, bgcolor: 'white' }}>
         <ProctoringStatus isActive={isActive} violationCount={violationCount} />
       </Paper>
     </Box>

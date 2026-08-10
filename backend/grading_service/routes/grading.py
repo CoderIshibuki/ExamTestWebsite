@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from uuid import UUID
 from datetime import datetime, timezone
+from typing import Optional
 
 import schemas, models
 from database import get_db
@@ -130,3 +131,97 @@ async def get_submission_status(
         "submission_id": submission.id,
         "processed": submission.processed
     }
+
+
+@router.get("/pending-manual", response_model=list[schemas.PendingManualGradeItem])
+async def list_pending_manual_grading(
+    exam_id: Optional[UUID] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Danh sách câu tự luận đang chờ giáo viên chấm tay. Chỉ admin/teacher được xem."""
+    if current_user["role"] not in ("admin", "teacher"):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    stmt = (
+        select(
+            models.QuestionResult.id,
+            models.QuestionResult.question_id,
+            models.QuestionResult.user_answer,
+            models.QuestionResult.point_possible,
+            models.Result.id.label("result_id"),
+            models.Result.attempt_id,
+            models.Result.exam_id,
+            models.Result.user_id,
+        )
+        .join(models.Result, models.QuestionResult.result_id == models.Result.id)
+        .where(models.QuestionResult.needs_manual_grading == True)  # noqa: E712
+        .where(models.QuestionResult.graded_by_user_id.is_(None))
+    )
+    if exam_id:
+        stmt = stmt.where(models.Result.exam_id == exam_id)
+
+    rows = (await db.execute(stmt)).all()
+    return [
+        {
+            "result_id": r.result_id,
+            "attempt_id": r.attempt_id,
+            "exam_id": r.exam_id,
+            "user_id": r.user_id,
+            "question_id": r.question_id,
+            "user_answer": r.user_answer,
+            "point_possible": r.point_possible,
+        }
+        for r in rows
+    ]
+
+
+@router.post("/manual-grade/{result_id}/{question_id}", response_model=schemas.ResultResponse)
+async def manual_grade_question(
+    result_id: UUID,
+    question_id: str,
+    grade: schemas.ManualGradeRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Giáo viên/Admin chấm điểm tay cho câu tự luận, sau đó tự động cộng lại tổng điểm của bài thi."""
+    if current_user["role"] not in ("admin", "teacher"):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    qr_stmt = select(models.QuestionResult).where(
+        models.QuestionResult.result_id == result_id,
+        models.QuestionResult.question_id == question_id,
+    )
+    qr = (await db.execute(qr_stmt)).scalars().first()
+    if not qr:
+        raise HTTPException(status_code=404, detail="Question result not found")
+
+    if grade.point_earned > qr.point_possible:
+        raise HTTPException(status_code=400, detail=f"Điểm chấm không được vượt quá điểm tối đa ({qr.point_possible})")
+
+    qr.point_earned = grade.point_earned
+    qr.is_correct = grade.point_earned >= qr.point_possible
+    qr.needs_manual_grading = False
+    qr.graded_by_user_id = current_user["id"]
+    qr.manual_grading_note = grade.note
+
+    # Cộng lại tổng điểm của toàn bộ bài thi sau khi chấm tay câu này
+    result_stmt = select(models.Result).where(models.Result.id == result_id)
+    db_result = (await db.execute(result_stmt)).scalars().first()
+    if not db_result:
+        raise HTTPException(status_code=404, detail="Result not found")
+
+    all_qr_stmt = select(models.QuestionResult).where(models.QuestionResult.result_id == result_id)
+    all_qr = (await db.execute(all_qr_stmt)).scalars().all()
+
+    total_earned = sum((q.point_earned or 0) for q in all_qr if q.id != qr.id) + grade.point_earned
+    total_possible = sum((q.point_possible or 0) for q in all_qr)
+    still_pending = any(q.needs_manual_grading and q.id != qr.id for q in all_qr)
+
+    db_result.score = total_earned
+    db_result.percentage = (total_earned / total_possible * 100) if total_possible > 0 else 0
+    db_result.has_pending_manual_grading = still_pending
+
+    await db.commit()
+    await db.refresh(db_result)
+    return db_result

@@ -9,7 +9,7 @@ import VideocamOffIcon from '@mui/icons-material/VideocamOff';
 
 const ProctorDashboard = () => {
   const { examId } = useParams<{ examId: string }>();
-  const { students, violations, alerts, clearAlerts, loading, unauthorized } = useProctoringData(examId || '');
+  const { students, violations, alerts, clearAlerts, loading, unauthorized, error } = useProctoringData(examId || '');
 
   if (unauthorized) {
     return (
@@ -31,12 +31,12 @@ const ProctorDashboard = () => {
     );
   }
 
-  if (false) {
+  if (error) {
     return (
       <Box sx={{ p: 4, height: '100vh', bgcolor: '#0f172a' }}>
         <Alert severity="error" variant="filled" sx={{ borderRadius: 2 }}>
           Connection Error
-          Failed to establish connection to the proctoring server. Please refresh and try again.
+          {error}
         </Alert>
       </Box>
     );
@@ -44,7 +44,7 @@ const ProctorDashboard = () => {
 
   return (
     <Box sx={{ flexGrow: 1, height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#0f172a', color: '#f8fafc' }}>
-      <Box sx={{ p: 3, borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', background: 'linear-gradient(90deg, #1e293b 0%, #0f172a 100%)' }}>
+      <Box sx={{ p: 3, borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', bgcolor: '#0f172a' }}>
         <VisibilityIcon sx={{ fontSize: 32, color: '#38bdf8', mr: 2 }} />
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: 0.5 }}>

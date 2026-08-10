@@ -68,21 +68,14 @@ const AdminDashboard = () => {
       
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {[
-          { label: 'Tổng Người dùng', value: stats.total_users, color: '#3498db' },
-          { label: 'Tổng Kỳ thi', value: stats.total_exams, color: '#2ecc71' },
-          { label: 'Tổng Câu hỏi', value: stats.total_questions, color: '#9b59b6' }
+          { label: 'Tổng Người dùng', value: stats.total_users, color: 'primary.main' },
+          { label: 'Tổng Kỳ thi', value: stats.total_exams, color: 'secondary.main' },
+          { label: 'Tổng Câu hỏi', value: stats.total_questions, color: 'info.main' }
         ].map((stat, i) => (
           <Grid size={{ xs: 12, sm: 4 }} key={i}>
-            <Card sx={{ 
-              borderRadius: 2, 
-              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-              border: '1px solid #e0e0e0',
-              transition: 'transform 0.3s ease',
-              bgcolor: '#f8f9fa',
-              '&:hover': { transform: 'translateY(-5px)', boxShadow: '0 6px 16px rgba(0,0,0,0.1)' }
-            }}>
+            <Card sx={{ bgcolor: '#F8FAFC' }}>
               <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <Typography sx={{ color: '#7f8c8d', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }} gutterBottom>
+                <Typography sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }} gutterBottom>
                   {stat.label}
                 </Typography>
                 <Typography variant="h3" sx={{ fontWeight: 800, color: stat.color }}>
@@ -94,8 +87,8 @@ const AdminDashboard = () => {
         ))}
       </Grid>
 
-      <Typography variant="h5" sx={{ mb: 3, fontWeight: 700, color: '#34495e' }}>Tổng quan Hoạt động</Typography>
-      <Paper sx={{ height: 400, width: '100%', p: 0, borderRadius: 0, boxShadow: 'none', border: 'none' }}>
+      <Typography variant="h5" sx={{ mb: 3, fontWeight: 700, color: 'text.primary' }}>Tổng quan Hoạt động</Typography>
+      <Paper sx={{ height: 400, width: '100%', p: 0, borderRadius: 0, border: 'none' }}>
         {chartData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
@@ -103,7 +96,7 @@ const AdminDashboard = () => {
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#7f8c8d'}} />
               <YAxis axisLine={false} tickLine={false} tick={{fill: '#7f8c8d'}} />
               <Tooltip 
-                contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0' }}
               />
               <Legend wrapperStyle={{ paddingTop: 20 }} />
               <Line name="Người dùng mới" type="monotone" dataKey="users" stroke="#3498db" strokeWidth={3} activeDot={{ r: 8, fill: '#3498db', stroke: '#fff', strokeWidth: 2 }} />

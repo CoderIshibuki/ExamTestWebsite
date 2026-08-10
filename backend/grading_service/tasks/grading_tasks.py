@@ -57,6 +57,7 @@ async def save_result(session_maker, exam_id: str, user_id: str, result_data: di
                 started_at=started_at,
                 submitted_at=datetime.now(timezone.utc),
                 status="graded",
+                has_pending_manual_grading=result_data.get("has_pending_manual_grading", False),
                 grading_started_at=datetime.now(timezone.utc),
                 grading_completed_at=datetime.now(timezone.utc)
             )
@@ -71,7 +72,8 @@ async def save_result(session_maker, exam_id: str, user_id: str, result_data: di
                     user_answer=qr["user_answer"],
                     is_correct=qr["is_correct"],
                     point_earned=qr["point_earned"],
-                    point_possible=qr["point_possible"]
+                    point_possible=qr["point_possible"],
+                    needs_manual_grading=qr.get("needs_manual_grading", False)
                 )
                 session.add(db_qr)
                 

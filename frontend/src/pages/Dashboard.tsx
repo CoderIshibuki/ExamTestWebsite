@@ -21,7 +21,7 @@ const Dashboard = () => {
         </Toolbar>
       </AppBar>
 
-      <Box sx={{ background: 'linear-gradient(135deg, #4F46E5 0%, #3B82F6 100%)', pt: 8, pb: 12, mb: -6 }}>
+      <Box sx={{ bgcolor: 'primary.main', pt: 8, pb: 12, mb: -6 }}>
         <Container maxWidth="lg">
           {user ? (
             <>
@@ -46,7 +46,7 @@ const Dashboard = () => {
           {/* User Profile Card */}
           <Grid size={{ xs: 12, md: 4 }}>
             {user ? (
-              <Card sx={{ height: '100%', borderRadius: 4, transition: 'all 0.3s ease', '&:hover': { boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' } }}>
+              <Card sx={{ height: '100%', borderRadius: 4, transition: 'border-color 0.2s ease', '&:hover': { borderColor: 'primary.main' } }}>
                 <CardContent sx={{ p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
                   <Avatar sx={{ width: 80, height: 80, bgcolor: 'primary.light', color: 'primary.dark', mb: 2, fontSize: 32 }} aria-hidden="true">
                     {user.username.charAt(0).toUpperCase()}
@@ -73,7 +73,7 @@ const Dashboard = () => {
             <Grid container spacing={3}>
               {user?.role === 'admin' && (
                 <Grid size={{ xs: 12 }}>
-                  <Card sx={{ borderRadius: 4, bgcolor: '#EEF2FF', border: '1px solid #C7D2FE', transition: 'all 0.3s ease', '&:hover': { boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' } }}>
+                  <Card sx={{ borderRadius: 4, bgcolor: '#EEF2FF', border: '1px solid #C7D2FE', transition: 'border-color 0.2s ease', '&:hover': { borderColor: 'primary.main' } }}>
                     <CardContent sx={{ p: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <Avatar sx={{ bgcolor: '#4F46E5', color: '#fff', mr: 3, display: { xs: 'none', sm: 'flex' } }} aria-hidden="true"><VerifiedUser /></Avatar>
@@ -92,7 +92,7 @@ const Dashboard = () => {
 
               {user?.role === 'teacher' && (
                 <Grid size={{ xs: 12 }}>
-                  <Card sx={{ borderRadius: 4, bgcolor: '#ECFDF5', border: '1px solid #A7F3D0', transition: 'all 0.3s ease', '&:hover': { boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' } }}>
+                  <Card sx={{ borderRadius: 4, bgcolor: '#ECFDF5', border: '1px solid #A7F3D0', transition: 'border-color 0.2s ease', '&:hover': { borderColor: 'primary.main' } }}>
                     <CardContent sx={{ p: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <Avatar sx={{ bgcolor: '#10B981', color: '#fff', mr: 3, display: { xs: 'none', sm: 'flex' } }} aria-hidden="true"><School /></Avatar>
@@ -110,7 +110,7 @@ const Dashboard = () => {
               )}
 
               <Grid size={{ xs: 12, sm: 6 }}>
-                <Card sx={{ height: '100%', borderRadius: 4, transition: 'all 0.3s ease', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' } }}>
+                <Card sx={{ height: '100%', borderRadius: 4, transition: 'border-color 0.2s ease', '&:hover': { borderColor: 'primary.main' } }}>
                   <CardContent sx={{ p: 4 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                       <Avatar sx={{ bgcolor: '#EEF2FF', color: '#4F46E5', mr: 2 }} aria-hidden="true"><School /></Avatar>
@@ -124,23 +124,26 @@ const Dashboard = () => {
                 </Card>
               </Grid>
 
+              {user?.role === 'student' && (
               <Grid size={{ xs: 12, sm: 6 }}>
-                <Card sx={{ height: '100%', borderRadius: 4, transition: 'all 0.3s ease', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' } }}>
+                <Card sx={{ height: '100%', borderRadius: 4, transition: 'border-color 0.2s ease', '&:hover': { borderColor: 'primary.main' } }}>
                   <CardContent sx={{ p: 4 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                       <Avatar sx={{ bgcolor: '#ECFDF5', color: '#10B981', mr: 2 }} aria-hidden="true"><FactCheck /></Avatar>
                       <Typography variant="h6" sx={{ fontWeight: 700 }}>Kết quả học tập</Typography>
                     </Box>
                     <Typography color="text.secondary" sx={{ mb: 4, minHeight: 40 }}>Xem lại lịch sử làm bài và điểm số của bạn.</Typography>
-                    <Button variant="outlined" color="secondary" fullWidth size="large" aria-label="Xem kết quả học tập">
+                    <Button variant="outlined" color="secondary" fullWidth size="large" onClick={() => navigate('/student/exams')} aria-label="Xem kết quả học tập">
                       Xem kết quả
                     </Button>
                   </CardContent>
                 </Card>
               </Grid>
+              )}
 
+              {user?.role === 'student' && (
               <Grid size={{ xs: 12 }}>
-                <Card sx={{ borderRadius: 4, transition: 'all 0.3s ease', '&:hover': { boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' } }}>
+                <Card sx={{ borderRadius: 4, transition: 'border-color 0.2s ease', '&:hover': { borderColor: 'primary.main' } }}>
                   <CardContent sx={{ p: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       <Avatar sx={{ bgcolor: '#FFFBEB', color: '#F59E0B', mr: 3, display: { xs: 'none', sm: 'flex' } }} aria-hidden="true"><Videocam /></Avatar>
@@ -149,12 +152,13 @@ const Dashboard = () => {
                         <Typography color="text.secondary">Kiểm tra camera và micro trước khi thi để đảm bảo không gặp lỗi kỹ thuật.</Typography>
                       </Box>
                     </Box>
-                    <Button variant="outlined" color="warning" onClick={() => navigate(`/${user?.role}/camera-test`)} aria-label="Kiểm tra Camera">
+                    <Button variant="outlined" color="warning" onClick={() => navigate('/student/camera-test')} aria-label="Kiểm tra Camera">
                       Kiểm tra Camera
                     </Button>
                   </CardContent>
                 </Card>
               </Grid>
+              )}
             </Grid>
           </Grid>
         </Grid>

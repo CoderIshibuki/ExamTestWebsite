@@ -15,6 +15,7 @@ class QuestionResultSchema(BaseModel):
     is_correct: bool
     point_earned: float
     point_possible: float
+    needs_manual_grading: bool = False
 
 class GradingResult(BaseModel):
     score: float
@@ -35,6 +36,7 @@ class ResultResponse(BaseModel):
     incorrect_count: Optional[int]
     time_taken: Optional[int]
     status: str
+    has_pending_manual_grading: bool = False
     started_at: Optional[datetime]
     submitted_at: Optional[datetime]
     created_at: datetime
@@ -46,3 +48,19 @@ class SubmissionResponse(BaseModel):
     submission_id: str
     status: str
     message: str
+
+class ManualGradeRequest(BaseModel):
+    point_earned: float = Field(ge=0)
+    note: Optional[str] = None
+
+class PendingManualGradeItem(BaseModel):
+    result_id: UUID
+    attempt_id: UUID
+    exam_id: UUID
+    user_id: str
+    question_id: str
+    user_answer: Optional[str]
+    point_possible: float
+
+    class Config:
+        from_attributes = True

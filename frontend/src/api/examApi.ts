@@ -1,4 +1,5 @@
 import apiClient from './apiClient';
+import type { AnswerValue } from '../context/ExamContext';
 
 export interface Exam {
   id: string;
@@ -22,17 +23,22 @@ export async function getExamById(examId: string): Promise<Exam> {
   return response.data;
 }
 
-export async function getExamQuestions(examId: string): Promise<ExamQuestion[]> {
-  const response = await apiClient.get(`/v1/exams/${examId}/questions`);
-  return response.data;
-}
-
-export interface ExamQuestion {
+// Shape thật trả về từ backend (đã "làm giàu" nội dung câu hỏi từ question_service) —
+// khớp với schemas.ExamQuestionDetail phía exam_service.
+export interface ExamQuestionDetail {
   id: string;
   question_id: string;
-  content?: string;
-  options?: string[];
-  type?: string;
+  question_order?: number;
+  point_value: number;
+  type: 'multiple_choice' | 'true_false' | 'multiple_select' | 'matching' | 'essay';
+  content: { text?: string; image?: string; latex?: string };
+  options: { id: string; text: string; is_correct?: boolean }[];
+  correct_answer: string | string[] | null; // luôn null với học sinh
+}
+
+export async function getExamQuestions(examId: string): Promise<ExamQuestionDetail[]> {
+  const response = await apiClient.get(`/v1/exams/${examId}/questions`);
+  return response.data;
 }
 
 export interface ExamAttempt {
@@ -50,10 +56,15 @@ export async function startExam(examId: string): Promise<ExamAttempt> {
   return response.data;
 }
 
-export async function saveAnswer(attemptId: string, questionId: string, answer: string) {
+/**
+ * Lưu đáp án. Backend chỉ lưu chuỗi (Text) nên đáp án dạng mảng (chọn nhiều đáp án,
+ * nối cột) được JSON-encode trước khi gửi — grading_engine.py sẽ JSON-decode lại khi chấm.
+ */
+export async function saveAnswer(attemptId: string, questionId: string, answer: AnswerValue) {
+  const encoded = typeof answer === 'string' ? answer : JSON.stringify(answer);
   const response = await apiClient.post(`/v1/exams/attempts/${attemptId}/answers`, {
     question_id: questionId,
-    selected_answer: answer
+    selected_answer: encoded
   });
   return response.data;
 }

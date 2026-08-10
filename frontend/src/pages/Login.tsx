@@ -2,7 +2,7 @@ import { useState, useContext } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Box, Button, TextField, Typography, Container, Card, CardContent, Alert, Link } from '@mui/material';
+import { Box, Button, TextField, Typography, Container, Card, Alert, Link } from '@mui/material';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
@@ -15,10 +15,12 @@ const loginSchema = z.object({
 
 type LoginSchema = z.infer<typeof loginSchema>;
 
-const BG_DARK = '#121212';
-const CARD_BG = '#1e1e1e';
+// Bảng màu phẳng (flat) cho màn hình xác thực — không dùng gradient/đổ bóng.
+const BG_DARK = '#111827';
+const CARD_BG = '#1E293B';
+const PANEL_BG = '#1D4ED8';
 const TEXT_LIGHT = '#ffffff';
-const TEXT_MUTED = '#a0a0a0';
+const TEXT_MUTED = '#94A3B8';
 
 const Login = () => {
   const { login } = useContext(AuthContext);
@@ -49,15 +51,12 @@ const Login = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: BG_DARK, color: TEXT_LIGHT, fontFamily: '"Inter", "Helvetica Neue", Helvetica, Arial, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3, background: 'radial-gradient(circle at 50% 0%, #1f2937 0%, #111827 50%, #030712 100%)' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: BG_DARK, color: TEXT_LIGHT, fontFamily: '"Inter", "Helvetica Neue", Helvetica, Arial, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3 }}>
       <Container maxWidth="md">
-        <Card sx={{ bgcolor: CARD_BG, color: TEXT_LIGHT, borderRadius: 4, border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.7)', overflow: 'hidden', display: 'flex', flexDirection: { xs: 'column', md: 'row' } }}>
-          
-          {/* Left Side - Branding */}
-          <Box sx={{ flex: 1, background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', p: 6, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative', overflow: 'hidden' }}>
-            <Box sx={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', filter: 'blur(30px)' }} />
-            <Box sx={{ position: 'absolute', bottom: -50, left: -50, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', filter: 'blur(30px)' }} />
-            
+        <Card sx={{ bgcolor: CARD_BG, color: TEXT_LIGHT, borderRadius: 4, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden', display: 'flex', flexDirection: { xs: 'column', md: 'row' } }}>
+
+          {/* Bên trái - Thương hiệu (nền phẳng, không gradient) */}
+          <Box sx={{ flex: 1, bgcolor: PANEL_BG, p: 6, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <Box>
               <Typography variant="h4" sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', cursor: 'pointer', mb: 2 }} onClick={() => navigate('/')}>
                 <Box sx={{ display: 'flex', mr: 1.5 }}>
@@ -77,7 +76,7 @@ const Login = () => {
                 Nền tảng kiểm tra và đánh giá năng lực hiện đại, tích hợp công nghệ chống gian lận và đa dạng loại câu hỏi.
               </Typography>
             </Box>
-            
+
             <Box sx={{ mt: 8 }}>
               <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)' }}>
                 © 2026 ExamSystem. All rights reserved.
@@ -85,7 +84,7 @@ const Login = () => {
             </Box>
           </Box>
 
-          {/* Right Side - Form */}
+          {/* Bên phải - Form */}
           <Box sx={{ flex: 1, p: { xs: 4, md: 6 }, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <Typography variant="h5" component="h1" gutterBottom sx={{ fontWeight: 700, mb: 1 }}>
               Đăng nhập
@@ -95,7 +94,7 @@ const Login = () => {
             </Typography>
 
             {error && <Alert severity="error" sx={{ mb: 3, bgcolor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', '& .MuiAlert-icon': { color: '#ef4444' } }}>{error}</Alert>}
-            
+
             <form onSubmit={handleSubmit(onSubmit)}>
               <TextField
                 fullWidth
@@ -106,7 +105,7 @@ const Login = () => {
                 error={!!errors.username}
                 helperText={errors.username?.message}
                 slotProps={{ inputLabel: { style: { color: TEXT_MUTED } } }}
-                sx={{ mb: 2.5, '& .MuiOutlinedInput-root': { color: '#fff', bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&.Mui-focused fieldset': { borderColor: '#3b82f6', borderWidth: '2px' } } }}
+                sx={{ mb: 2.5, '& .MuiOutlinedInput-root': { color: '#fff', bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&.Mui-focused fieldset': { borderColor: PANEL_BG, borderWidth: '2px' } } }}
               />
               <TextField
                 fullWidth
@@ -118,7 +117,7 @@ const Login = () => {
                 error={!!errors.password}
                 helperText={errors.password?.message}
                 slotProps={{ inputLabel: { style: { color: TEXT_MUTED } } }}
-                sx={{ mb: 4, '& .MuiOutlinedInput-root': { color: '#fff', bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&.Mui-focused fieldset': { borderColor: '#3b82f6', borderWidth: '2px' } } }}
+                sx={{ mb: 4, '& .MuiOutlinedInput-root': { color: '#fff', bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&.Mui-focused fieldset': { borderColor: PANEL_BG, borderWidth: '2px' } } }}
               />
               <Button
                 type="submit"
@@ -126,7 +125,7 @@ const Login = () => {
                 variant="contained"
                 size="large"
                 disableElevation
-                sx={{ mb: 3, py: 1.5, bgcolor: '#3b82f6', color: '#fff', fontWeight: 600, fontSize: '1rem', borderRadius: 2, textTransform: 'none', '&:hover': { bgcolor: '#2563eb' } }}
+                sx={{ mb: 3, py: 1.5, bgcolor: PANEL_BG, color: '#fff', fontWeight: 600, fontSize: '1rem', borderRadius: 2, textTransform: 'none', '&:hover': { bgcolor: '#1E40AF' } }}
               >
                 Đăng nhập
               </Button>

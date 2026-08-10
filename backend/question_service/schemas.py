@@ -49,6 +49,7 @@ class ExamQuestionSnapshotCreate(BaseModel):
     question_id: str
     question_version: int = 1
     question_text: str
+    type: str = "multiple_choice"
     choices: list = []
     correct_answer: Union[str, list]
     points: float = 1.0
@@ -60,6 +61,7 @@ class ExamQuestionSnapshotResponse(BaseModel):
     question_id: str
     question_version: int
     question_text: str
+    type: str = "multiple_choice"
     choices: list
     correct_answer: Union[str, list]
     points: float
@@ -75,6 +77,7 @@ class ExamQuestionSnapshotResponse(BaseModel):
             exam_id=data.get("exam_id"),
             question_id=data.get("question_id"),
             question_version=data.get("question_version", 1),
+            type=data.get("type", "multiple_choice"),
             question_text=data.get("question_text", ""),
             choices=data.get("choices", []),
             correct_answer=data.get("correct_answer", ""),

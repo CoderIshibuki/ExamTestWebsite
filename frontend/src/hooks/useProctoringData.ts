@@ -9,6 +9,7 @@ export const useProctoringData = (examId: string) => {
   const [violations, setViolations] = useState<Violation[]>([]);
   const [loading, setLoading] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const { alerts, clearAlerts, events } = useProctorWebSocket(examId);
 
@@ -37,6 +38,8 @@ export const useProctoringData = (examId: string) => {
       } catch (error: any) {
         if (error.response && error.response.status === 403) {
           setUnauthorized(true);
+        } else {
+          setError('Failed to establish connection to the proctoring server. Please refresh and try again.');
         }
         console.error('Error fetching proctoring data:', error);
       } finally {
@@ -83,5 +86,5 @@ export const useProctoringData = (examId: string) => {
     }
   }, [events]);
 
-  return { students, violations, alerts, clearAlerts, loading, unauthorized };
+  return { students, violations, alerts, clearAlerts, loading, unauthorized, error };
 };

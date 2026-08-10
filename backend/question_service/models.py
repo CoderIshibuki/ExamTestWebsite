@@ -56,6 +56,7 @@ class ExamQuestionSnapshot(BaseModel):
     question_id: str
     question_version: int = 1
     question_text: str
+    type: str = "multiple_choice"
     choices: list = []
     correct_answer: Union[str, list]
     points: float = 1.0

@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext';
 import RoleRoute from './components/RoleRoute';
 import AdminRoute from './components/AdminRoute';
+import StaffRoute from './components/StaffRoute';
 import Home from './pages/Home';
 import Unauthorized from './pages/Unauthorized';
 
@@ -21,6 +22,7 @@ import AdminUsers from './pages/AdminUsers';
 import AdminQuestions from './pages/AdminQuestions';
 import AdminExams from './pages/AdminExams';
 import AdminReports from './pages/AdminReports';
+import ManualGrading from './pages/ManualGrading';
 import AdminLayout from './components/AdminLayout';
 
 function App() {
@@ -68,11 +70,30 @@ function App() {
             </RoleRoute>
           } />
 
-          {/* Teacher Routes */}
+          {/* Teacher Routes — dùng lại component quản lý của Admin vì backend đã cấp quyền
+              exam:create/update/delete, question:create/update/delete cho teacher.
+              Trước đây route này trỏ vào <ExamList/> (giao diện "vào thi" của học sinh) —
+              không có chức năng tạo/sửa đề nào cho giáo viên cả. */}
           <Route path="/teacher/exams" element={
-            <RoleRoute allowedRoles={['teacher', 'admin']}>
-              <ExamList />
-            </RoleRoute>
+            <StaffRoute>
+              <AdminLayout>
+                <AdminExams />
+              </AdminLayout>
+            </StaffRoute>
+          } />
+          <Route path="/teacher/questions" element={
+            <StaffRoute>
+              <AdminLayout>
+                <AdminQuestions />
+              </AdminLayout>
+            </StaffRoute>
+          } />
+          <Route path="/teacher/grading" element={
+            <StaffRoute>
+              <AdminLayout>
+                <ManualGrading />
+              </AdminLayout>
+            </StaffRoute>
           } />
 
           {/* Proctor Route */}
@@ -98,18 +119,25 @@ function App() {
             </AdminRoute>
           } />
           <Route path="/admin/questions" element={
-            <AdminRoute>
+            <StaffRoute>
               <AdminLayout>
                 <AdminQuestions />
               </AdminLayout>
-            </AdminRoute>
+            </StaffRoute>
           } />
           <Route path="/admin/exams" element={
-            <AdminRoute>
+            <StaffRoute>
               <AdminLayout>
                 <AdminExams />
               </AdminLayout>
-            </AdminRoute>
+            </StaffRoute>
+          } />
+          <Route path="/admin/manual-grading" element={
+            <StaffRoute>
+              <AdminLayout>
+                <ManualGrading />
+              </AdminLayout>
+            </StaffRoute>
           } />
           <Route path="/admin/reports" element={
             <AdminRoute>

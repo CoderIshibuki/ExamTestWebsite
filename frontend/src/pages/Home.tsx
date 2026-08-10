@@ -75,7 +75,7 @@ export default function Home() {
       </AppBar>
 
       {/* Hero */}
-      <Box sx={{ background: 'linear-gradient(135deg, #4F46E5 0%, #3B82F6 100%)', pt: 10, pb: 14, mb: -8 }}>
+      <Box sx={{ bgcolor: 'primary.main', pt: 10, pb: 14, mb: -8 }}>
         <Container maxWidth="lg">
           <Typography variant="h3" sx={{ color: 'white', fontWeight: 800, mb: 2, maxWidth: 640 }}>
             Hệ thống Thi Trực Tuyến Toàn Diện

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { 
-  Dialog, DialogTitle, DialogContent, DialogActions, 
+import { useState } from 'react';
+import {
+  Dialog, DialogTitle, DialogContent, DialogActions,
   Button, TextField, MenuItem, Box, IconButton, Typography,
-  FormControlLabel, Checkbox, RadioGroup, Radio
+  FormControlLabel, Checkbox, RadioGroup, Radio, Alert
 } from '@mui/material';
 import { Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
 
@@ -20,67 +20,122 @@ const QUESTION_TYPES = [
   { value: 'essay', label: 'Tự luận / Chụp ảnh' },
 ];
 
+let optionIdCounter = 0;
+const genId = (prefix: string) => `${prefix}${Date.now()}_${optionIdCounter++}`;
+
 export default function ManualQuestionDialog({ open, onClose, onSave }: ManualQuestionDialogProps) {
   const [type, setType] = useState('multiple_choice');
   const [text, setText] = useState('');
-  const [category, setCategory] = useState('');
+  const [subject, setSubject] = useState('');
   const [difficulty, setDifficulty] = useState('medium');
-  
-  // Options state
-  const [options, setOptions] = useState([{ text: '', isCorrect: false }, { text: '', isCorrect: false }]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  // multiple_choice / multiple_select
+  const [options, setOptions] = useState([
+    { id: genId('opt_'), text: '', isCorrect: false },
+    { id: genId('opt_'), text: '', isCorrect: false },
+  ]);
   const [trueFalseAnswer, setTrueFalseAnswer] = useState('true');
 
-  const handleAddOption = () => {
-    setOptions([...options, { text: '', isCorrect: false }]);
+  // matching: 2 cột độc lập
+  const [leftItems, setLeftItems] = useState([{ id: genId('L_'), text: '' }, { id: genId('L_'), text: '' }]);
+  const [rightItems, setRightItems] = useState([{ id: genId('R_'), text: '' }, { id: genId('R_'), text: '' }]);
+  const [pairs, setPairs] = useState<Record<string, string>>({}); // leftId -> rightId (đáp án đúng)
+
+  const resetForm = () => {
+    setText('');
+    setSubject('');
+    setType('multiple_choice');
+    setError('');
+    setOptions([{ id: genId('opt_'), text: '', isCorrect: false }, { id: genId('opt_'), text: '', isCorrect: false }]);
+    setLeftItems([{ id: genId('L_'), text: '' }, { id: genId('L_'), text: '' }]);
+    setRightItems([{ id: genId('R_'), text: '' }, { id: genId('R_'), text: '' }]);
+    setPairs({});
   };
 
-  const handleRemoveOption = (index: number) => {
-    setOptions(options.filter((_, i) => i !== index));
-  };
-
+  const handleAddOption = () => setOptions([...options, { id: genId('opt_'), text: '', isCorrect: false }]);
+  const handleRemoveOption = (index: number) => setOptions(options.filter((_, i) => i !== index));
   const handleOptionTextChange = (index: number, val: string) => {
-    const newOptions = [...options];
-    newOptions[index].text = val;
-    setOptions(newOptions);
+    const next = [...options];
+    next[index] = { ...next[index], text: val };
+    setOptions(next);
+  };
+  const handleOptionCorrectChange = (index: number, isCorrect: boolean) => {
+    const next = [...options];
+    if (type === 'multiple_choice') next.forEach((o) => (o.isCorrect = false));
+    next[index] = { ...next[index], isCorrect };
+    setOptions(next);
   };
 
-  const handleOptionCorrectChange = (index: number, isCorrect: boolean) => {
-    const newOptions = [...options];
-    if (type === 'multiple_choice') {
-      newOptions.forEach(opt => opt.isCorrect = false);
+  const validate = (): string | null => {
+    if (!text.trim()) return 'Vui lòng nhập nội dung câu hỏi.';
+    if (!subject.trim()) return 'Vui lòng nhập môn học.';
+    if (type === 'multiple_choice' || type === 'multiple_select') {
+      if (options.some((o) => !o.text.trim())) return 'Vui lòng điền đủ nội dung các đáp án.';
+      if (!options.some((o) => o.isCorrect)) return 'Vui lòng chọn ít nhất 1 đáp án đúng.';
     }
-    newOptions[index].isCorrect = isCorrect;
-    setOptions(newOptions);
+    if (type === 'matching') {
+      if (leftItems.some((i) => !i.text.trim()) || rightItems.some((i) => !i.text.trim())) {
+        return 'Vui lòng điền đủ nội dung 2 cột.';
+      }
+      if (leftItems.some((i) => !pairs[i.id])) return 'Vui lòng nối đủ cặp đáp án đúng cho mọi ý ở cột trái.';
+    }
+    return null;
   };
 
   const handleSubmit = async () => {
-    let finalOptions = [];
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setError('');
+    setSaving(true);
+
+    let payloadOptions: { id: string; text: string; is_correct: boolean }[] = [];
+    let correctAnswer: string | string[] = '';
+
     if (type === 'multiple_choice' || type === 'multiple_select') {
-      finalOptions = options;
+      payloadOptions = options.map((o) => ({ id: o.id, text: o.text, is_correct: o.isCorrect }));
+      correctAnswer = options.filter((o) => o.isCorrect).map((o) => o.id);
     } else if (type === 'true_false') {
-      finalOptions = [
-        { text: 'Đúng', isCorrect: trueFalseAnswer === 'true' },
-        { text: 'Sai', isCorrect: trueFalseAnswer === 'false' }
+      const trueId = 'opt_true';
+      const falseId = 'opt_false';
+      payloadOptions = [
+        { id: trueId, text: 'Đúng', is_correct: trueFalseAnswer === 'true' },
+        { id: falseId, text: 'Sai', is_correct: trueFalseAnswer === 'false' },
       ];
+      correctAnswer = trueFalseAnswer === 'true' ? trueId : falseId;
+    } else if (type === 'matching') {
+      payloadOptions = [
+        ...leftItems.map((i) => ({ id: i.id, text: i.text, is_correct: true })),
+        ...rightItems.map((i) => ({ id: i.id, text: i.text, is_correct: true })),
+      ];
+      correctAnswer = Object.entries(pairs).map(([l, r]) => `${l}:${r}`);
     } else {
-      // essay doesn't have predefined options in the same way
-      finalOptions = [];
+      // essay: không có options, chấm tay
+      payloadOptions = [];
+      correctAnswer = '';
     }
 
     const payload = {
-      text,
-      category,
-      difficulty,
+      content: { text },
       type,
-      options: finalOptions
+      options: payloadOptions,
+      correct_answer: correctAnswer,
+      metadata: { subject, difficulty, tags: [] },
     };
 
-    await onSave(payload);
-    // reset form
-    setText('');
-    setCategory('');
-    setType('multiple_choice');
-    setOptions([{ text: '', isCorrect: false }, { text: '', isCorrect: false }]);
+    try {
+      await onSave(payload);
+      resetForm();
+    } catch (err) {
+      console.error('Failed to save question', err);
+      setError('Lưu câu hỏi thất bại. Vui lòng thử lại.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -88,46 +143,27 @@ export default function ManualQuestionDialog({ open, onClose, onSave }: ManualQu
       <DialogTitle sx={{ fontWeight: 'bold' }}>Tạo câu hỏi thủ công</DialogTitle>
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 2 }}>
-          <TextField 
-            label="Nội dung câu hỏi" 
-            multiline 
-            rows={3} 
-            variant="filled" 
-            fullWidth 
-            required 
+          {error && <Alert severity="error">{error}</Alert>}
+
+          <TextField
+            label="Nội dung câu hỏi"
+            multiline
+            rows={3}
+            variant="filled"
+            fullWidth
+            required
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
-          
+
           <Box sx={{ display: 'flex', gap: 2 }}>
-            <TextField 
-              select 
-              label="Loại câu hỏi" 
-              variant="filled" 
-              fullWidth 
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-            >
-              {QUESTION_TYPES.map(qt => (
+            <TextField select label="Loại câu hỏi" variant="filled" fullWidth value={type} onChange={(e) => setType(e.target.value)}>
+              {QUESTION_TYPES.map((qt) => (
                 <MenuItem key={qt.value} value={qt.value}>{qt.label}</MenuItem>
               ))}
             </TextField>
-            <TextField 
-              label="Danh mục (Môn học)" 
-              variant="filled" 
-              fullWidth 
-              required
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            />
-            <TextField 
-              select 
-              label="Độ khó" 
-              variant="filled" 
-              fullWidth 
-              value={difficulty}
-              onChange={(e) => setDifficulty(e.target.value)}
-            >
+            <TextField label="Môn học" variant="filled" fullWidth required value={subject} onChange={(e) => setSubject(e.target.value)} />
+            <TextField select label="Độ khó" variant="filled" fullWidth value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
               <MenuItem value="easy">Dễ</MenuItem>
               <MenuItem value="medium">Trung bình</MenuItem>
               <MenuItem value="hard">Khó</MenuItem>
@@ -135,30 +171,18 @@ export default function ManualQuestionDialog({ open, onClose, onSave }: ManualQu
           </Box>
 
           <Typography variant="h6" sx={{ mt: 1, fontWeight: 'bold' }}>Cấu hình đáp án</Typography>
-          
+
           {(type === 'multiple_choice' || type === 'multiple_select') && (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {options.map((opt, idx) => (
-                <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box key={opt.id} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   {type === 'multiple_select' ? (
-                    <Checkbox 
-                      checked={opt.isCorrect} 
-                      onChange={(e) => handleOptionCorrectChange(idx, e.target.checked)} 
-                    />
+                    <Checkbox checked={opt.isCorrect} onChange={(e) => handleOptionCorrectChange(idx, e.target.checked)} />
                   ) : (
-                    <Radio 
-                      checked={opt.isCorrect}
-                      onChange={(e) => handleOptionCorrectChange(idx, e.target.checked)}
-                    />
+                    <Radio checked={opt.isCorrect} onChange={(e) => handleOptionCorrectChange(idx, e.target.checked)} />
                   )}
-                  <TextField 
-                    size="small" 
-                    fullWidth 
-                    label={`Đáp án ${idx + 1}`} 
-                    value={opt.text}
-                    onChange={(e) => handleOptionTextChange(idx, e.target.value)}
-                  />
-                  <IconButton color="error" onClick={() => handleRemoveOption(idx)}>
+                  <TextField size="small" fullWidth label={`Đáp án ${idx + 1}`} value={opt.text} onChange={(e) => handleOptionTextChange(idx, e.target.value)} />
+                  <IconButton color="error" onClick={() => handleRemoveOption(idx)} disabled={options.length <= 2}>
                     <DeleteIcon />
                   </IconButton>
                 </Box>
@@ -177,50 +201,67 @@ export default function ManualQuestionDialog({ open, onClose, onSave }: ManualQu
           )}
 
           {type === 'matching' && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Nhập cặp Vế trái - Vế phải tương ứng với nhau.
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <Typography variant="body2" color="text.secondary">
+                Nhập nội dung 2 cột, sau đó chọn đáp án đúng (ý cột trái nối với ý nào ở cột phải) bên dưới.
               </Typography>
-              {options.map((opt, idx) => (
-                <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <TextField 
-                    size="small" 
-                    fullWidth 
-                    label={`Vế trái ${idx + 1}`} 
-                    value={opt.text}
-                    onChange={(e) => handleOptionTextChange(idx, e.target.value)}
-                  />
-                  <Typography variant="body1">-</Typography>
-                  <TextField 
-                    size="small" 
-                    fullWidth 
-                    label={`Vế phải ${idx + 1} (Đáp án)`} 
-                    value={opt.isCorrect ? 'true' : ''} // basic mock for right side text
-                    onChange={(e) => handleOptionCorrectChange(idx, e.target.value === 'true')}
-                  />
-                  <IconButton color="error" onClick={() => handleRemoveOption(idx)}>
-                    <DeleteIcon />
-                  </IconButton>
+              <Box sx={{ display: 'flex', gap: 3 }}>
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ fontWeight: 600, mb: 1 }}>Cột trái</Typography>
+                  {leftItems.map((item, idx) => (
+                    <Box key={item.id} sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
+                      <TextField size="small" fullWidth label={`Vế trái ${idx + 1}`} value={item.text}
+                        onChange={(e) => setLeftItems(leftItems.map((it) => it.id === item.id ? { ...it, text: e.target.value } : it))} />
+                      <IconButton color="error" size="small" disabled={leftItems.length <= 2}
+                        onClick={() => setLeftItems(leftItems.filter((it) => it.id !== item.id))}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  ))}
+                  <Button size="small" startIcon={<AddIcon />} onClick={() => setLeftItems([...leftItems, { id: genId('L_'), text: '' }])}>Thêm</Button>
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ fontWeight: 600, mb: 1 }}>Cột phải</Typography>
+                  {rightItems.map((item, idx) => (
+                    <Box key={item.id} sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
+                      <TextField size="small" fullWidth label={`Vế phải ${idx + 1}`} value={item.text}
+                        onChange={(e) => setRightItems(rightItems.map((it) => it.id === item.id ? { ...it, text: e.target.value } : it))} />
+                      <IconButton color="error" size="small" disabled={rightItems.length <= 2}
+                        onClick={() => setRightItems(rightItems.filter((it) => it.id !== item.id))}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  ))}
+                  <Button size="small" startIcon={<AddIcon />} onClick={() => setRightItems([...rightItems, { id: genId('R_'), text: '' }])}>Thêm</Button>
+                </Box>
+              </Box>
+
+              <Typography sx={{ fontWeight: 600 }}>Đáp án đúng (nối cặp)</Typography>
+              {leftItems.map((item, idx) => (
+                <Box key={item.id} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Typography sx={{ minWidth: 140 }}>{item.text || `Vế trái ${idx + 1}`}</Typography>
+                  <Typography>→</Typography>
+                  <TextField select size="small" sx={{ minWidth: 200 }} value={pairs[item.id] || ''}
+                    onChange={(e) => setPairs({ ...pairs, [item.id]: e.target.value })}>
+                    <MenuItem value=""><em>-- Chọn --</em></MenuItem>
+                    {rightItems.map((r, i) => <MenuItem key={r.id} value={r.id}>{r.text || `Vế phải ${i + 1}`}</MenuItem>)}
+                  </TextField>
                 </Box>
               ))}
-              <Button startIcon={<AddIcon />} variant="outlined" sx={{ alignSelf: 'flex-start' }} onClick={handleAddOption}>
-                Thêm cặp nối
-              </Button>
             </Box>
           )}
 
           {type === 'essay' && (
-            <Typography variant="body2" color="text.secondary">
-              Học sinh sẽ gõ trực tiếp câu trả lời hoặc chụp ảnh đính kèm bài làm đối với câu hỏi tự luận.
-            </Typography>
+            <Alert severity="info">
+              Học sinh sẽ gõ trực tiếp câu trả lời hoặc chụp/tải ảnh bài làm tay. Câu tự luận cần giáo viên chấm điểm thủ công sau khi thí sinh nộp bài.
+            </Alert>
           )}
-
         </Box>
       </DialogContent>
       <DialogActions sx={{ p: 3, pt: 0 }}>
-        <Button onClick={onClose} sx={{ textTransform: 'none', fontWeight: 'bold' }}>Hủy</Button>
-        <Button variant="contained" onClick={handleSubmit} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 'bold', boxShadow: 'none' }}>
-          Tạo câu hỏi
+        <Button onClick={() => { resetForm(); onClose(); }} sx={{ textTransform: 'none', fontWeight: 'bold' }}>Hủy</Button>
+        <Button variant="contained" onClick={handleSubmit} disabled={saving} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 'bold' }}>
+          {saving ? 'Đang lưu...' : 'Tạo câu hỏi'}
         </Button>
       </DialogActions>
     </Dialog>

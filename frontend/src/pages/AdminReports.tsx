@@ -57,14 +57,14 @@ const AdminReports = () => {
 
       <Grid container spacing={4}>
         <Grid size={{ xs: 12, lg: 8 }}>
-          <Paper sx={{ height: 500, width: '100%', p: 4, borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.05)' }}>
+          <Paper sx={{ height: 500, width: '100%', p: 4, borderRadius: 3 }}>
             <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold', color: '#34495e' }}>Pass/Fail Ratio per Subject</Typography>
             <ResponsiveContainer width="100%" height="90%">
               <BarChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ecf0f1" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} />
-                <Tooltip cursor={{fill: '#f5f7fa'}} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                <Tooltip cursor={{fill: '#f5f7fa'}} contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0' }} />
                 <Legend wrapperStyle={{ paddingTop: 20 }} />
                 <Bar dataKey="pass" stackId="a" fill="#2ecc71" radius={[0, 0, 4, 4]} />
                 <Bar dataKey="fail" stackId="a" fill="#e74c3c" radius={[4, 4, 0, 0]} />
@@ -73,7 +73,7 @@ const AdminReports = () => {
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, lg: 4 }}>
-          <Paper sx={{ height: 500, width: '100%', p: 4, borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
+          <Paper sx={{ height: 500, width: '100%', p: 4, borderRadius: 3, display: 'flex', flexDirection: 'column' }}>
             <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold', color: '#34495e' }}>Subject Popularity</Typography>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -82,7 +82,7 @@ const AdminReports = () => {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0' }} />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>

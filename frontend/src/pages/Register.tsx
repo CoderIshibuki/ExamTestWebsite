@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Box, Button, TextField, Typography, Container, Card, CardContent, Alert, Link } from '@mui/material';
+import { Box, Button, TextField, Typography, Container, Card, Alert, Link } from '@mui/material';
 import axios from 'axios';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { API_URL } from '../api/authInterceptors';
@@ -16,10 +16,12 @@ const registerSchema = z.object({
 
 type RegisterSchema = z.infer<typeof registerSchema>;
 
-const BG_DARK = '#121212';
-const CARD_BG = '#1e1e1e';
+// Bảng màu phẳng (flat) cho màn hình xác thực — không dùng gradient/đổ bóng.
+const BG_DARK = '#111827';
+const CARD_BG = '#1E293B';
+const PANEL_BG = '#059669';
 const TEXT_LIGHT = '#ffffff';
-const TEXT_MUTED = '#a0a0a0';
+const TEXT_MUTED = '#94A3B8';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -46,15 +48,12 @@ const Register = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: BG_DARK, color: TEXT_LIGHT, fontFamily: '"Inter", "Helvetica Neue", Helvetica, Arial, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3, background: 'radial-gradient(circle at 50% 0%, #1f2937 0%, #111827 50%, #030712 100%)' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: BG_DARK, color: TEXT_LIGHT, fontFamily: '"Inter", "Helvetica Neue", Helvetica, Arial, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3, }}>
       <Container maxWidth="md">
-        <Card sx={{ bgcolor: CARD_BG, color: TEXT_LIGHT, borderRadius: 4, border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.7)', overflow: 'hidden', display: 'flex', flexDirection: { xs: 'column', md: 'row' } }}>
+        <Card sx={{ bgcolor: CARD_BG, color: TEXT_LIGHT, borderRadius: 4, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden', display: 'flex', flexDirection: { xs: 'column', md: 'row' } }}>
           
           {/* Left Side - Branding */}
-          <Box sx={{ flex: 1, background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', p: 6, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative', overflow: 'hidden' }}>
-            <Box sx={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', filter: 'blur(30px)' }} />
-            <Box sx={{ position: 'absolute', bottom: -50, left: -50, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', filter: 'blur(30px)' }} />
-            
+          <Box sx={{ flex: 1, bgcolor: PANEL_BG, p: 6, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <Box>
               <Typography variant="h4" sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', cursor: 'pointer', mb: 2 }} onClick={() => navigate('/')}>
                 <Box sx={{ display: 'flex', mr: 1.5 }}>
@@ -104,7 +103,7 @@ const Register = () => {
                 error={!!errors.username}
                 helperText={errors.username?.message}
                 slotProps={{ inputLabel: { style: { color: TEXT_MUTED } } }}
-                sx={{ mb: 2, '& .MuiOutlinedInput-root': { color: '#fff', bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&.Mui-focused fieldset': { borderColor: '#3b82f6', borderWidth: '2px' } } }}
+                sx={{ mb: 2, '& .MuiOutlinedInput-root': { color: '#fff', bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&.Mui-focused fieldset': { borderColor: PANEL_BG, borderWidth: '2px' } } }}
               />
               <TextField
                 fullWidth
@@ -116,7 +115,7 @@ const Register = () => {
                 error={!!errors.email}
                 helperText={errors.email?.message}
                 slotProps={{ inputLabel: { style: { color: TEXT_MUTED } } }}
-                sx={{ mb: 2, '& .MuiOutlinedInput-root': { color: '#fff', bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&.Mui-focused fieldset': { borderColor: '#3b82f6', borderWidth: '2px' } } }}
+                sx={{ mb: 2, '& .MuiOutlinedInput-root': { color: '#fff', bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&.Mui-focused fieldset': { borderColor: PANEL_BG, borderWidth: '2px' } } }}
               />
               <TextField
                 fullWidth
@@ -127,7 +126,7 @@ const Register = () => {
                 error={!!errors.full_name}
                 helperText={errors.full_name?.message}
                 slotProps={{ inputLabel: { style: { color: TEXT_MUTED } } }}
-                sx={{ mb: 2, '& .MuiOutlinedInput-root': { color: '#fff', bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&.Mui-focused fieldset': { borderColor: '#3b82f6', borderWidth: '2px' } } }}
+                sx={{ mb: 2, '& .MuiOutlinedInput-root': { color: '#fff', bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&.Mui-focused fieldset': { borderColor: PANEL_BG, borderWidth: '2px' } } }}
               />
               <TextField
                 fullWidth
@@ -139,7 +138,7 @@ const Register = () => {
                 error={!!errors.password}
                 helperText={errors.password?.message}
                 slotProps={{ inputLabel: { style: { color: TEXT_MUTED } } }}
-                sx={{ mb: 3, '& .MuiOutlinedInput-root': { color: '#fff', bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&.Mui-focused fieldset': { borderColor: '#3b82f6', borderWidth: '2px' } } }}
+                sx={{ mb: 3, '& .MuiOutlinedInput-root': { color: '#fff', bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&.Mui-focused fieldset': { borderColor: PANEL_BG, borderWidth: '2px' } } }}
               />
               <Button
                 type="submit"
@@ -148,7 +147,7 @@ const Register = () => {
                 size="large"
                 disableElevation
                 disabled={success}
-                sx={{ mb: 3, py: 1.5, bgcolor: '#10b981', color: '#fff', fontWeight: 600, fontSize: '1rem', borderRadius: 2, textTransform: 'none', '&:hover': { bgcolor: '#059669' }, '&.Mui-disabled': { bgcolor: 'rgba(16, 185, 129, 0.3)', color: 'rgba(255,255,255,0.5)' } }}
+                sx={{ mb: 3, py: 1.5, bgcolor: PANEL_BG, color: '#fff', fontWeight: 600, fontSize: '1rem', borderRadius: 2, textTransform: 'none', '&:hover': { bgcolor: '#047857' }, '&.Mui-disabled': { bgcolor: 'rgba(16, 185, 129, 0.3)', color: 'rgba(255,255,255,0.5)' } }}
               >
                 Tạo tài khoản
               </Button>
