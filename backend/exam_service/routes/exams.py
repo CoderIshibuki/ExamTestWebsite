@@ -58,12 +58,56 @@ async def get_exam_stats_overview(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_permission("exam:read"))
 ):
+    from sqlalchemy import text
+    import httpx
+    from config import settings
+
     total_exams = await crud.count_exams(db)
+
+    # users và results nằm trong cùng database vật lý "exam_db" (xem docker-compose.yml)
+    # nên có thể truy vấn trực tiếp bằng raw SQL, giống cách proctoring_service đang làm
+    # với bảng exams/exam_proctors — không cần gọi HTTP sang service khác.
+    total_users = (await db.execute(text("SELECT COUNT(*) FROM users"))).scalar() or 0
+    total_results = (await db.execute(text("SELECT COUNT(*) FROM results"))).scalar() or 0
+
+    # question_service dùng MongoDB (không cùng DB vật lý) nên phải gọi HTTP.
+    total_questions = 0
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            res = await client.get(f"{settings.QUESTION_SERVICE_URL}/api/v1/questions", params={"limit": 1})
+            if res.status_code == 200:
+                total_questions = res.json().get("total", 0)
+    except Exception:
+        pass  # question_service tạm thời không phản hồi — không chặn cả trang dashboard vì lý do này
+
+    # Biểu đồ 14 ngày gần nhất — khớp đúng dataKey "users"/"exams" mà AdminDashboard đang vẽ
+    # (Line name="Người dùng mới" dataKey="users", Line name="Kỳ thi mới" dataKey="exams").
+    users_by_day = (await db.execute(text(
+        """
+        SELECT DATE(created_at) AS day, COUNT(*) AS count
+        FROM users WHERE created_at >= NOW() - INTERVAL '14 days'
+        GROUP BY DATE(created_at)
+        """
+    ))).all()
+    exams_by_day = (await db.execute(text(
+        """
+        SELECT DATE(created_at) AS day, COUNT(*) AS count
+        FROM exams WHERE created_at >= NOW() - INTERVAL '14 days'
+        GROUP BY DATE(created_at)
+        """
+    ))).all()
+
+    users_map = {str(r.day): r.count for r in users_by_day}
+    exams_map = {str(r.day): r.count for r in exams_by_day}
+    all_days = sorted(set(users_map.keys()) | set(exams_map.keys()))
+    chart = [{"name": d, "users": users_map.get(d, 0), "exams": exams_map.get(d, 0)} for d in all_days]
+
     return {
         "total_exams": total_exams,
-        "total_questions": 0,
-        "total_users": 0,
-        "total_results": 0
+        "total_questions": total_questions,
+        "total_users": total_users,
+        "total_results": total_results,
+        "chart": chart,
     }
 
 @router.get("/stats/reports")
@@ -71,31 +115,33 @@ async def get_exam_reports(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_permission("exam:read"))
 ):
-    from sqlalchemy import select, func
-    from models import ExamAttempt, Exam
-    
-    # We will aggregate attempts by exam title/category
-    query = select(
-        Exam.title,
-        func.count(ExamAttempt.id).label("total"),
-        func.sum(
-            func.cast(ExamAttempt.status == 'GRADED', db.bind.dialect.type_compiler.dialect.type_descriptor(Integer))
-        ).label("graded")
-    ).outerjoin(ExamAttempt, Exam.id == ExamAttempt.exam_id).group_by(Exam.title)
-    
-    result = await db.execute(query)
-    rows = result.all()
-    
-    reports = []
-    for row in rows:
-        title, total, graded = row
-        # mock pass/fail logic using graded status for now, since we don't have score logic fully seeded
-        reports.append({
-            "name": title or "Unknown",
-            "pass": int(graded or 0),
-            "fail": int(total or 0) - int(graded or 0)
-        })
-        
+    from sqlalchemy import text
+
+    # Pass/fail thật: so sánh results.percentage (bảng cùng DB vật lý, thuộc grading_service)
+    # với exam.passing_score — trước đây dùng status == 'GRADED' làm tiêu chí pass/fail,
+    # hoàn toàn sai bản chất (đã "graded" không có nghĩa là "đạt").
+    rows = (await db.execute(text(
+        """
+        SELECT e.title AS title,
+               COUNT(r.id) AS total,
+               SUM(CASE WHEN r.percentage >= e.passing_score THEN 1 ELSE 0 END) AS passed
+        FROM exams e
+        LEFT JOIN results r ON r.exam_id = e.id AND r.status = 'graded'
+        GROUP BY e.id, e.title
+        HAVING COUNT(r.id) > 0
+        ORDER BY e.title
+        """
+    ))).all()
+
+    reports = [
+        {
+            "name": row.title or "Unknown",
+            "pass": int(row.passed or 0),
+            "fail": int(row.total or 0) - int(row.passed or 0),
+        }
+        for row in rows
+    ]
+
     return {"data": reports}
 
 
@@ -213,13 +259,16 @@ async def publish_exam(
         
     if exam.status != "draft":
         raise HTTPException(status_code=409, detail="Only draft exams can be published")
-        
+
+    question_ids = [str(q.question_id) for q in exam.questions]
+    if not question_ids:
+        raise HTTPException(status_code=400, detail="Đề thi chưa có câu hỏi nào, không thể công bố. Vui lòng thêm câu hỏi trước.")
+
     import httpx
     from config import settings
     from jose import jwt
-    
+
     # Fetch questions from question_service
-    question_ids = [str(q.question_id) for q in exam.questions]
     snapshots_data = []
     
     if question_ids:

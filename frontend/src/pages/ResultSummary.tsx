@@ -1,15 +1,17 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { Box, Typography, Button, Paper, CircularProgress, Divider, Container, Fade } from '@mui/material';
+import { Box, Typography, Button, Paper, CircularProgress, Divider, Container, Fade, Alert } from '@mui/material';
 import { CheckCircleOutlined, CancelOutlined, EmojiEvents, Home } from '@mui/icons-material';
 import { gradingApi } from '../api/gradingApi';
 import type { ExamResult } from '../api/gradingApi';
+import { getExamById } from '../api/examApi';
 
 const ResultSummary: React.FC = () => {
   const { attemptId } = useParams<{ attemptId: string }>();
   const navigate = useNavigate();
   const [result, setResult] = useState<ExamResult | null>(null);
+  const [passingScore, setPassingScore] = useState<number>(50);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useContext(AuthContext);
@@ -20,7 +22,17 @@ const ResultSummary: React.FC = () => {
       setError(null);
       gradingApi
         .getExamResult(attemptId)
-        .then(setResult)
+        .then(async (res) => {
+          setResult(res);
+          // Lấy đúng ngưỡng đạt thật của đề thi thay vì mặc định 50% —
+          // mỗi đề có thể có passing_score khác nhau (VD: 60%, 70%,...).
+          try {
+            const exam = await getExamById(res.exam_id);
+            setPassingScore(exam.passing_score ?? 50);
+          } catch {
+            // Không lấy được passing_score thật thì vẫn hiển thị kết quả, giữ mặc định 50%.
+          }
+        })
         .catch(() => setError('Không thể tải kết quả. Vui lòng thử lại sau.'))
         .finally(() => setLoading(false));
     }
@@ -68,7 +80,7 @@ const ResultSummary: React.FC = () => {
     );
   }
 
-  const passed = result.percentage >= 50;
+  const passed = result.percentage >= passingScore;
 
   return (
     <Box sx={{ minHeight: '100vh', pt: 8, pb: 8, bgcolor: '#F3F4F6', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -89,8 +101,15 @@ const ResultSummary: React.FC = () => {
               Điểm số của bạn: {result.score} / {result.total_possible}
             </Typography>
             <Typography variant="h6" sx={{ color: '#6B7280', mb: 4 }}>
-              Tỷ lệ đúng: <span style={{ fontWeight: 'bold' }}>{result.percentage}%</span>
+              Tỷ lệ đúng: <span style={{ fontWeight: 'bold' }}>{result.percentage}%</span> (Ngưỡng đạt: {passingScore}%)
             </Typography>
+
+            {result.has_pending_manual_grading && (
+              <Alert severity="info" sx={{ mb: 3, textAlign: 'left' }}>
+                Bài thi có câu tự luận đang chờ giáo viên chấm điểm — điểm số ở trên là điểm tạm tính,
+                có thể thay đổi sau khi giáo viên chấm xong.
+              </Alert>
+            )}
 
             <Box sx={{ display: 'flex', justifyContent: 'space-around', my: 4, p: 3, bgcolor: '#F9FAFB', borderRadius: 3 }}>
               <Box>

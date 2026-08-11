@@ -70,6 +70,7 @@ export const adminApi = {
     return response.data;
   },
   getExamQuestions: async (examId: string) => {
+    // Với role admin/teacher, backend trả về đủ correct_answer (chỉ ẩn với student).
     const response = await apiClient.get(`/v1/exams/${examId}/questions`);
     return response.data;
   },
@@ -83,6 +84,19 @@ export const adminApi = {
   generateExamQuestions: async (examId: string, data: { subject: string; difficulty: string; num_questions: number; question_types: string[]; point_per_question?: number }) => {
     const response = await apiClient.post(`/v1/exams/${examId}/generate`, data);
     return response.data;
+  },
+
+  // ===== Phân công giám thị coi thi (proctor) =====
+  listExamProctors: async (examId: string) => {
+    const response = await apiClient.get(`/v1/exams/${examId}/proctors`);
+    return response.data;
+  },
+  addExamProctor: async (examId: string, userId: string) => {
+    const response = await apiClient.post(`/v1/exams/${examId}/proctors`, { user_id: userId });
+    return response.data;
+  },
+  removeExamProctor: async (examId: string, userId: string) => {
+    await apiClient.delete(`/v1/exams/${examId}/proctors/${userId}`);
   },
 
   getOverviewStats: async () => {

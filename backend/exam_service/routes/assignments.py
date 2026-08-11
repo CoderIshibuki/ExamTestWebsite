@@ -36,6 +36,30 @@ async def add_proctor(
     verify_owner_or_admin(exam, current_user)
     return await crud.add_exam_proctor(db, exam_id, proctor)
 
+@router.get("/proctors")
+async def list_proctors(
+    exam_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_permission("exam:read"))
+):
+    exam = await crud.get_exam_by_id(db, exam_id)
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    return await crud.list_exam_proctors(db, exam_id)
+
+@router.delete("/proctors/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_proctor(
+    exam_id: str,
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_permission("exam:assign"))
+):
+    exam = await crud.get_exam_by_id(db, exam_id)
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    verify_owner_or_admin(exam, current_user)
+    await crud.remove_exam_proctor(db, exam_id, user_id)
+
 @router.post("/roster", status_code=status.HTTP_201_CREATED)
 async def add_roster(
     exam_id: str,

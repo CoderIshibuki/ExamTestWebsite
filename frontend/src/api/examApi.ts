@@ -7,6 +7,7 @@ export interface Exam {
   description: string;
   duration_minutes: number;
   max_attempts: number;
+  passing_score?: number;
   status?: string;
   created_at?: string;
 }

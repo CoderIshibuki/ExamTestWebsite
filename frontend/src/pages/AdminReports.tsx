@@ -12,23 +12,12 @@ const AdminReports = () => {
   useEffect(() => {
     adminApi.getReports()
       .then(res => {
-        if (res && res.data && res.data.length > 0) {
-           setData(res.data);
-        } else {
-           // Provide beautiful empty state or mock data if API is incomplete
-           setData([
-             { name: 'Math', pass: 400, fail: 240 },
-             { name: 'Science', pass: 300, fail: 139 },
-             { name: 'History', pass: 200, fail: 980 },
-             { name: 'English', pass: 278, fail: 390 },
-             { name: 'Art', pass: 189, fail: 480 },
-           ]);
-        }
+        setData((res && res.data) || []);
         setLoading(false);
       })
       .catch(err => {
         console.error(err);
-        setError('Failed to fetch report analytics.');
+        setError('Không tải được dữ liệu báo cáo.');
         setLoading(false);
       });
   }, []);
@@ -55,6 +44,13 @@ const AdminReports = () => {
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
+      {data.length === 0 ? (
+        <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 3 }}>
+          <Typography color="text.secondary">
+            Chưa có dữ liệu báo cáo — cần ít nhất 1 đề thi đã có học sinh nộp bài và được chấm điểm.
+          </Typography>
+        </Paper>
+      ) : (
       <Grid container spacing={4}>
         <Grid size={{ xs: 12, lg: 8 }}>
           <Paper sx={{ height: 500, width: '100%', p: 4, borderRadius: 3 }}>
@@ -89,6 +85,7 @@ const AdminReports = () => {
           </Paper>
         </Grid>
       </Grid>
+      )}
     </Box>
   );
 };

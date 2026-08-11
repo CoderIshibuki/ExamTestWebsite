@@ -4,8 +4,9 @@ import type { GridColDef } from '@mui/x-data-grid';
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { adminApi } from '../api/adminApi';
-import { Visibility as VisibilityIcon, Delete as DeleteIcon, Assignment as AssignmentIcon, Add as AddIcon, Publish as PublishIcon } from '@mui/icons-material';
+import { Visibility as VisibilityIcon, Delete as DeleteIcon, Assignment as AssignmentIcon, Add as AddIcon, Publish as PublishIcon, Settings as SettingsIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import ManageExamDialog from '../components/ManageExamDialog';
 
 interface Exam {
   id: string;
@@ -29,6 +30,7 @@ const AdminExams = () => {
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
   const [createOpen, setCreateOpen] = useState(false);
+  const [manageDialog, setManageDialog] = useState<{ open: boolean; examId: string | null; title?: string }>({ open: false, examId: null });
   const navigate = useNavigate();
 
   const { control, handleSubmit, reset, formState: { errors } } = useForm<ExamFormValues>({
@@ -55,11 +57,14 @@ const AdminExams = () => {
 
   const onCreateSubmit = async (data: ExamFormValues) => {
     try {
-      await adminApi.createExam(data);
+      const newExam = await adminApi.createExam(data);
       setCreateOpen(false);
       reset();
-      setSnackbar({ open: true, message: 'Đã tạo đề thi thành công.', severity: 'success' });
+      setSnackbar({ open: true, message: 'Đã tạo đề thi. Hãy thêm câu hỏi trước khi công bố.', severity: 'success' });
       fetchExams();
+      if (newExam?.id) {
+        setManageDialog({ open: true, examId: newExam.id, title: data.title });
+      }
     } catch (err) {
       console.error('Failed to create exam', err);
       setSnackbar({ open: true, message: 'Tạo đề thi thất bại.', severity: 'error' });
@@ -89,9 +94,10 @@ const AdminExams = () => {
       await adminApi.publishExam(id);
       setSnackbar({ open: true, message: 'Đã công bố đề thi.', severity: 'success' });
       fetchExams();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to publish exam', err);
-      setSnackbar({ open: true, message: 'Công bố đề thi thất bại (kiểm tra đề đã có câu hỏi chưa).', severity: 'error' });
+      const detail = err?.response?.data?.detail;
+      setSnackbar({ open: true, message: detail || 'Công bố đề thi thất bại.', severity: 'error' });
     }
   };
 
@@ -119,10 +125,20 @@ const AdminExams = () => {
     {
       field: 'actions',
       headerName: 'Hành động',
-      width: 320,
+      width: 460,
       sortable: false,
       renderCell: (params) => (
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', height: '100%' }}>
+          <Button
+            variant="contained"
+            color="primary"
+            size="small"
+            startIcon={<SettingsIcon />}
+            onClick={() => setManageDialog({ open: true, examId: params.row.id, title: params.row.title })}
+            sx={{ borderRadius: 2, textTransform: 'none' }}
+          >
+            Quản lý
+          </Button>
           {params.row.status !== 'published' && (
             <Button
               variant="outlined"
@@ -257,6 +273,13 @@ const AdminExams = () => {
           <Button onClick={confirmDelete} color="error" variant="contained" sx={{ borderRadius: 2, textTransform: 'none' }}>Xoá đề thi</Button>
         </DialogActions>
       </Dialog>
+
+      <ManageExamDialog
+        open={manageDialog.open}
+        onClose={() => setManageDialog({ open: false, examId: null })}
+        examId={manageDialog.examId}
+        examTitle={manageDialog.title}
+      />
 
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar((s) => ({ ...s, open: false }))}>
         <Alert severity={snackbar.severity} sx={{ width: '100%' }}>{snackbar.message}</Alert>

@@ -7,11 +7,13 @@ export interface QuestionResult {
 }
 
 export interface ExamResult {
+  exam_id: string;
   score: number;
   total_possible: number;
   percentage: number;
   correct_count: number;
   incorrect_count: number;
+  has_pending_manual_grading?: boolean;
   question_results: QuestionResult[];
 }
 

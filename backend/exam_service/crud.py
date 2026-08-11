@@ -122,6 +122,16 @@ async def add_exam_proctor(db: AsyncSession, exam_id: str, proctor: schemas.Exam
     await db.commit()
     return {"id": assignment_id, "exam_id": exam_id, "user_id": str(proctor.user_id)}
 
+async def list_exam_proctors(db: AsyncSession, exam_id: str):
+    stmt = text("SELECT id, exam_id, user_id, created_at FROM exam_proctors WHERE exam_id = :exam_id")
+    result = await db.execute(stmt, {"exam_id": exam_id})
+    return [dict(row._mapping) for row in result.fetchall()]
+
+async def remove_exam_proctor(db: AsyncSession, exam_id: str, user_id: str):
+    stmt = text("DELETE FROM exam_proctors WHERE exam_id = :exam_id AND user_id = :user_id")
+    await db.execute(stmt, {"exam_id": exam_id, "user_id": user_id})
+    await db.commit()
+
 async def add_exam_roster(db: AsyncSession, exam_id: str, roster: schemas.ExamRosterCreate):
     now = datetime.now(timezone.utc)
     assignment_id = uuid.uuid4()
