@@ -15,6 +15,8 @@ class User(Base):
     role = Column(String(20), default="student", nullable=False) # admin, teacher, student
     is_active = Column(Boolean, default=True)
     requires_password_change = Column(Boolean, default=False)
+    reset_token_hash = Column(String(255), nullable=True)
+    reset_token_expires_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

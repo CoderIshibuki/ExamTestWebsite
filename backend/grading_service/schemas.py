@@ -40,6 +40,7 @@ class ResultResponse(BaseModel):
     started_at: Optional[datetime]
     submitted_at: Optional[datetime]
     created_at: datetime
+    question_results: List[QuestionResultSchema] = []
     
     class Config:
         from_attributes = True

@@ -117,8 +117,13 @@ const Login = () => {
                 error={!!errors.password}
                 helperText={errors.password?.message}
                 slotProps={{ inputLabel: { style: { color: TEXT_MUTED } } }}
-                sx={{ mb: 4, '& .MuiOutlinedInput-root': { color: '#fff', bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&.Mui-focused fieldset': { borderColor: PANEL_BG, borderWidth: '2px' } } }}
+                sx={{ mb: 1, '& .MuiOutlinedInput-root': { color: '#fff', bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&.Mui-focused fieldset': { borderColor: PANEL_BG, borderWidth: '2px' } } }}
               />
+              <Box sx={{ textAlign: 'right', mb: 3 }}>
+                <Link component={RouterLink} to="/forgot-password" sx={{ color: '#60a5fa', fontSize: '0.82rem', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+                  Quên mật khẩu?
+                </Link>
+              </Box>
               <Button
                 type="submit"
                 fullWidth

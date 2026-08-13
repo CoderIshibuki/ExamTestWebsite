@@ -39,6 +39,27 @@ export const adminApi = {
     const response = await apiClient.post('/v1/questions/bulk', questions);
     return response.data;
   },
+  exportQuestions: async () => {
+    const response = await apiClient.get('/v1/questions/export', { responseType: 'blob' });
+    return response.data as Blob;
+  },
+
+  // ===== Danh mục/chủ đề câu hỏi (question_service) =====
+  getCategories: async () => {
+    const response = await apiClient.get('/v1/categories', { params: { limit: 200 } });
+    return response.data?.items ?? [];
+  },
+  createCategory: async (data: { name: string; description?: string }) => {
+    const response = await apiClient.post('/v1/categories', data);
+    return response.data;
+  },
+  updateCategory: async (id: string, data: { name: string; description?: string }) => {
+    const response = await apiClient.put(`/v1/categories/${id}`, data);
+    return response.data;
+  },
+  deleteCategory: async (id: string) => {
+    await apiClient.delete(`/v1/categories/${id}`);
+  },
 
   // ===== Exams (exam_service) =====
   getExams: async () => {
@@ -97,6 +118,19 @@ export const adminApi = {
   },
   removeExamProctor: async (examId: string, userId: string) => {
     await apiClient.delete(`/v1/exams/${examId}/proctors/${userId}`);
+  },
+
+  // ===== Lịch thi (khung giờ mở đề) =====
+  listExamSchedules: async (examId: string) => {
+    const response = await apiClient.get(`/v1/exams/${examId}/schedule`);
+    return response.data;
+  },
+  addExamSchedule: async (examId: string, data: { start_time: string; end_time: string; timezone?: string }) => {
+    const response = await apiClient.post(`/v1/exams/${examId}/schedule`, data);
+    return response.data;
+  },
+  removeExamSchedule: async (examId: string, scheduleId: string) => {
+    await apiClient.delete(`/v1/exams/${examId}/schedule/${scheduleId}`);
   },
 
   getOverviewStats: async () => {

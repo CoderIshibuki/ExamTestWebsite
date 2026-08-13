@@ -8,6 +8,8 @@ import Unauthorized from './pages/Unauthorized';
 
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import ChangePassword from './pages/ChangePassword';
 import Dashboard from './pages/Dashboard';
 import ExamList from './pages/ExamList';
@@ -20,6 +22,7 @@ import ProctorDashboard from './pages/ProctorDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
 import AdminQuestions from './pages/AdminQuestions';
+import AdminCategories from './pages/AdminCategories';
 import AdminExams from './pages/AdminExams';
 import AdminReports from './pages/AdminReports';
 import ManualGrading from './pages/ManualGrading';
@@ -32,6 +35,8 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route path="/change-password" element={
             <RoleRoute allowedRoles={['student', 'teacher', 'admin']}>
@@ -122,6 +127,13 @@ function App() {
             <StaffRoute>
               <AdminLayout>
                 <AdminQuestions />
+              </AdminLayout>
+            </StaffRoute>
+          } />
+          <Route path="/admin/categories" element={
+            <StaffRoute>
+              <AdminLayout>
+                <AdminCategories />
               </AdminLayout>
             </StaffRoute>
           } />

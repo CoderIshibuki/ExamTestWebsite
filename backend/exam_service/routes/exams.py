@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
+from datetime import datetime, timezone
 import crud, schemas
 from database import get_db
 from dependencies import get_current_user, require_permission, require_internal_token
@@ -343,6 +344,19 @@ async def start_exam(
     is_on_roster = any(str(r.user_id) == current_user["id"] for r in exam.roster)
     if not getattr(exam, 'is_public', False) and not is_on_roster:
         raise HTTPException(status_code=403, detail="You are not on the roster for this private exam")
+
+    # Nếu đề thi có đặt lịch (exam_schedules), chỉ cho phép bắt đầu làm bài trong khung giờ đó.
+    # Trước đây endpoint POST /schedule chỉ lưu lịch vào DB nhưng không có nơi nào kiểm tra lại,
+    # khiến tính năng "lịch thi" hoàn toàn không có tác dụng — học sinh vào thi được bất cứ lúc nào.
+    if exam.schedules:
+        now = datetime.now(timezone.utc)
+        in_window = any(s.start_time <= now <= s.end_time for s in exam.schedules)
+        if not in_window:
+            upcoming = min((s.start_time for s in exam.schedules if s.start_time > now), default=None)
+            detail = "Đề thi hiện không trong khung giờ được phép làm bài."
+            if upcoming:
+                detail += f" Kỳ thi tiếp theo mở lúc {upcoming.isoformat()}."
+            raise HTTPException(status_code=403, detail=detail)
 
     active_attempt = await crud.get_active_exam_attempt(db, exam_id, current_user["id"])
     if active_attempt:

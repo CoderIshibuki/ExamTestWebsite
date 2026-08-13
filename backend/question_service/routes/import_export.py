@@ -58,18 +58,36 @@ async def export_questions(
         # Get all questions
         _, items = await crud.get_questions(skip=0, limit=10000)
         
-        # Flatten for excel
+        # "Làm phẳng" câu hỏi ra định dạng Excel dễ đọc/sửa tay và IMPORT LẠI ĐƯỢC:
+        # mỗi đáp án 1 cột riêng (option_1..option_6), cột correct_answer ghi số thứ tự
+        # đáp án đúng (1-based, cách nhau dấu phẩy nếu nhiều đáp án đúng) thay vì tuồn
+        # nguyên cấu trúc JSON nội bộ (options[].id) ra — người dùng không tự sửa được.
+        # Bản export trước đây thiếu hẳn cột đáp án nên xuất ra không dùng lại được.
         data = []
         for q in items:
-            data.append({
-                "id": q.get("_id"),
+            options = q.get("options", []) or []
+            row = {
                 "text": q.get("content", {}).get("text", ""),
-                "type": q.get("type", ""),
-                "correct_answer": str(q.get("correct_answer", "")),
-                "difficulty": q.get("metadata", {}).get("difficulty", ""),
+                "type": q.get("type", "multiple_choice"),
                 "subject": q.get("metadata", {}).get("subject", ""),
-                "tags": ",".join(q.get("metadata", {}).get("tags", []))
-            })
+                "difficulty": q.get("metadata", {}).get("difficulty", "medium"),
+                "tags": ",".join(q.get("metadata", {}).get("tags", [])),
+            }
+            for i in range(6):
+                row[f"option_{i + 1}"] = options[i]["text"] if i < len(options) else ""
+
+            if q.get("type") in ("multiple_choice", "multiple_select"):
+                correct_indices = [str(i + 1) for i, o in enumerate(options) if o.get("is_correct")]
+                row["correct_answer"] = ",".join(correct_indices)
+            elif q.get("type") == "true_false":
+                correct_opts = [o for o in options if o.get("is_correct")]
+                correct_text = str(correct_opts[0].get("text", "")).strip().lower() if correct_opts else ""
+                row["correct_answer"] = "true" if correct_text in ("đúng", "true", "dung") else "false"
+            else:
+                # matching/essay: cấu trúc quá phức tạp cho 1 dòng Excel phẳng — tạo/sửa qua giao diện.
+                row["correct_answer"] = ""
+
+            data.append(row)
             
         df = pd.DataFrame(data)
         output = io.BytesIO()

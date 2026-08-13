@@ -254,3 +254,71 @@ async def change_password(
     
     await db.commit()
     return {"detail": "Password changed successfully"}
+
+
+@app.post("/forgot-password")
+@limiter.limit("3/minute")
+async def forgot_password(
+    request: Request,
+    data: schemas.ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Yêu cầu đặt lại mật khẩu qua email. Luôn trả về cùng 1 thông báo thành công
+    chung chung dù email có tồn tại hay không, để tránh lộ việc email nào đã
+    đăng ký tài khoản trong hệ thống (user enumeration).
+    """
+    import secrets
+    from datetime import datetime, timedelta, timezone
+    from email_service import send_password_reset_email
+
+    generic_response = {"detail": "Nếu email tồn tại trong hệ thống, một đường dẫn đặt lại mật khẩu đã được gửi tới email đó."}
+
+    query = select(models.User).where(models.User.email == data.email)
+    result = await db.execute(query)
+    user = result.scalars().first()
+
+    if not user or not user.is_active:
+        return generic_response
+
+    raw_token = secrets.token_urlsafe(32)
+    user.reset_token_hash = auth.get_password_hash(raw_token)
+    user.reset_token_expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+    await db.commit()
+
+    send_password_reset_email(user.email, raw_token)
+    return generic_response
+
+
+@app.post("/reset-password")
+@limiter.limit("5/minute")
+async def reset_password(
+    request: Request,
+    data: schemas.ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Đặt mật khẩu mới bằng token nhận được qua email từ /forgot-password."""
+    from datetime import datetime, timezone
+
+    query = select(models.User).where(models.User.reset_token_hash.isnot(None))
+    result = await db.execute(query)
+    candidates = result.scalars().all()
+
+    matched_user = None
+    for candidate in candidates:
+        if candidate.reset_token_expires_at and candidate.reset_token_expires_at < datetime.now(timezone.utc):
+            continue
+        if auth.verify_password(data.token, candidate.reset_token_hash):
+            matched_user = candidate
+            break
+
+    if not matched_user:
+        raise HTTPException(status_code=400, detail="Đường dẫn đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.")
+
+    matched_user.hashed_password = auth.get_password_hash(data.new_password)
+    matched_user.reset_token_hash = None
+    matched_user.reset_token_expires_at = None
+    matched_user.requires_password_change = False
+    await db.commit()
+
+    return {"detail": "Đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới."}

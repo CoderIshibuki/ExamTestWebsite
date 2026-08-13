@@ -3,7 +3,6 @@ import {
   Box, Typography, Paper, Skeleton, Alert, Card, CardContent,
   TextField, Button, Chip, Snackbar,
 } from '@mui/material';
-import { RateReview as RateReviewIcon } from '@mui/icons-material';
 import { gradingApi } from '../api/gradingApi';
 import type { PendingManualGradeItem } from '../api/gradingApi';
 
@@ -65,12 +64,8 @@ export default function ManualGrading() {
 
   return (
     <Box sx={{ p: 4, minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-        <RateReviewIcon sx={{ fontSize: 36, color: 'primary.main', mr: 2 }} />
-        <Typography variant="h4" sx={{ fontWeight: 800 }}>
-          Chấm bài tự luận
-        </Typography>
-        <Chip label={`${items.length} bài chờ chấm`} color={items.length > 0 ? 'warning' : 'success'} sx={{ ml: 2, fontWeight: 700 }} />
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mb: 3 }}>
+        <Chip label={`${items.length} bài chờ chấm`} color={items.length > 0 ? 'warning' : 'success'} sx={{ fontWeight: 700 }} />
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>}

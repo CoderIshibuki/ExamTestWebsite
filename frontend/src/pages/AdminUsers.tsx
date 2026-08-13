@@ -1,10 +1,10 @@
-import { Box, Typography, Button, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, TextField, DialogContentText, Chip, MenuItem, FormControlLabel, Switch, Snackbar } from '@mui/material';
+import { Box, Button, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, TextField, DialogContentText, Chip, MenuItem, FormControlLabel, Switch, Snackbar } from '@mui/material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import type { GridColDef } from '@mui/x-data-grid';
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { adminApi } from '../api/adminApi';
-import { People as PeopleIcon, PersonAdd as PersonAddIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
+import { PersonAdd as PersonAddIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 
 interface User {
   id: string;
@@ -159,13 +159,7 @@ const AdminUsers = () => {
 
   return (
     <Box sx={{ p: 4, minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <PeopleIcon sx={{ fontSize: 36, color: 'primary.main', mr: 2 }} />
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>
-            Quản lý Người dùng
-          </Typography>
-        </Box>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
         <Button
           variant="contained"
           startIcon={<PersonAddIcon />}

@@ -47,6 +47,12 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
   const [selectedTeacher, setSelectedTeacher] = useState<any>(null);
   const [loadingProctors, setLoadingProctors] = useState(false);
 
+  // Tab Lịch thi
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [loadingSchedules, setLoadingSchedules] = useState(false);
+  const [newStart, setNewStart] = useState('');
+  const [newEnd, setNewEnd] = useState('');
+
   const [error, setError] = useState('');
 
   const loadQuestionsTab = async () => {
@@ -85,11 +91,26 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
     }
   };
 
+  const loadSchedulesTab = async () => {
+    if (!examId) return;
+    setLoadingSchedules(true);
+    try {
+      const s = await adminApi.listExamSchedules(examId);
+      setSchedules(s || []);
+    } catch (err) {
+      console.error('Failed to load schedules', err);
+      setError('Không tải được lịch thi.');
+    } finally {
+      setLoadingSchedules(false);
+    }
+  };
+
   useEffect(() => {
     if (open && examId) {
       setError('');
       loadQuestionsTab();
       loadProctorsTab();
+      loadSchedulesTab();
     }
   }, [open, examId]);
 
@@ -170,6 +191,43 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
     return t ? `${t.full_name || t.username} (${t.email})` : userId;
   };
 
+  const handleAddSchedule = async () => {
+    if (!examId || !newStart || !newEnd) {
+      setError('Vui lòng chọn đủ thời gian bắt đầu và kết thúc.');
+      return;
+    }
+    if (new Date(newStart) >= new Date(newEnd)) {
+      setError('Thời gian bắt đầu phải trước thời gian kết thúc.');
+      return;
+    }
+    try {
+      await adminApi.addExamSchedule(examId, {
+        start_time: new Date(newStart).toISOString(),
+        end_time: new Date(newEnd).toISOString(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      });
+      setNewStart('');
+      setNewEnd('');
+      loadSchedulesTab();
+    } catch (err) {
+      console.error('Failed to add schedule', err);
+      setError('Thêm lịch thi thất bại.');
+    }
+  };
+
+  const handleRemoveSchedule = async (scheduleId: string) => {
+    if (!examId) return;
+    try {
+      await adminApi.removeExamSchedule(examId, scheduleId);
+      setSchedules((prev) => prev.filter((s) => s.id !== scheduleId));
+    } catch (err) {
+      console.error('Failed to remove schedule', err);
+      setError('Xoá lịch thi thất bại.');
+    }
+  };
+
+  const formatDT = (iso: string) => new Date(iso).toLocaleString('vi-VN');
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ fontWeight: 'bold' }}>
@@ -179,6 +237,7 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
         <Tabs value={tab} onChange={(_e, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tab label="Câu hỏi trong đề" />
           <Tab label="Giám thị coi thi" />
+          <Tab label="Lịch thi" />
         </Tabs>
 
         {error && <Alert severity="error" sx={{ mt: 2 }} onClose={() => setError('')}>{error}</Alert>}
@@ -297,6 +356,53 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
                 Giáo viên được gán sẽ có quyền xem dashboard giám sát thi thời gian thực của đề này.
               </Typography>
+            </>
+          )}
+        </TabPanel>
+
+        <TabPanel value={tab} index={2}>
+          {loadingSchedules ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+          ) : (
+            <>
+              <Alert severity="info" variant="outlined" sx={{ mb: 2 }}>
+                Nếu không đặt lịch nào, đề thi được mở bất cứ lúc nào (sau khi công bố). Nếu đặt ít nhất 1 khung giờ,
+                học sinh chỉ có thể bắt đầu làm bài trong các khung giờ đó.
+              </Alert>
+              <List dense sx={{ maxHeight: 200, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 2, mb: 3 }}>
+                {schedules.length === 0 && (
+                  <ListItem><ListItemText primary="Chưa đặt khung giờ nào — đề thi đang mở tự do." /></ListItem>
+                )}
+                {schedules.map((s) => (
+                  <ListItem
+                    key={s.id}
+                    secondaryAction={
+                      <IconButton edge="end" color="error" onClick={() => handleRemoveSchedule(s.id)}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    }
+                  >
+                    <ListItemText primary={`${formatDT(s.start_time)} → ${formatDT(s.end_time)}`} />
+                  </ListItem>
+                ))}
+              </List>
+
+              <Typography sx={{ fontWeight: 600, mb: 1 }}>Thêm khung giờ mới</Typography>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+                <TextField
+                  label="Bắt đầu" type="datetime-local" size="small" value={newStart}
+                  onChange={(e) => setNewStart(e.target.value)}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                />
+                <TextField
+                  label="Kết thúc" type="datetime-local" size="small" value={newEnd}
+                  onChange={(e) => setNewEnd(e.target.value)}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                />
+                <Button variant="contained" onClick={handleAddSchedule} sx={{ borderRadius: 2, textTransform: 'none' }}>
+                  Thêm khung giờ
+                </Button>
+              </Box>
             </>
           )}
         </TabPanel>

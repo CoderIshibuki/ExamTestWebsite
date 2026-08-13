@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Box, Typography, Card, CardContent, Grid, Alert, Skeleton, Paper } from '@mui/material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { adminApi } from '../api/adminApi';
-import DashboardIcon from '@mui/icons-material/Dashboard';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({ total_users: 0, total_exams: 0, total_questions: 0 });
@@ -59,13 +58,6 @@ const AdminDashboard = () => {
 
   return (
     <Box sx={{ p: 0, bgcolor: '#ffffff', minHeight: '100vh' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-        <DashboardIcon sx={{ fontSize: 40, color: 'primary.main', mr: 2 }} />
-        <Typography variant="h4" sx={{ fontWeight: 800, color: '#2c3e50' }}>
-          Bảng điều khiển
-        </Typography>
-      </Box>
-      
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {[
           { label: 'Tổng Người dùng', value: stats.total_users, color: 'primary.main' },

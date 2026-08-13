@@ -1,10 +1,11 @@
-import { Box, Typography, Button, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, Chip, Snackbar } from '@mui/material';
+import { Box, Button, Typography, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, Chip, Snackbar } from '@mui/material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import type { GridColDef } from '@mui/x-data-grid';
 import { useState, useEffect, useRef } from 'react';
 import { adminApi } from '../api/adminApi';
 import * as xlsx from 'xlsx';
-import { CloudUpload, Delete as DeleteIcon, HelpOutlined as HelpIcon, Add as AddIcon } from '@mui/icons-material';
+import { transformExcelRowsToQuestions } from '../utils/excelQuestionTransform';
+import { CloudUpload, Delete as DeleteIcon, Add as AddIcon, Download as DownloadIcon } from '@mui/icons-material';
 import ManualQuestionDialog from '../components/ManualQuestionDialog';
 
 // Shape thật trả về từ question_service (QuestionModel), không phải {text, category, difficulty} phẳng.
@@ -64,20 +65,54 @@ const AdminQuestions = () => {
         const workbook = xlsx.read(arrayBuffer, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData = xlsx.utils.sheet_to_json(worksheet);
+        const rows = xlsx.utils.sheet_to_json(worksheet);
 
-        await adminApi.importQuestionsBulk(jsonData);
+        // Chuyển từ bảng Excel phẳng sang đúng cấu trúc JSON backend yêu cầu — trước đây
+        // gửi thẳng dữ liệu thô nên luôn bị từ chối (trừ khi file có sẵn cấu trúc JSON lồng
+        // nhau, không thực tế với 1 file Excel bình thường).
+        const { payloads, errors } = transformExcelRowsToQuestions(rows as any[]);
+
+        if (payloads.length === 0) {
+          setError(`Không có dòng nào hợp lệ để import.${errors.length ? ' Chi tiết: ' + errors.slice(0, 3).join(' ') : ''}`);
+          setLoading(false);
+          return;
+        }
+
+        await adminApi.importQuestionsBulk(payloads);
         await fetchQuestions();
-        setSnackbar({ open: true, message: 'Đã import câu hỏi từ Excel.', severity: 'success' });
+
+        if (errors.length > 0) {
+          setSnackbar({ open: true, message: `Đã import ${payloads.length} câu hỏi, bỏ qua ${errors.length} dòng lỗi (xem console để biết chi tiết).`, severity: 'error' });
+          console.warn('Các dòng Excel bị bỏ qua khi import:', errors);
+        } else {
+          setSnackbar({ open: true, message: `Đã import ${payloads.length} câu hỏi từ Excel.`, severity: 'success' });
+        }
       } catch (err) {
         console.error('Failed to import questions', err);
-        setError('Import thất bại. Kiểm tra lại định dạng file.');
+        setError('Import thất bại. Kiểm tra lại định dạng file (dùng nút "Xuất Excel" để lấy file mẫu đúng định dạng).');
         setLoading(false);
       }
     };
     reader.readAsArrayBuffer(file);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const blob = await adminApi.exportQuestions();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ngan_hang_cau_hoi_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export questions', err);
+      setSnackbar({ open: true, message: 'Xuất Excel thất bại.', severity: 'error' });
     }
   };
 
@@ -172,13 +207,10 @@ const AdminQuestions = () => {
 
   return (
     <Box sx={{ p: 4, minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <HelpIcon sx={{ fontSize: 36, color: 'primary.main', mr: 2 }} />
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>
-            Ngân hàng câu hỏi
-          </Typography>
-        </Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+        <Typography variant="body2" color="text.secondary">
+          Import Excel hỗ trợ trắc nghiệm 1/nhiều đáp án và đúng-sai. Bấm "Xuất Excel" trước để lấy đúng định dạng cột, sửa/thêm dòng rồi import lại.
+        </Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <input
             type="file"
@@ -194,6 +226,14 @@ const AdminQuestions = () => {
             sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 'bold', px: 3, py: 1 }}
           >
             Import Excel
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={handleExport}
+            sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 'bold', px: 3, py: 1 }}
+          >
+            Xuất Excel
           </Button>
           <Button
             variant="contained"

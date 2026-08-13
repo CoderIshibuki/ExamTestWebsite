@@ -97,7 +97,8 @@ async def get_exam_result(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    stmt = select(models.Result).where(
+    from sqlalchemy.orm import selectinload
+    stmt = select(models.Result).options(selectinload(models.Result.question_results)).where(
         models.Result.attempt_id == attempt_id
     )
     result = await db.execute(stmt)
@@ -223,5 +224,5 @@ async def manual_grade_question(
     db_result.has_pending_manual_grading = still_pending
 
     await db.commit()
-    await db.refresh(db_result)
+    await db.refresh(db_result, attribute_names=['question_results'])
     return db_result

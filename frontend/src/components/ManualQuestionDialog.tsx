@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, TextField, MenuItem, Box, IconButton, Typography,
   FormControlLabel, Checkbox, RadioGroup, Radio, Alert
 } from '@mui/material';
 import { Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
+import { adminApi } from '../api/adminApi';
 
 interface ManualQuestionDialogProps {
   open: boolean;
@@ -27,9 +28,17 @@ export default function ManualQuestionDialog({ open, onClose, onSave }: ManualQu
   const [type, setType] = useState('multiple_choice');
   const [text, setText] = useState('');
   const [subject, setSubject] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [difficulty, setDifficulty] = useState('medium');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      adminApi.getCategories().then(setCategories).catch((err) => console.error('Failed to load categories', err));
+    }
+  }, [open]);
 
   // multiple_choice / multiple_select
   const [options, setOptions] = useState([
@@ -46,6 +55,7 @@ export default function ManualQuestionDialog({ open, onClose, onSave }: ManualQu
   const resetForm = () => {
     setText('');
     setSubject('');
+    setCategoryId('');
     setType('multiple_choice');
     setError('');
     setOptions([{ id: genId('opt_'), text: '', isCorrect: false }, { id: genId('opt_'), text: '', isCorrect: false }]);
@@ -125,6 +135,7 @@ export default function ManualQuestionDialog({ open, onClose, onSave }: ManualQu
       options: payloadOptions,
       correct_answer: correctAnswer,
       metadata: { subject, difficulty, tags: [] },
+      category_id: categoryId || null,
     };
 
     try {
@@ -169,6 +180,11 @@ export default function ManualQuestionDialog({ open, onClose, onSave }: ManualQu
               <MenuItem value="hard">Khó</MenuItem>
             </TextField>
           </Box>
+
+          <TextField select label="Danh mục (tuỳ chọn)" variant="filled" fullWidth value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+            <MenuItem value=""><em>-- Không thuộc danh mục nào --</em></MenuItem>
+            {categories.map((c) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
+          </TextField>
 
           <Typography variant="h6" sx={{ mt: 1, fontWeight: 'bold' }}>Cấu hình đáp án</Typography>
 

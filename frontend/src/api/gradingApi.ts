@@ -4,6 +4,9 @@ export interface QuestionResult {
   question_id: string;
   is_correct: boolean;
   user_answer: string;
+  point_earned: number;
+  point_possible: number;
+  needs_manual_grading?: boolean;
 }
 
 export interface ExamResult {

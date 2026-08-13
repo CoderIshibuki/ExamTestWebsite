@@ -105,6 +105,14 @@ async def add_exam_schedule(db: AsyncSession, exam_id: str, schedule: schemas.Ex
     await db.refresh(db_schedule)
     return db_schedule
 
+async def delete_exam_schedule(db: AsyncSession, schedule_id: str):
+    stmt = select(models.ExamSchedule).where(models.ExamSchedule.id == UUID(schedule_id))
+    result = await db.execute(stmt)
+    schedule = result.scalars().first()
+    if schedule:
+        await db.delete(schedule)
+        await db.commit()
+
 # --- Exam Assignments ---
 async def add_exam_collaborator(db: AsyncSession, exam_id: str, collaborator: schemas.ExamCollaboratorCreate):
     now = datetime.now(timezone.utc)

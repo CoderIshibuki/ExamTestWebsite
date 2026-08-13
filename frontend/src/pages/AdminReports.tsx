@@ -2,7 +2,6 @@ import { Box, Typography, Paper, Alert, Skeleton, Grid } from '@mui/material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useState, useEffect } from 'react';
 import { adminApi } from '../api/adminApi';
-import AssessmentIcon from '@mui/icons-material/Assessment';
 
 const AdminReports = () => {
   const [data, setData] = useState<any[]>([]);
@@ -35,13 +34,6 @@ const AdminReports = () => {
 
   return (
     <Box sx={{ p: 4, minHeight: '100vh', bgcolor: '#f8f9fa' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-        <AssessmentIcon sx={{ fontSize: 36, color: 'primary.main', mr: 2 }} />
-        <Typography variant="h4" sx={{ fontWeight: 800, color: '#2c3e50' }}>
-          Reports & Analytics
-        </Typography>
-      </Box>
-
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
       {data.length === 0 ? (

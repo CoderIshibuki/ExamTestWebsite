@@ -1,10 +1,10 @@
-import { Box, Typography, Button, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, TextField, Snackbar } from '@mui/material';
+import { Box, Button, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, TextField, Snackbar } from '@mui/material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import type { GridColDef } from '@mui/x-data-grid';
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { adminApi } from '../api/adminApi';
-import { Visibility as VisibilityIcon, Delete as DeleteIcon, Assignment as AssignmentIcon, Add as AddIcon, Publish as PublishIcon, Settings as SettingsIcon } from '@mui/icons-material';
+import { Visibility as VisibilityIcon, Delete as DeleteIcon, Add as AddIcon, Publish as PublishIcon, Settings as SettingsIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import ManageExamDialog from '../components/ManageExamDialog';
 
@@ -178,13 +178,7 @@ const AdminExams = () => {
 
   return (
     <Box sx={{ p: 4, minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4, flexWrap: 'wrap', gap: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <AssignmentIcon sx={{ fontSize: 36, color: 'primary.main', mr: 2 }} />
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>
-            Quản lý Đề thi
-          </Typography>
-        </Box>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)} sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 'bold', px: 3, py: 1 }}>
           Tạo đề thi mới
         </Button>
