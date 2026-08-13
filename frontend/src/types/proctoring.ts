@@ -3,7 +3,7 @@ export interface Violation {
   exam_id: string;
   user_id: string;
   type: string;
-  severity: 'low' | 'medium' | 'high';
+  severity: 'low' | 'medium' | 'high' | 'critical';
   timestamp: string;
   details?: any;
 }
@@ -26,6 +26,6 @@ export interface ProctorAlert {
   id: string;
   type: string;
   message: string;
-  severity: 'low' | 'medium' | 'high';
+  severity: 'low' | 'medium' | 'high' | 'critical';
   timestamp: string;
 }

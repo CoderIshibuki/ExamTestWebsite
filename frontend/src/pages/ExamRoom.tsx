@@ -19,7 +19,7 @@ const ExamRoom: React.FC = () => {
 
   
   const { state, setStatus, setQuestions, setAnswer, nextQuestion, prevQuestion, goToQuestion, setExamId, setAttemptId } = useExamContext();
-  const { isActive, violationCount } = useProctoring(examId || '', state.attemptId || '');
+  const { isActive, violationCount, videoRef, cameraReady, cameraError } = useProctoring(examId || '', state.attemptId || '');
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
 
   const initExam = useCallback(async () => {
@@ -195,6 +195,30 @@ const ExamRoom: React.FC = () => {
           </Grid>
         </Grid>
       </Container>
+
+      {/* Khung camera nhỏ nổi góc màn hình — minh bạch cho thí sinh biết đang được giám sát
+          qua camera (Face Mesh + phát hiện vật thể chạy hoàn toàn trong trình duyệt máy
+          thí sinh, không có hình ảnh nào được gửi lên server, chỉ gửi sự kiện vi phạm). */}
+      <Box sx={{ position: 'fixed', bottom: 90, right: 16, zIndex: 1150, width: 160 }}>
+        {cameraError ? (
+          <Paper sx={{ p: 1.5, bgcolor: '#FEF2F2', border: '1px solid', borderColor: 'error.light', borderRadius: 2 }}>
+            <Typography variant="caption" color="error.main">{cameraError}</Typography>
+          </Paper>
+        ) : (
+          <Paper sx={{ p: 0.5, borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+            <video
+              ref={videoRef}
+              muted
+              playsInline
+              aria-label="Camera giám sát thi (chỉ hiển thị cho bạn, không lưu hình ảnh)"
+              style={{ width: '100%', borderRadius: 6, display: 'block', transform: 'scaleX(-1)', opacity: cameraReady ? 1 : 0.3 }}
+            />
+            <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', color: 'text.secondary', mt: 0.5 }}>
+              {cameraReady ? 'Đang giám sát' : 'Đang kết nối camera...'}
+            </Typography>
+          </Paper>
+        )}
+      </Box>
 
       <Paper sx={{ p: 1.5, display: 'flex', justifyContent: 'center', borderRadius: 0, borderTop: '1px solid', borderColor: 'divider', position: 'fixed', bottom: 0, width: '100%', zIndex: 1200, bgcolor: 'white' }}>
         <ProctoringStatus isActive={isActive} violationCount={violationCount} />
