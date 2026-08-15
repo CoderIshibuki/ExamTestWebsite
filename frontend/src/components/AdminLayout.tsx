@@ -38,7 +38,7 @@ const menuGroups = [
     items: [
       { text: 'Tổng quan', icon: <DashboardIcon fontSize="small" />, path: '/admin/dashboard', roles: ['admin'] },
       { text: 'Quản lý tài khoản', icon: <PeopleIcon fontSize="small" />, path: '/admin/users', roles: ['admin'] },
-      { text: 'Báo cáo & Thống kê', icon: <AssessmentIcon fontSize="small" />, path: '/admin/reports', roles: ['admin'] },
+      { text: 'Báo cáo & Thống kê', icon: <AssessmentIcon fontSize="small" />, path: '/admin/reports', roles: ['admin', 'teacher'] },
     ],
   },
   {

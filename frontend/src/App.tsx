@@ -152,11 +152,11 @@ function App() {
             </StaffRoute>
           } />
           <Route path="/admin/reports" element={
-            <AdminRoute>
+            <StaffRoute>
               <AdminLayout>
                 <AdminReports />
               </AdminLayout>
-            </AdminRoute>
+            </StaffRoute>
           } />
           
           <Route path="*" element={<Navigate to="/" />} />

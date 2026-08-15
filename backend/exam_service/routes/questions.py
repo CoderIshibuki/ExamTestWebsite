@@ -99,7 +99,7 @@ async def remove_question_from_exam(
     if exam.status != "draft":
         raise HTTPException(status_code=409, detail="Cannot modify published exam")
         
-    success = await crud.delete_exam_question(db, question_id)
+    success = await crud.delete_exam_question(db, exam_id, question_id)
     if not success:
         raise HTTPException(status_code=404, detail="Question not found in exam")
 

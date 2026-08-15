@@ -5,13 +5,16 @@ import { Box, Typography } from '@mui/material';
 
 interface StudentListProps {
   students: StudentSession[];
+  onRequestStream?: (userId: string) => void;
+  onStopStream?: (userId: string) => void;
+  streams?: Record<string, MediaStream>;
 }
 
-const StudentList = ({ students }: StudentListProps) => {
+const StudentList = ({ students, onRequestStream, onStopStream, streams }: StudentListProps) => {
   if (students.length === 0) {
     return (
       <Box sx={{ textAlign: 'center', p: 4 }}>
-        <Typography color="text.secondary">No students in this session.</Typography>
+        <Typography color="text.secondary">Không có học sinh nào trong phiên thi này.</Typography>
       </Box>
     );
   }
@@ -20,7 +23,12 @@ const StudentList = ({ students }: StudentListProps) => {
     <Grid container spacing={3}>
       {students.map((student) => (
         <Grid size={{ xs: 12, sm: 6, md: 4 }} key={student.user_id}>
-          <StudentCard student={student} />
+          <StudentCard
+            student={student}
+            onRequestStream={onRequestStream}
+            onStopStream={onStopStream}
+            stream={streams?.[student.user_id]}
+          />
         </Grid>
       ))}
     </Grid>

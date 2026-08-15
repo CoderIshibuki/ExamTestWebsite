@@ -116,15 +116,66 @@ Người dùng gửi ảnh chụp thật 2 trang tham chiếu (oj.vnoi.info và 
 - `@mediapipe/tasks-vision` — Face Landmarker
 - `onnxruntime-web` — chạy model YOLO ONNX trong trình duyệt
 
+## ✅ Checkpoint 8: merge các bug fix thật phát hiện khi chạy Docker thật
+
+Bạn đã tự chạy được qua Docker và gửi lại bản đã sửa — đây là lần đầu tiên dự án được test thật (mục #1 trong danh sách "chưa làm" ở checkpoint trước). Đã rà từng file, xác nhận hợp lệ, và merge vào:
+
+### Bug thật phát hiện khi chạy thật (không thể tìm ra chỉ bằng đọc code/biên dịch)
+1. **`middleware/audit.py`**: `int(user_id)` sẽ crash vì `user_id` là UUID dạng string, không phải số nguyên.
+2. **`nginx.conf`**: các route (`/exams`, `/questions`, `/categories`, `/grading`, `/proctoring`) chỉ khớp khi URL có dấu `/` cuối — trong khi code tự viết gọi **không nhất quán** (`adminApi.ts` gọi `/v1/exams` không có `/`, `examApi.ts` gọi `/v1/exams/` có `/`) → 404 thật khi thiếu dấu `/`. Đã thêm rewrite rule khớp cả 2 trường hợp.
+3. **`crud.py` (exam_service) `delete_exam_question`**: lọc theo `models.ExamQuestion.id == UUID(question_id)` — nhưng `id` là khoá chính của bảng tham chiếu, còn `question_id` truyền vào là ID của câu hỏi bên `question_service` (không phải UUID hợp lệ) → xoá câu hỏi khỏi đề **không bao giờ hoạt động**. Đã sửa lọc đúng theo `exam_id` + `question_id`.
+4. **`question_service/config.py`**: đọc biến môi trường sai tên (`MONGODB_URL` thay vì `MONGO_URI` — biến thật sự có trong `.env`/`docker-compose`) → luôn dùng giá trị mặc định không xác thực thay vì thông tin đăng nhập MongoDB thật.
+5. **`realtime_service/main.py`**: thiếu hẳn CORS middleware → request từ frontend (khác origin) bị chặn.
+6. **`routes/exams.py` (publish_exam)**: `exam.id` (UUID object) chưa stringify trước khi đưa vào JSON payload gửi snapshot; `display_order` có thể `None` gây lỗi.
+7. **`question_service/crud.py` `serialize_doc`**: chỉ stringify `_id` chứ không đổi tên thành `id` → endpoint danh sách câu hỏi trả về `_id`, còn endpoint xem 1 câu hỏi (qua Pydantic model) trả `id` — **2 hình dạng dữ liệu khác nhau cho cùng loại object**, khiến `AdminQuestions.tsx`/`ManageExamDialog.tsx` phải vá phòng thủ `row.id || row._id` ở nhiều nơi. **Đã sửa tận gốc** tại `serialize_doc` thay vì để rải rác nhiều chỗ vá ở frontend.
+8. **Tạo đề thi qua UI mặc định private (`is_public=False`)** → học sinh không tự vào thi được, phải chạy SQL tay (`update_public.py`) để vá từng đề. **Đã sửa tận gốc**: thêm field `is_public` vào `ExamBase`/`ExamUpdate` schema (trước đây thiếu hẳn, dù model DB đã có cột này), mặc định `True` — đề thi tạo qua UI giờ công khai ngay, không cần patch SQL tay nữa.
+9. **`useProctorWebSocket.ts`**: fallback URL hardcode `http://localhost:8000` (chỉ đúng khi chạy đúng máy/cổng đó) → đổi sang `window.location.origin` (khớp domain thật đang chạy, giống cách các API khác trong app đã làm).
+
+### Đã thêm (helper scripts từ bạn, giữ nguyên)
+- `create_admin.py` (auth_service) — script seed tài khoản admin đầu tiên, idempotent (không tạo trùng nếu đã có), đã gắn vào `docker-compose.yml` chạy tự động lúc khởi động.
+- `update_public.py` — không còn cần thiết nữa sau khi sửa gốc #8 ở trên, nhưng vẫn giữ lại trong repo phòng khi cần patch dữ liệu cũ đã tạo từ trước lúc chưa sửa.
+
+### ⚠️ Cần bạn tự sửa (không nằm trong phạm vi code, là file `.env` cá nhân của bạn)
+File `.env` thật bạn đang dùng có `MONGODB_URL=mongodb://mongo:mongo@mongodb:27017` — cần đổi tên biến thành `MONGO_URI` (giữ nguyên giá trị) để khớp với code đã sửa ở mục #4, nếu không MongoDB sẽ kết nối bằng thông tin mặc định (không xác thực) thay vì tài khoản `mongo:mongo` bạn đã đặt.
+
+### Đã kiểm tra lại (checkpoint 8)
+- ✅ `python3 -m py_compile` — sạch toàn bộ backend
+- ✅ `npx tsc --noEmit` — 0 lỗi
+- ✅ `npm run build` — build production thành công
+
+## ✅ Checkpoint 9: hoàn tất toàn bộ tính năng còn thiếu (livestream, báo cáo giáo viên, đáp án dễ đọc)
+
+### 1. Livestream video thật cho giám thị (WebRTC)
+- **Backend `realtime_service`**: thêm signaling WebRTC (`webrtc_request_stream`, `webrtc_offer`, `webrtc_answer`, `webrtc_ice_candidate`) — server chỉ **relay** tín hiệu bắt tay giữa 2 sid cụ thể, không xử lý/lưu video; luồng video truyền thẳng peer-to-peer giữa trình duyệt học sinh và giám thị sau khi kết nối xong. Lưu mapping `user_id → sid` vào Redis lúc học sinh join phòng thi để giám thị tìm đúng người.
+- **Phát hiện & sửa lỗ hổng bảo mật khi thêm tính năng này**: `join_proctor_room` **trước đây không hề kiểm tra role** — bất kỳ tài khoản nào (kể cả học sinh) gọi được, sẽ nghe/xem lén video của học sinh khác một khi có WebRTC. Đã thêm check role admin/teacher.
+- **Phát hiện thêm bug nghiêm trọng khi rà lại**: `useProctorWebSocket.ts` (hook giám thị) **thiếu token xác thực + sai path** (`/ws` thay vì `/ws/socket.io`) → **toàn bộ ProctorDashboard trước giờ chưa từng kết nối realtime thành công**, mọi cảnh báo vi phạm thời gian thực chưa từng tới được giám thị. Đã sửa khớp đúng với cấu hình phía học sinh (`useWebSocket.ts`).
+- Frontend: `useProctorStreamViewer` (phía giám thị, trong `useProctorWebSocket.ts`) và `useProctorStreamBroadcaster.ts` (phía học sinh, tận dụng camera đã xin quyền sẵn từ `useProctoring`). `StudentCard.tsx` thêm nút "Xem trực tiếp"/"Dừng xem" + khung video.
+
+### 2. Sửa bug tên học sinh hiện sai trong ProctorDashboard
+- `useProctoringData.ts` tạo field `name:` nhưng `StudentCard.tsx` đọc `full_name`/`username` — **không khớp nhau**, tên hiển thị luôn rơi về `user_id` thô, dòng code sinh tên giả "Student xxxx" chưa từng thực sự hiện ra. Đã sửa tận gốc: lấy **tên thật** qua `adminApi.getUsers()`, không dùng placeholder giả nữa.
+
+### 3. Đáp án dễ đọc trong "Chi tiết từng câu" (`ResultSummary.tsx`)
+- Trước đây hiện thẳng chuỗi thô (`["opt_1","opt_3"]`, `[["L_1","R_2"]]`) cho câu chọn-nhiều/nối cột. Đã thêm hàm `formatUserAnswer` tra cứu lại text thật của từng đáp án; câu tự luận chụp ảnh giờ hiện đúng ảnh thay vì in chuỗi base64 dài.
+
+### 4. Báo cáo & thống kê riêng cho giáo viên
+- Backend `/stats/reports`: lọc theo `owner_id` nếu người gọi là `teacher` (admin vẫn xem toàn hệ thống) — trước đây route này trả về **tất cả đề thi trong hệ thống bất kể ai gọi**.
+- Frontend: đổi route `/admin/reports` từ `AdminRoute` sang `StaffRoute` (giáo viên vào được), thêm mục "Báo cáo & Thống kê" vào menu cho teacher, thêm dòng chú thích rõ phạm vi dữ liệu đang xem ("Chỉ hiện đề thi do bạn tạo" / "Toàn bộ hệ thống").
+
+### Đã kiểm tra lại (checkpoint 9)
+- ✅ `npx tsc --noEmit` — 0 lỗi
+- ✅ `npm run build` — build production thành công
+- ✅ `python3 -m py_compile` — sạch toàn bộ backend
+- ⚠️ Livestream WebRTC **chưa test được qua trình duyệt thật** (môi trường này không có 2 trình duyệt/webcam để test peer-to-peer) — logic đã viết đúng theo chuẩn WebRTC signaling, nhưng cần bạn tự xác nhận khi chạy thật, đặc biệt: STUN server công cộng (`stun:stun.l.google.com:19302`) có đủ cho mạng LAN trường học hay cần thêm TURN server (nếu 2 máy ở sau NAT/firewall nghiêm ngặt, peer-to-peer thuần STUN có thể không kết nối được — cần TURN server riêng, ngoài phạm vi đã làm).
+
+## 🔜 Bước tiếp theo theo yêu cầu: quét lỗi toàn bộ dự án
+Đã hoàn tất toàn bộ tính năng liệt kê. Bước tiếp theo là rà lỗi toàn diện lần cuối trên cả dự án (không chỉ phần mới thêm) — ưu tiên các lớp lỗi tương tự những gì đã tìm thấy qua Docker thật (nginx trailing-slash, `_id`/`id` không nhất quán, biến môi trường sai tên, thiếu CORS, mismatch field name giữa hook và component,...).
+
 ## ⏳ Vẫn còn thiếu / có thể mở rộng thêm (chưa làm, do giới hạn thời gian phiên này)
-1. **Test thật qua Docker + trình duyệt thật** — mọi thứ mới kiểm tra biên dịch, chưa chạy với DB thật/trình duyệt thật end-to-end. Nhớ chạy `alembic upgrade head` ở `grading_service` (migration `d3456789012c`) và `auth_service` (migration `a7b8c9d0e1f2`). Muốn dùng object detection thì tải model theo `frontend/public/models/README.md`.
+1. **Test thật qua Docker + trình duyệt thật** — đặc biệt livestream WebRTC (cần 2 thiết bị thật để test peer-to-peer), có thể cần TURN server nếu mạng có NAT/firewall nghiêm ngặt.
 2. **Deepfake/face-swap detection thật sự** — hiện chỉ chặn được ở lớp "tên thiết bị camera đáng ngờ" (heuristic), chưa có model phân tích khung hình video để phát hiện deepfake thật — cần model chuyên biệt + dữ liệu huấn luyện, việc lớn, nên làm ở giai đoạn riêng nếu cần mức độ chống gian lận cao hơn.
-3. **Livestream video cho giám thị xem trực tiếp** — hiện `ProctorDashboard` vẫn chỉ hiện text/vi phạm, chưa truyền được luồng video thời gian thực từ máy thí sinh sang máy giám thị (cần WebRTC peer connection, phức tạp hơn nhiều so với chỉ gửi sự kiện text qua Socket.IO đang có sẵn).
-4. Hiển thị đáp án nối cột/chọn nhiều trong "Chi tiết từng câu" (`ResultSummary.tsx`) hiện đáp án thô dạng JSON string thay vì text đáp án dễ đọc.
-5. Trang báo cáo/thống kê riêng cho giáo viên (hiện `/admin/reports` chỉ admin xem được).
-6. Unit test cho các tính năng mới viết trong các phiên gần đây — chưa viết.
-7. Bundle size cảnh báo (~2MB JS + ~26MB WASM dư thừa từ onnxruntime-web) — có thể code-split + loại bỏ bản WASM cục bộ không dùng tới để tải nhanh hơn, không phải lỗi chỉ là tối ưu.
-8. Tinh chỉnh độ nhạy các ngưỡng AI Proctoring (góc quay đầu, tỉ lệ lệch mống mắt, ngưỡng tin cậy YOLO) theo dữ liệu sử dụng thật — các giá trị hiện tại là ước lượng hợp lý ban đầu, chưa được kiểm chứng với người dùng thật.
+3. Unit test cho các tính năng mới viết trong các phiên gần đây — chưa viết.
+4. Bundle size cảnh báo (~2.6MB JS + ~26MB WASM dư thừa từ onnxruntime-web) — có thể code-split + loại bỏ bản WASM cục bộ không dùng tới để tải nhanh hơn, không phải lỗi chỉ là tối ưu.
+5. Tinh chỉnh độ nhạy các ngưỡng AI Proctoring (góc quay đầu, tỉ lệ lệch mống mắt, ngưỡng tin cậy YOLO) theo dữ liệu sử dụng thật.
 
 ## Lưu ý khi tiếp tục
 - Quy ước option id nối cột: `L_xxx`/`R_xxx` (trái/phải).

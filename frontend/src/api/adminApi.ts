@@ -1,5 +1,18 @@
 import apiClient from './apiClient';
 
+export interface ExamCreate {
+  title: string;
+  description?: string;
+  duration_minutes: number;
+  passing_score?: number;
+  max_attempts?: number;
+  shuffle_questions?: boolean;
+  shuffle_options?: boolean;
+  show_result_after_submit?: boolean;
+  is_public?: boolean;
+}
+
+
 export const adminApi = {
   // ===== Users (auth_service) =====
   getUsers: async () => {
@@ -57,6 +70,7 @@ export const adminApi = {
     const response = await apiClient.put(`/v1/categories/${id}`, data);
     return response.data;
   },
+
   deleteCategory: async (id: string) => {
     await apiClient.delete(`/v1/categories/${id}`);
   },
@@ -66,16 +80,7 @@ export const adminApi = {
     const response = await apiClient.get('/v1/exams');
     return response.data;
   },
-  createExam: async (data: {
-    title: string;
-    description?: string;
-    duration_minutes: number;
-    passing_score?: number;
-    max_attempts?: number;
-    shuffle_questions?: boolean;
-    shuffle_options?: boolean;
-    show_result_after_submit?: boolean;
-  }) => {
+  createExam: async (data: ExamCreate) => {
     const response = await apiClient.post('/v1/exams', data);
     return response.data;
   },

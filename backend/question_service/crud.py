@@ -6,8 +6,13 @@ from database import db_instance
 def serialize_doc(doc):
     if not doc:
         return None
+    # Đổi tên "_id" -> "id" ngay tại đây để nhất quán với endpoint GET /{id} (đi qua
+    # Pydantic model QuestionResponse, alias "_id" -> "id" tự động). Trước đây hàm này
+    # chỉ stringify _id mà không đổi tên, khiến endpoint danh sách (GET /) trả về "_id"
+    # còn endpoint xem 1 câu hỏi trả "id" — 2 hình dạng khác nhau cho cùng 1 loại dữ liệu,
+    # buộc frontend phải tự đoán "row.id || row._id" ở nhiều nơi.
     if "_id" in doc:
-        doc["_id"] = str(doc["_id"])
+        doc["id"] = str(doc.pop("_id"))
     if "category_id" in doc and doc["category_id"]:
         doc["category_id"] = str(doc["category_id"])
     return doc

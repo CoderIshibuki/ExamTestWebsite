@@ -35,6 +35,7 @@ export const useProctoring = (examId: string, attemptId: string, options: UsePro
   const [lastViolationType, setLastViolationType] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -94,6 +95,7 @@ export const useProctoring = (examId: string, attemptId: string, options: UsePro
           return;
         }
         streamRef.current = stream;
+        setCameraStream(stream);
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play().catch(() => {});
@@ -123,6 +125,7 @@ export const useProctoring = (examId: string, attemptId: string, options: UsePro
       cancelled = true;
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
+      setCameraStream(null);
     };
   }, [enableCamera, handleViolation]);
 
@@ -153,6 +156,7 @@ export const useProctoring = (examId: string, attemptId: string, options: UsePro
     lastViolationType,
     videoRef,
     cameraReady,
+    cameraStream,
     cameraError,
     faceMonitorStatus,
     objectDetectionAvailable,

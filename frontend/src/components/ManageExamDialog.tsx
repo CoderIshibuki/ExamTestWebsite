@@ -115,12 +115,12 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
   }, [open, examId]);
 
   const existingIds = new Set(examQuestions.map((q) => q.question_id));
-  const availableBank = bank.filter((q) => !existingIds.has(q.id));
+  const availableBank = bank.filter((q) => !existingIds.has(q.id || q._id));
 
   const handleAddManual = async () => {
     if (!examId || !manualAdd) return;
     try {
-      await adminApi.addExamQuestion(examId, { question_id: manualAdd.id, point_value: 1 });
+      await adminApi.addExamQuestion(examId, { question_id: manualAdd.id || manualAdd._id, point_value: 1 });
       setManualAdd(null);
       loadQuestionsTab();
     } catch (err) {

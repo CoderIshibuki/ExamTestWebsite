@@ -17,7 +17,7 @@ def register_connection_handlers(sio):
             user = validate_token(token)
             
             # Save user session details in socketio session
-            await sio.save_session(sid, {'user_id': user['id'], 'token': token})
+            await sio.save_session(sid, {'user_id': user['id'], 'role': user.get('role'), 'token': token})
             
             print(f"Client {sid} connected with user_id: {user['id']}")
             return True
@@ -37,6 +37,7 @@ def register_connection_handlers(sio):
                 # Remove user from active room count if needed
                 client = await redis_client.get_client()
                 await client.srem(f"exam:room:{exam_id}:clients", user_id)
+                await client.delete(f"exam:room:{exam_id}:sid:{user_id}")
                 # Emit to proctor room
                 await sio.emit("proctor:student_left", {"exam_id": exam_id, "user_id": user_id}, room=f"proctor:{exam_id}")
         else:

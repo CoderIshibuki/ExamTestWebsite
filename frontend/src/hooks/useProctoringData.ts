@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { proctoringApi } from '../api/proctoringApi';
 import apiClient from '../api/apiClient';
+import { adminApi } from '../api/adminApi';
 import type { StudentSession, Violation } from '../types/proctoring';
 import { useProctorWebSocket } from './useProctorWebSocket';
 
@@ -10,8 +11,24 @@ export const useProctoringData = (examId: string) => {
   const [loading, setLoading] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userMap, setUserMap] = useState<Record<string, { full_name?: string; username?: string }>>({});
 
-  const { alerts, clearAlerts, events } = useProctorWebSocket(examId);
+  const { socket, alerts, clearAlerts, events } = useProctorWebSocket(examId);
+
+  // Tải trước danh sách người dùng để tra tên thật theo user_id — trước đây hiển thị
+  // tên giả "Student xxxx" (và field "name" còn không khớp với field StudentCard đọc
+  // là "full_name"/"username", nên trước giờ luôn hiện thẳng user_id thô cho giám thị).
+  useEffect(() => {
+    adminApi.getUsers()
+      .then((users) => {
+        const map: Record<string, { full_name?: string; username?: string }> = {};
+        (users || []).forEach((u: any) => {
+          map[u.id] = { full_name: u.full_name, username: u.username };
+        });
+        setUserMap(map);
+      })
+      .catch((err) => console.error('Không tải được danh sách người dùng để hiện tên học sinh:', err));
+  }, []);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -24,7 +41,8 @@ export const useProctoringData = (examId: string) => {
         const userIds = studentsRes.data.online_students || [];
         const mappedStudents: StudentSession[] = userIds.map((id: string) => ({
           user_id: id,
-          name: 'Student ' + id.substring(0, 4), // Placeholder since realtime_service only returns IDs
+          full_name: userMap[id]?.full_name,
+          username: userMap[id]?.username,
           is_online: true,
           risk_score: 0,
           violations_count: 0
@@ -65,7 +83,8 @@ export const useProctoringData = (examId: string) => {
             ...prev,
             {
               user_id: lastEvent.payload.user_id,
-              name: 'Student ' + String(lastEvent.payload.user_id).substring(0, 4),
+              full_name: userMap[lastEvent.payload.user_id]?.full_name,
+              username: userMap[lastEvent.payload.user_id]?.username,
               is_online: true,
               risk_score: 0,
               violations_count: 0,
@@ -86,5 +105,5 @@ export const useProctoringData = (examId: string) => {
     }
   }, [events]);
 
-  return { students, violations, alerts, clearAlerts, loading, unauthorized, error };
+  return { students, violations, alerts, clearAlerts, loading, unauthorized, error, socket };
 };

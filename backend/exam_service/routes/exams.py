@@ -121,18 +121,24 @@ async def get_exam_reports(
     # Pass/fail thật: so sánh results.percentage (bảng cùng DB vật lý, thuộc grading_service)
     # với exam.passing_score — trước đây dùng status == 'GRADED' làm tiêu chí pass/fail,
     # hoàn toàn sai bản chất (đã "graded" không có nghĩa là "đạt").
+    #
+    # Giáo viên chỉ xem báo cáo của đề thi CHÍNH MÌNH tạo (owner_id) — trước đây route này
+    # luôn trả về tất cả đề thi trong hệ thống bất kể ai gọi, khiến giáo viên nhìn thấy cả
+    # dữ liệu của giáo viên khác. Admin vẫn xem được toàn bộ.
+    where_owner = "" if current_user["role"] == "admin" else "WHERE e.owner_id = :owner_id"
     rows = (await db.execute(text(
-        """
+        f"""
         SELECT e.title AS title,
                COUNT(r.id) AS total,
                SUM(CASE WHEN r.percentage >= e.passing_score THEN 1 ELSE 0 END) AS passed
         FROM exams e
         LEFT JOIN results r ON r.exam_id = e.id AND r.status = 'graded'
+        {where_owner}
         GROUP BY e.id, e.title
         HAVING COUNT(r.id) > 0
         ORDER BY e.title
         """
-    ))).all()
+    ), {"owner_id": current_user["id"]} if where_owner else {})).all()
 
     reports = [
         {
@@ -285,7 +291,7 @@ async def publish_exam(
                         # options (không phải "choices") — mapping sai trước đây khiến snapshot luôn
                         # rỗng, và thiếu "type" khiến grading_engine luôn chấm 0 điểm cho mọi câu hỏi.
                         snapshots_data.append({
-                            "exam_id": exam.id,
+                            "exam_id": str(exam.id),
                             "question_id": str(q_id),
                             "question_version": 1,
                             "question_text": (q_data.get("content") or {}).get("text", ""),
@@ -293,7 +299,7 @@ async def publish_exam(
                             "choices": q_data.get("options", []),
                             "correct_answer": q_data.get("correct_answer", ""),
                             "points": exam.questions[i].point_value if hasattr(exam.questions[i], 'point_value') else 1.0,
-                            "display_order": exam.questions[i].question_order
+                            "display_order": exam.questions[i].question_order if exam.questions[i].question_order is not None else i
                         })
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error fetching questions: {e}")

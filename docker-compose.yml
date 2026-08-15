@@ -63,6 +63,7 @@ services:
       context: ./backend/auth_service
     container_name: auth_service
     restart: unless-stopped
+    command: sh -c "alembic upgrade head && python create_admin.py && uvicorn main:app --host 0.0.0.0 --port 8000"
     env_file: .env
     ports:
       - "8000:8000"

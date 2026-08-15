@@ -4,6 +4,7 @@ import { Box, Typography, Button, CircularProgress, Paper, Grid, Container } fro
 import { ErrorOutlined } from '@mui/icons-material';
 import { useTimer } from '../hooks/useTimer';
 import { useProctoring } from '../hooks/useProctoring';
+import { useProctorStreamBroadcaster } from '../hooks/useProctorStreamBroadcaster';
 import { useExamContext } from '../context/ExamContext';
 import type { AnswerValue, Question } from '../context/ExamContext';
 import QuestionPanel from '../components/QuestionPanel';
@@ -19,7 +20,8 @@ const ExamRoom: React.FC = () => {
 
   
   const { state, setStatus, setQuestions, setAnswer, nextQuestion, prevQuestion, goToQuestion, setExamId, setAttemptId } = useExamContext();
-  const { isActive, violationCount, videoRef, cameraReady, cameraError } = useProctoring(examId || '', state.attemptId || '');
+  const { isActive, violationCount, videoRef, cameraReady, cameraError, cameraStream } = useProctoring(examId || '', state.attemptId || '');
+  useProctorStreamBroadcaster(examId || '', cameraStream);
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
 
   const initExam = useCallback(async () => {

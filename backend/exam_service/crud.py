@@ -66,8 +66,13 @@ async def add_exam_question(db: AsyncSession, exam_id: str, question: schemas.Ex
     await db.refresh(db_question)
     return db_question
 
-async def delete_exam_question(db: AsyncSession, question_id: str) -> bool:
-    result = await db.execute(select(models.ExamQuestion).filter(models.ExamQuestion.id == UUID(question_id)))
+async def delete_exam_question(db: AsyncSession, exam_id: str, question_id: str) -> bool:
+    result = await db.execute(
+        select(models.ExamQuestion).filter(
+            models.ExamQuestion.exam_id == UUID(exam_id),
+            models.ExamQuestion.question_id == question_id
+        )
+    )
     db_question = result.scalars().first()
     if not db_question:
         return False

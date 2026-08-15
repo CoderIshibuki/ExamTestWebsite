@@ -57,7 +57,7 @@ const AdminExams = () => {
 
   const onCreateSubmit = async (data: ExamFormValues) => {
     try {
-      const newExam = await adminApi.createExam(data);
+      const newExam = await adminApi.createExam({ ...data, is_public: true });
       setCreateOpen(false);
       reset();
       setSnackbar({ open: true, message: 'Đã tạo đề thi. Hãy thêm câu hỏi trước khi công bố.', severity: 'success' });

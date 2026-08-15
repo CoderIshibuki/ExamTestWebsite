@@ -131,7 +131,7 @@ const AdminQuestions = () => {
     if (!deleteDialog.id) return;
     try {
       await adminApi.deleteQuestion(deleteDialog.id);
-      setQuestions((prev) => prev.filter((q) => q.id !== deleteDialog.id));
+      setQuestions((prev) => prev.filter((q: any) => (q.id || q._id) !== deleteDialog.id));
       setSnackbar({ open: true, message: 'Đã xoá câu hỏi.', severity: 'success' });
     } catch (err) {
       console.error('Failed to delete question', err);
@@ -196,7 +196,7 @@ const AdminQuestions = () => {
           variant="outlined"
           color="error"
           size="small"
-          onClick={() => handleDeleteClick(params.row.id)}
+          onClick={() => handleDeleteClick(params.row.id || params.row._id)}
           sx={{ borderRadius: 2, minWidth: 0, p: 1 }}
         >
           <DeleteIcon fontSize="small" />
@@ -258,6 +258,7 @@ const AdminQuestions = () => {
           <DataGrid
             rows={questions}
             columns={columns}
+            getRowId={(row: any) => row._id || row.id}
             slots={{ toolbar: GridToolbar }}
             slotProps={{ toolbar: { showQuickFilter: true, quickFilterProps: { debounceMs: 500 } } }}
             initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}

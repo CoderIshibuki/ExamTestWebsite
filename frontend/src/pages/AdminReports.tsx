@@ -1,12 +1,14 @@
 import { Box, Typography, Paper, Alert, Skeleton, Grid } from '@mui/material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { adminApi } from '../api/adminApi';
+import { AuthContext } from '../context/AuthContext';
 
 const AdminReports = () => {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { user } = useContext(AuthContext);
 
   useEffect(() => {
     adminApi.getReports()
@@ -34,6 +36,11 @@ const AdminReports = () => {
 
   return (
     <Box sx={{ p: 4, minHeight: '100vh', bgcolor: '#f8f9fa' }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        {user?.role === 'teacher'
+          ? 'Chỉ hiện thống kê các đề thi do bạn tạo.'
+          : 'Thống kê toàn bộ đề thi trong hệ thống.'}
+      </Typography>
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
       {data.length === 0 ? (

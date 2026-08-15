@@ -17,7 +17,7 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
                     payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
                     user_id = payload.get("sub")
                     if user_id:
-                        user_id = int(user_id)
+                        pass # user_id is a string UUID, keep it as string
                 except JWTError:
                     pass
 

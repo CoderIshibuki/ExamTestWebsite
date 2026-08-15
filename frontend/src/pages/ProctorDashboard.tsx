@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { Box, Typography, CircularProgress, Grid, Paper, Alert } from '@mui/material';
 import { useProctoringData } from '../hooks/useProctoringData';
+import { useProctorStreamViewer } from '../hooks/useProctorWebSocket';
 import StudentList from '../components/Proctor/StudentList';
 import ViolationFeed from '../components/Proctor/ViolationFeed';
 import AlertBanner from '../components/Proctor/AlertBanner';
@@ -9,7 +10,8 @@ import VideocamOffIcon from '@mui/icons-material/VideocamOff';
 
 const ProctorDashboard = () => {
   const { examId } = useParams<{ examId: string }>();
-  const { students, violations, alerts, clearAlerts, loading, unauthorized, error } = useProctoringData(examId || '');
+  const { students, violations, alerts, clearAlerts, loading, unauthorized, error, socket } = useProctoringData(examId || '');
+  const { streams, requestStream, stopStream } = useProctorStreamViewer(socket);
 
   if (unauthorized) {
     return (
@@ -66,7 +68,12 @@ const ProctorDashboard = () => {
           </Box>
           
           {students.length > 0 ? (
-            <StudentList students={students} />
+            <StudentList
+              students={students}
+              onRequestStream={(userId) => requestStream(examId || '', userId)}
+              onStopStream={stopStream}
+              streams={streams}
+            />
           ) : (
             <Paper sx={{ p: 8, textAlign: 'center', bgcolor: '#1e293b', border: '1px dashed #334155', borderRadius: 3 }}>
               <VideocamOffIcon sx={{ fontSize: 64, color: '#475569', mb: 2 }} />

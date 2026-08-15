@@ -11,6 +11,7 @@ def register_message_handlers(sio):
         session = await sio.get_session(sid)
         user_id = session['user_id']
         token = session.get('token')
+        role = session.get('role')
         
         exam_id = data.get('exam_id')
         session_id = data.get('session_id')
@@ -22,12 +23,17 @@ def register_message_handlers(sio):
         # Join Socket.IO room
         await sio.enter_room(sid, exam_id)
         
-        # Keep track of exam_id in socket session for disconnect cleanup
-        await sio.save_session(sid, {'user_id': user_id, 'exam_id': exam_id, 'token': token})
+        # Keep track of exam_id in socket session for disconnect cleanup.
+        # Giữ lại "role" — trước đây bị ghi đè mất ở đây, khiến check quyền join_proctor_room
+        # sau này không hoạt động cho tài khoản đã từng gọi join_exam.
+        await sio.save_session(sid, {'user_id': user_id, 'exam_id': exam_id, 'token': token, 'role': role})
 
         # Add user to Redis set
         client = await redis_client.get_client()
         await client.sadd(f"exam:room:{exam_id}:clients", user_id)
+        # Lưu mapping user_id -> sid để giám thị (proctor) tìm đúng kết nối khi yêu cầu
+        # xem livestream camera của 1 học sinh cụ thể (WebRTC signaling).
+        await client.set(f"exam:room:{exam_id}:sid:{user_id}", sid, ex=3600)
         
         # Notify proctor
         await sio.emit("proctor:student_joined", {"exam_id": exam_id, "user_id": user_id}, room=f"proctor:{exam_id}")
@@ -174,6 +180,55 @@ def register_message_handlers(sio):
 
     @sio.event
     async def join_proctor_room(sid, data):
+        session = await sio.get_session(sid)
+        role = session.get('role') if session else None
+        # Trước đây không hề kiểm tra quyền — bất kỳ tài khoản nào (kể cả học sinh) gọi
+        # event này cũng vào được phòng giám thị, và một khi có tín hiệu WebRTC video sẽ
+        # nghe/xem lén được luồng của học sinh khác. Chỉ admin/teacher mới được vào.
+        if role not in ('admin', 'teacher'):
+            await sio.emit('error', {'code': 403, 'message': 'Only proctors can join this room'}, room=sid)
+            return
         exam_id = data.get('exam_id')
         if exam_id:
             await sio.enter_room(sid, f"proctor:{exam_id}")
+
+    # ===== WebRTC signaling (livestream camera học sinh cho giám thị xem trực tiếp) =====
+    # Chỉ RELAY tín hiệu offer/answer/ICE candidate giữa 2 sid cụ thể — bản thân server
+    # không xử lý/lưu trữ video, luồng video truyền thẳng peer-to-peer giữa trình duyệt
+    # học sinh và trình duyệt giám thị sau khi thiết lập kết nối xong.
+
+    @sio.event
+    async def webrtc_request_stream(sid, data):
+        """Giám thị yêu cầu 1 học sinh cụ thể bắt đầu chia sẻ camera."""
+        session = await sio.get_session(sid)
+        role = session.get('role') if session else None
+        if role not in ('admin', 'teacher'):
+            await sio.emit('error', {'code': 403, 'message': 'Only proctors can request a stream'}, room=sid)
+            return
+        target_user_id = data.get('user_id')
+        exam_id = data.get('exam_id')
+        if not target_user_id or not exam_id:
+            return
+        # Tìm sid của học sinh theo user_id trong phòng thi — lưu qua Redis lúc join_exam.
+        client = await redis_client.get_client()
+        student_sid = await client.get(f"exam:room:{exam_id}:sid:{target_user_id}")
+        if student_sid:
+            await sio.emit('webrtc_stream_requested', {'proctor_sid': sid}, room=student_sid.decode() if isinstance(student_sid, bytes) else student_sid)
+
+    @sio.event
+    async def webrtc_offer(sid, data):
+        target_sid = data.get('target_sid')
+        if target_sid:
+            await sio.emit('webrtc_offer', {'sdp': data.get('sdp'), 'from_sid': sid, 'user_id': data.get('user_id')}, room=target_sid)
+
+    @sio.event
+    async def webrtc_answer(sid, data):
+        target_sid = data.get('target_sid')
+        if target_sid:
+            await sio.emit('webrtc_answer', {'sdp': data.get('sdp'), 'from_sid': sid}, room=target_sid)
+
+    @sio.event
+    async def webrtc_ice_candidate(sid, data):
+        target_sid = data.get('target_sid')
+        if target_sid:
+            await sio.emit('webrtc_ice_candidate', {'candidate': data.get('candidate'), 'from_sid': sid}, room=target_sid)

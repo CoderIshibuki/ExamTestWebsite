@@ -92,6 +92,48 @@ const ResultSummary: React.FC = () => {
     );
   }
 
+  // Chuyển đáp án thô (id đáp án, hoặc JSON string với câu chọn-nhiều/nối cột) thành
+  // text dễ đọc bằng cách tra cứu lại options thật của câu hỏi — trước đây hiện thẳng
+  // chuỗi thô kiểu ["opt_1","opt_3"] hoặc [["L_1","R_2"]], không ai đọc hiểu được.
+  const formatUserAnswer = (qr: { question_id: string; user_answer: string }): string => {
+    const q = questionsMap[qr.question_id];
+    if (!qr.user_answer) return '(không trả lời)';
+    if (!q) return qr.user_answer;
+
+    const optionText = (id: string) => q.options.find((o) => o.id === id)?.text || id;
+
+    if (q.type === 'multiple_choice' || q.type === 'true_false') {
+      return optionText(qr.user_answer);
+    }
+
+    if (q.type === 'multiple_select') {
+      try {
+        const ids: string[] = JSON.parse(qr.user_answer);
+        return ids.map(optionText).join(', ');
+      } catch {
+        return qr.user_answer;
+      }
+    }
+
+    if (q.type === 'matching') {
+      try {
+        const pairs: [string, string][] = JSON.parse(qr.user_answer);
+        return pairs.map(([l, r]) => `${optionText(l)} → ${optionText(r)}`).join('; ');
+      } catch {
+        return qr.user_answer;
+      }
+    }
+
+    // essay: text thô hoặc ảnh base64 (ảnh thì hiện ghi chú thay vì in cả chuỗi base64 dài)
+    if (qr.user_answer.startsWith('data:image')) return '(đã nộp ảnh chụp bài làm)';
+    return qr.user_answer;
+  };
+
+  const isEssayImageAnswer = (qr: { question_id: string; user_answer: string }) => {
+    const q = questionsMap[qr.question_id];
+    return q?.type === 'essay' && qr.user_answer?.startsWith('data:image');
+  };
+
   const passed = result.percentage >= passingScore;
 
   return (
@@ -189,9 +231,16 @@ const ResultSummary: React.FC = () => {
                     </AccordionSummary>
                     <AccordionDetails sx={{ textAlign: 'left' }}>
                       <Typography sx={{ mb: 2, whiteSpace: 'pre-wrap' }}>{q?.content?.text}</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Đáp án của bạn: <strong>{qr.user_answer || '(không trả lời)'}</strong>
-                      </Typography>
+                      {isEssayImageAnswer(qr) ? (
+                        <Box>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Ảnh bài làm đã nộp:</Typography>
+                          <img src={qr.user_answer} alt="Bài làm đã nộp" style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 8, border: '1px solid #E2E8F0' }} />
+                        </Box>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          Đáp án của bạn: <strong>{formatUserAnswer(qr)}</strong>
+                        </Typography>
+                      )}
                     </AccordionDetails>
                   </Accordion>
                 );

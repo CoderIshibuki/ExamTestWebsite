@@ -45,8 +45,8 @@ export default function Home() {
   };
 
   const navItems = [
-    { label: 'ĐỀ THI', path: '/login' },
-    { label: 'KẾT QUẢ', path: '/login' },
+    { label: 'ĐỀ THI', path: isAuthenticated ? '/dashboard' : '/login' },
+    { label: 'KẾT QUẢ', path: isAuthenticated ? '/dashboard' : '/login' },
     { label: 'NGƯỜI DÙNG', path: isAuthenticated ? '/admin/users' : '/login' },
   ];
 
