@@ -52,9 +52,9 @@ export default function ManualGrading() {
       await gradingApi.manualGradeQuestion(item.result_id, item.question_id, score, notes[k]);
       setItems((prev) => prev.filter((it) => key(it) !== k));
       setSnackbar({ open: true, message: 'Đã lưu điểm chấm tay.', severity: 'success' });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to submit manual grade', err);
-      setSnackbar({ open: true, message: 'Lưu điểm thất bại.', severity: 'error' });
+      setSnackbar({ open: true, message: err.response?.data?.detail || 'Lưu điểm thất bại.', severity: 'error' });
     } finally {
       setSubmitting(null);
     }

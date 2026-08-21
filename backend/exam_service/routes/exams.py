@@ -281,8 +281,10 @@ async def publish_exam(
     if question_ids:
         try:
             async with httpx.AsyncClient() as client:
-                token = jwt.encode({"sub": current_user["id"]}, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
-                headers = {"Authorization": f"Bearer {token}"}
+                # Đồng bộ với các cuộc gọi nội bộ khác trong file này (VD dòng dưới gọi
+                # grading_service) — dùng X-Internal-Token thay vì tự ký JWT giả danh
+                # người publish, tránh phụ thuộc quyền question:read của người gọi.
+                headers = {"X-Internal-Token": settings.JWT_SECRET}
                 for i, q_id in enumerate(question_ids):
                     res = await client.get(f"{settings.QUESTION_SERVICE_URL}/api/v1/questions/{q_id}", headers=headers)
                     if res.status_code == 200:
@@ -364,6 +366,18 @@ async def start_exam(
                 detail += f" Kỳ thi tiếp theo mở lúc {upcoming.isoformat()}."
             raise HTTPException(status_code=403, detail=detail)
 
+    # Khoá advisory theo (exam_id, user_id) trong suốt transaction này — tránh race
+    # condition: nếu học sinh bấm "Vào thi" 2 lần liên tiếp (double-click) hoặc mở 2 tab
+    # cùng lúc, 2 request song song đều có thể pass qua check "attempt_count >= max_attempts"
+    # (cả 2 cùng thấy count=0) TRƯỚC KHI request nào commit attempt mới — tạo ra nhiều attempt
+    # hơn giới hạn max_attempts cho phép. Dùng hashtext() của chính Postgres (không phải
+    # hash() của Python) vì hash() bị random hoá theo từng process (PYTHONHASHSEED) —
+    # cùng 1 khoá có thể ra giá trị khác nhau giữa các worker uvicorn, làm khoá vô nghĩa.
+    # pg_advisory_xact_lock tự nhả khoá khi transaction kết thúc (commit/rollback).
+    from sqlalchemy import text
+    lock_key = f"{exam_id}:{current_user['id']}"
+    await db.execute(text("SELECT pg_advisory_xact_lock(hashtext(:key)::bigint)"), {"key": lock_key})
+
     active_attempt = await crud.get_active_exam_attempt(db, exam_id, current_user["id"])
     if active_attempt:
         return active_attempt
@@ -397,7 +411,14 @@ async def save_answer(
         await crud.submit_exam_attempt(db, attempt_id)
         raise HTTPException(status_code=400, detail="Exam time expired")
         
-    saved_answer = await crud.upsert_exam_attempt_answer(db, attempt_id, answer.question_id, answer.selected_answer)
+    try:
+        saved_answer = await crud.upsert_exam_attempt_answer(db, attempt_id, answer.question_id, answer.selected_answer)
+    except Exception as e:
+        # upsert_exam_attempt_answer tự kiểm tra lại attempt còn "in_progress" hay không
+        # ngay trước khi ghi (phòng race condition hiếm gặp giữa lúc route check và lúc
+        # ghi DB) — nhưng ném Exception Python thuần, trước đây không được bắt ở đây nên
+        # lọt thành lỗi 500 khó hiểu cho học sinh thay vì thông báo rõ ràng.
+        raise HTTPException(status_code=400, detail=str(e))
     return saved_answer
 
 @router.post("/attempts/{attempt_id}/submit", response_model=schemas.ExamAttemptResponse)

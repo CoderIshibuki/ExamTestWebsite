@@ -12,8 +12,8 @@ const Dashboard = () => {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppBar position="static" elevation={0} sx={{ bgcolor: 'white', borderBottom: '1px solid #E2E8F0' }}>
         <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1, color: 'primary.main', fontWeight: 700 }} aria-label="Antigravity Exams Logo">
-            Antigravity<span style={{color: '#10B981'}}>Exams</span>
+          <Typography variant="h6" sx={{ flexGrow: 1, color: 'primary.main', fontWeight: 700 }} aria-label="examsystem Logo">
+            exam<span style={{color: '#10B981'}}>system</span>
           </Typography>
           <Button variant="outlined" color="inherit" aria-label="Đăng xuất" sx={{ color: 'text.secondary', borderColor: '#E2E8F0' }} onClick={logout}>
             Đăng xuất
@@ -109,6 +109,7 @@ const Dashboard = () => {
                 </Grid>
               )}
 
+              {user?.role === 'student' && (
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Card sx={{ height: '100%', borderRadius: 4, transition: 'border-color 0.2s ease', '&:hover': { borderColor: 'primary.main' } }}>
                   <CardContent sx={{ p: 4 }}>
@@ -117,12 +118,13 @@ const Dashboard = () => {
                       <Typography variant="h6" sx={{ fontWeight: 700 }}>Danh sách kỳ thi</Typography>
                     </Box>
                     <Typography color="text.secondary" sx={{ mb: 4, minHeight: 40 }}>Xem các bài thi đang mở và bắt đầu làm bài ngay.</Typography>
-                    <Button variant="contained" fullWidth size="large" startIcon={<PlayArrow />} onClick={() => navigate(`/${user?.role}/exams`)} aria-label="Xem danh sách kỳ thi">
+                    <Button variant="contained" fullWidth size="large" startIcon={<PlayArrow />} onClick={() => navigate('/student/exams')} aria-label="Xem danh sách kỳ thi">
                       Xem kỳ thi
                     </Button>
                   </CardContent>
                 </Card>
               </Grid>
+              )}
 
               {user?.role === 'student' && (
               <Grid size={{ xs: 12, sm: 6 }}>

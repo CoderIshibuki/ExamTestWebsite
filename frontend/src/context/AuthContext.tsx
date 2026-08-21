@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import axiosInstance from '../api/axios';
 
 interface User {
-  id: number;
+  id: string;
   username: string;
   email: string;
   full_name: string | null;

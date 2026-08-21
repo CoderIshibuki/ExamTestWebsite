@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, Field
 from typing import Optional
 from datetime import datetime
 from uuid import UUID
@@ -9,23 +9,25 @@ class UserBase(BaseModel):
     full_name: Optional[str] = None
 
 class UserCreate(UserBase):
-    password: str
+    # Trước đây không có ràng buộc độ dài nào ở backend — chỉ frontend tự kiểm tra
+    # (dễ bị bypass bằng cách gọi thẳng API, VD Postman/curl, đặt mật khẩu 1 ký tự).
+    password: str = Field(min_length=8)
     role: Optional[str] = "student"
 
 class AdminUserCreate(UserBase):
-    password: Optional[str] = None
+    password: Optional[str] = Field(default=None, min_length=8)
     role: Optional[str] = "student"
 
 class PasswordChangeRequest(BaseModel):
     old_password: str
-    new_password: str
+    new_password: str = Field(min_length=8)
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
 class ResetPasswordRequest(BaseModel):
     token: str
-    new_password: str
+    new_password: str = Field(min_length=8)
 
 class UserResponse(UserBase):
     id: UUID
@@ -35,6 +37,12 @@ class UserResponse(UserBase):
     created_at: Optional[datetime]
 
     model_config = ConfigDict(from_attributes=True)
+
+class AdminUserCreateResponse(UserResponse):
+    # Chỉ có giá trị khi admin tạo user không tự đặt mật khẩu — mật khẩu tạm sinh ngẫu
+    # nhiên cần được admin thấy 1 LẦN DUY NHẤT ngay sau khi tạo để gửi lại cho người dùng
+    # (không lưu lại được sau đó vì chỉ lưu bản hash trong DB).
+    temp_password: Optional[str] = None
 
 class Token(BaseModel):
     access_token: str

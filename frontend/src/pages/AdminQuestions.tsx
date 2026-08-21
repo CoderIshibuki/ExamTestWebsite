@@ -110,9 +110,9 @@ const AdminQuestions = () => {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to export questions', err);
-      setSnackbar({ open: true, message: 'Xuất Excel thất bại.', severity: 'error' });
+      setSnackbar({ open: true, message: err.response?.data?.detail || 'Xuất Excel thất bại.', severity: 'error' });
     }
   };
 
@@ -133,9 +133,9 @@ const AdminQuestions = () => {
       await adminApi.deleteQuestion(deleteDialog.id);
       setQuestions((prev) => prev.filter((q: any) => (q.id || q._id) !== deleteDialog.id));
       setSnackbar({ open: true, message: 'Đã xoá câu hỏi.', severity: 'success' });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to delete question', err);
-      setSnackbar({ open: true, message: 'Xoá câu hỏi thất bại.', severity: 'error' });
+      setSnackbar({ open: true, message: err.response?.data?.detail || 'Xoá câu hỏi thất bại.', severity: 'error' });
     } finally {
       setDeleteDialog({ open: false, id: null });
     }

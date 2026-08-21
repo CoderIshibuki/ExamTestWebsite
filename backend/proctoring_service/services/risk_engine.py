@@ -89,6 +89,6 @@ async def send_alert(exam_id: UUID, user_id: str, violation_id: UUID):
     try:
         async with httpx.AsyncClient() as client:
             url = f"{settings.REALTIME_SERVICE_URL}/api/v1/realtime/alert"
-            await client.post(url, json=payload, timeout=5.0)
+            await client.post(url, json=payload, headers={"X-Internal-Token": settings.JWT_SECRET}, timeout=5.0)
     except Exception as e:
         logger.error(f"Failed to send alert to realtime service: {e}")

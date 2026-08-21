@@ -13,7 +13,11 @@ async def generate_exam_from_bank(
     filters = {
         "subject": request.subject,
         "difficulty": request.difficulty,
-        "limit": 100
+        # Lọc theo question_types (có thể nhiều loại) diễn ra ở phía client SAU khi fetch,
+        # vì question_service chỉ hỗ trợ lọc theo 1 "type" duy nhất trên URL. limit đặt
+        # khá cao để tránh báo sai "không đủ câu hỏi" khi ngân hàng câu hỏi lớn nhưng các
+        # câu đúng loại cần tìm lại nằm ngoài phạm vi fetch nếu limit quá thấp.
+        "limit": 500
     }
     
     response_data = await fetch_questions(filters, token)

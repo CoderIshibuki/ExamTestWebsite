@@ -46,8 +46,8 @@ const ExamList: React.FC = () => {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppBar position="static" elevation={0} sx={{ bgcolor: 'white', borderBottom: '1px solid #E2E8F0' }}>
         <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1, color: 'primary.main', fontWeight: 700 }} aria-label="Antigravity Exams Logo">
-            Antigravity<span style={{color: '#10B981'}}>Exams</span>
+          <Typography variant="h6" sx={{ flexGrow: 1, color: 'primary.main', fontWeight: 700 }} aria-label="examsystem Logo">
+            exam<span style={{color: '#10B981'}}>system</span>
           </Typography>
           <Button
             variant="outlined"

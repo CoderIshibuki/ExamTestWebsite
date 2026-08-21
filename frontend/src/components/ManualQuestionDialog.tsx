@@ -141,9 +141,9 @@ export default function ManualQuestionDialog({ open, onClose, onSave }: ManualQu
     try {
       await onSave(payload);
       resetForm();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to save question', err);
-      setError('Lưu câu hỏi thất bại. Vui lòng thử lại.');
+      setError(err.response?.data?.detail || 'Lưu câu hỏi thất bại. Vui lòng thử lại.');
     } finally {
       setSaving(false);
     }

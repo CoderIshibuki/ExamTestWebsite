@@ -17,6 +17,18 @@ async def get_exam_questions(
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
 
+    # Trước đây endpoint này chỉ yêu cầu "đã đăng nhập", không kiểm tra gì thêm — một học
+    # sinh có thể gọi thẳng API này để xem nội dung câu hỏi của bất kỳ đề nào, kể cả đề
+    # đang ở trạng thái draft (chưa công bố) hoặc đề riêng tư (is_public=False) mà họ
+    # không có trong roster. Admin/teacher vẫn xem được bất kể trạng thái (cần thiết cho
+    # màn hình quản lý đề thi lúc đang soạn).
+    if current_user["role"] == "student":
+        if exam.status != "published":
+            raise HTTPException(status_code=403, detail="Đề thi chưa được công bố")
+        is_on_roster = any(str(r.user_id) == current_user["id"] for r in exam.roster)
+        if not getattr(exam, "is_public", False) and not is_on_roster:
+            raise HTTPException(status_code=403, detail="Bạn không có quyền xem đề thi riêng tư này")
+
     # crud.get_exam_questions chỉ trả về bảng tham chiếu (question_id, order, point_value),
     # KHÔNG có nội dung câu hỏi thật — phải gọi sang question_service để lấy đủ text/options/type.
     # Thiếu bước "làm giàu" (enrich) này trước đây khiến phòng thi không hiển thị được câu hỏi nào cả.
@@ -25,12 +37,15 @@ async def get_exam_questions(
         return []
 
     import httpx
-    from jose import jwt
     from config import settings
 
     is_student = current_user["role"] == "student"
-    token = jwt.encode({"sub": current_user["id"]}, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
-    headers = {"Authorization": f"Bearer {token}"}
+    # Gọi nội bộ bằng X-Internal-Token (đúng chuẩn service-to-service đã dùng ở nơi khác
+    # trong hệ thống, VD snapshots.py) thay vì trước đây tự ký 1 JWT giả danh chính người
+    # dùng gọi request — cách cũ vừa không cần thiết (route không cần biết "ai" gọi, chỉ
+    # cần biết "được phép" gọi), vừa gây lỗi 403 sau khi question_service được vá lỗ hổng
+    # bảo mật thiếu xác thực (học sinh vốn không có quyền question:read để tự browse).
+    headers = {"X-Internal-Token": settings.JWT_SECRET}
 
     results = []
     async with httpx.AsyncClient() as client:
@@ -77,7 +92,15 @@ async def add_question_to_exam(
         
     if exam.status != "draft":
         raise HTTPException(status_code=409, detail="Cannot modify published exam")
-        
+
+    # Tự tính question_order kế tiếp nếu không truyền vào — trước đây để None, và phía
+    # hiển thị coi None như 0 khi sắp xếp, khiến câu hỏi thêm thủ công (không set order)
+    # luôn nhảy lên đầu danh sách bất kể thêm vào lúc nào, thứ tự không đúng ý người dùng.
+    if question.question_order is None:
+        existing = await crud.get_exam_questions(db, exam_id)
+        max_order = max((q.question_order or 0) for q in existing) if existing else -1
+        question = question.model_copy(update={"question_order": max_order + 1})
+
     return await crud.add_exam_question(db, exam_id, question)
 
 @router.delete("/questions/{question_id}", status_code=status.HTTP_204_NO_CONTENT)

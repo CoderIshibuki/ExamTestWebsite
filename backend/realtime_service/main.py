@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
@@ -9,6 +9,8 @@ from services.pubsub_manager import pubsub_manager
 from handlers.connection import register_connection_handlers
 from handlers.message_handlers import register_message_handlers
 from handlers.broadcast import handle_broadcast
+from config import settings
+from dependencies import validate_token
 
 app = FastAPI(title="Real-time Service")
 
@@ -61,14 +63,37 @@ class ProctorAlert(BaseModel):
     message: str
     violation_id: str
 
+def require_internal_token(x_internal_token: str = Header(None)):
+    """Dùng cho endpoint chỉ nên được gọi bởi service khác (VD proctoring_service), không
+    phải trực tiếp bởi trình duyệt người dùng."""
+    if not x_internal_token or x_internal_token != settings.JWT_SECRET:
+        raise HTTPException(status_code=403, detail="Invalid internal service token")
+    return True
+
+
+def require_staff_bearer(authorization: str = Header(None)):
+    """Dùng cho endpoint gọi trực tiếp từ frontend giám thị — bắt buộc JWT hợp lệ có
+    role admin/teacher, không cho học sinh hay người chưa đăng nhập xem được."""
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    token = authorization.split(" ", 1)[1]
+    try:
+        user = validate_token(token)
+    except ValueError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    if user.get("role") not in ("admin", "teacher"):
+        raise HTTPException(status_code=403, detail="Only proctors can view this")
+    return user
+
+
 @app.post("/api/v1/realtime/alert")
-async def broadcast_alert(alert: ProctorAlert):
+async def broadcast_alert(alert: ProctorAlert, _: bool = Depends(require_internal_token)):
     payload = alert.dict()
     await sio.emit("proctor:alert", payload, room=f"proctor:{alert.exam_id}")
     return {"status": "alert_broadcasted"}
 
 @app.get("/api/v1/realtime/exams/{exam_id}/students")
-async def get_exam_students(exam_id: str):
+async def get_exam_students(exam_id: str, _: dict = Depends(require_staff_bearer)):
     client = await redis_client.get_client()
     clients_set = await client.smembers(f"exam:room:{exam_id}:clients")
     user_ids = [c.decode('utf-8') for c in clients_set]

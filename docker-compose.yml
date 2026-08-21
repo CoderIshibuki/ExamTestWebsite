@@ -104,6 +104,11 @@ services:
   exam_service:
     build: ./backend/exam_service
     container_name: exam-exam-service
+    # Trước đây thiếu bước chạy migration — chỉ auth_service tự alembic upgrade khi khởi
+    # động, khiến exam_service (có bảng exam_schedules/exam_proctors/exam_collaborators/
+    # exam_roster từ các migration RBAC) không tự tạo bảng khi deploy mới, gây lỗi SQL
+    # "relation does not exist" ngay từ request đầu tiên.
+    command: sh -c "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-exam_db}
       JWT_SECRET: ${JWT_SECRET}
@@ -154,6 +159,10 @@ services:
   grading_service:
     build: ./backend/grading_service
     container_name: exam-grading-service
+    # Đặc biệt quan trọng: migration d3456789012c thêm cột needs_manual_grading,
+    # has_pending_manual_grading,... phục vụ tính năng chấm tay tự luận — thiếu bước
+    # này thì code chấm tay sẽ lỗi SQL "column does not exist" ngay khi có người dùng.
+    command: sh -c "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-exam_db}
       REDIS_URL: redis://redis:6379
@@ -193,6 +202,11 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      grading_service:
+        # Đảm bảo migration (alembic upgrade head) chạy xong trước — celery_worker dùng
+        # chung bảng với grading_service, tránh race condition đọc/ghi vào bảng/cột chưa
+        # tồn tại nếu cả 2 container khởi động đồng thời lúc deploy mới.
         condition: service_healthy
     volumes:
       - ./backend/grading_service:/app

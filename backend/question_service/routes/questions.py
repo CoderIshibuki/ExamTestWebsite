@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import Optional
 import crud
 import schemas
-from dependencies import get_current_user, require_permission
+from dependencies import get_current_user, require_permission, require_internal_or_permission
 import os
 from services.cache import CacheService
 
@@ -14,11 +14,18 @@ router = APIRouter()
 @router.get("/", response_model=schemas.PaginatedQuestionResponse)
 async def get_questions(
     skip: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1, le=100),
+    limit: int = Query(10, ge=1, le=500),
     subject: Optional[str] = None,
     difficulty: Optional[str] = None,
     type: Optional[str] = None,
-    category_id: Optional[str] = None
+    category_id: Optional[str] = None,
+    # LỖ HỔNG NGHIÊM TRỌNG ĐÃ SỬA: endpoint này trước đây hoàn toàn không yêu cầu xác
+    # thực — bất kỳ ai (kể cả không đăng nhập) gọi thẳng API là xem được toàn bộ ngân
+    # hàng câu hỏi kèm đáp án đúng (correct_answer, options[].is_correct), phá vỡ hoàn
+    # toàn tính bảo mật của kỳ thi. Giờ bắt buộc phải có quyền question:read (chỉ
+    # admin/teacher — học sinh xem câu hỏi lúc thi qua endpoint riêng của exam_service,
+    # nơi đã tự ẩn đáp án đúng trước khi trả về).
+    current_user: dict = Depends(require_permission("question:read"))
 ):
     filters = {
         "subject": subject,
@@ -66,7 +73,10 @@ async def create_questions_bulk(
     return {"inserted": inserted_count}
 
 @router.get("/{id}", response_model=schemas.QuestionResponse)
-async def get_question(id: str):
+async def get_question(
+    id: str,
+    current_user: dict = Depends(require_internal_or_permission("question:read"))
+):
     q = await crud.get_question(id)
     if not q:
         raise HTTPException(status_code=404, detail="Question not found")

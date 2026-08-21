@@ -170,6 +170,63 @@ File `.env` thật bạn đang dùng có `MONGODB_URL=mongodb://mongo:mongo@mong
 ## 🔜 Bước tiếp theo theo yêu cầu: quét lỗi toàn bộ dự án
 Đã hoàn tất toàn bộ tính năng liệt kê. Bước tiếp theo là rà lỗi toàn diện lần cuối trên cả dự án (không chỉ phần mới thêm) — ưu tiên các lớp lỗi tương tự những gì đã tìm thấy qua Docker thật (nginx trailing-slash, `_id`/`id` không nhất quán, biến môi trường sai tên, thiếu CORS, mismatch field name giữa hook và component,...).
 
+## ✅ Checkpoint 10: quét lỗi toàn bộ dự án (đợt 1) — phát hiện nhiều lỗ hổng bảo mật nghiêm trọng
+
+Đã rà theo đúng các lớp lỗi từng gặp qua Docker thật (route thiếu xác thực, path/token không khớp, thiếu migration lúc deploy). Đây là kết quả:
+
+### 🔴 Lỗ hổng bảo mật nghiêm trọng nhất tìm được trong toàn bộ dự án
+**`GET /api/v1/questions` và `GET /api/v1/questions/{id}` (question_service) hoàn toàn KHÔNG yêu cầu đăng nhập** — bất kỳ ai, không cần tài khoản, gọi thẳng API là xem được **toàn bộ ngân hàng câu hỏi kèm đáp án đúng** (`correct_answer`, `options[].is_correct`), phá vỡ hoàn toàn tính bảo mật của kỳ thi. Đã sửa: bắt buộc quyền `question:read` (chỉ admin/teacher).
+- Sửa này kéo theo phải sửa tiếp: `exam_service` từng "giả danh" học sinh (tự ký JWT với `sub=student_id`) để gọi sang lấy nội dung câu hỏi lúc thi — sau khi vá lỗ hổng trên, học sinh (không có quyền `question:read`) sẽ bị 403. Đã thêm dependency `require_internal_or_permission` (chấp nhận cả internal token cho cuộc gọi service-to-service HOẶC quyền user thật cho admin/teacher browse UI), và sửa `exam_service` dùng đúng `X-Internal-Token` thay vì giả danh user (sửa luôn 2 chỗ dùng pattern sai này: enrich câu hỏi lúc thi + publish đề thi).
+
+### 🔴 Lỗ hổng bảo mật khác
+- **`join_proctor_room` (realtime_service) không kiểm tra role** — bất kỳ tài khoản nào (kể cả học sinh) gọi được, sẽ nghe/xem lén video học sinh khác khi có WebRTC livestream.
+- **`POST /api/v1/realtime/alert` không xác thực** — ai cũng gọi được để phát cảnh báo giả vào dashboard giám thị (spam/đánh lạc hướng). Đã thêm internal-token check.
+- **`GET /api/v1/realtime/exams/{exam_id}/students` không xác thực** — ai cũng xem được học sinh nào đang thi đề nào (rò rỉ thông tin). Đã thêm bắt buộc JWT + role admin/teacher.
+- **`GET /exams/{id}/questions` không kiểm soát quyền truy cập** — học sinh có thể gọi thẳng API xem nội dung câu hỏi của đề `draft` (chưa công bố) hoặc đề riêng tư (`is_public=False`) mà họ không có trong roster. Đã thêm check trạng thái + roster (chỉ áp dụng cho role student; admin/teacher vẫn xem được mọi lúc — cần thiết cho màn quản lý đề thi).
+
+### 🔴 Lỗi khiến tính năng vừa xây (livestream/role-check) tự động gãy nếu không phát hiện kịp
+**JWT do `auth_service` phát ra không hề có claim `role`** — khiến `realtime_service.validate_token()` (đọc `payload.get("role")`) luôn nhận `None`. Nếu không phát hiện, check role mình vừa thêm cho `join_proctor_room` sẽ **chặn nhầm cả admin/teacher thật** (None không nằm trong danh sách cho phép). Đã sửa tận gốc: nhúng `role` vào JWT lúc login/refresh (đánh đổi: vai trò đổi giữa lúc đang đăng nhập sẽ cần đợi token hết hạn/refresh mới cập nhật — chấp nhận được vì token sống ngắn, mặc định 30 phút).
+
+### 🔴 Bug triển khai (deployment-breaking)
+**`docker-compose.yml` trước đây chỉ `auth_service` tự chạy `alembic upgrade head` khi khởi động** — `exam_service` và `grading_service` (có migration thật, gồm cả migration chấm tay tự luận mới thêm) hoàn toàn không có bước này. Deploy mới sẽ lỗi SQL "column/relation does not exist" ngay khi có người dùng đầu tiên. Đã sửa: thêm `alembic upgrade head` vào command của cả 2 service, và thêm `celery_worker` phụ thuộc `grading_service: condition: service_healthy` (tránh race condition đọc bảng chưa migrate khi 2 container cùng khởi động).
+
+### 🟡 Lỗi khác
+- `nginx.conf` thiếu hẳn location cho `/api/v1/results` (router `grading_service/routes/results.py` viết đầy đủ logic từ trước nhưng không gọi được qua gateway — luôn 404). Đã thêm route.
+- `AuthContext.tsx`: `User.id` khai báo type `number` nhưng thực tế toàn hệ thống dùng UUID string — sửa lại đúng type.
+
+### Đã kiểm tra lại (checkpoint 10)
+- ✅ `python3 -m py_compile` — sạch toàn bộ backend
+- ✅ `npx tsc --noEmit` — 0 lỗi
+- ✅ `npm run build` — build production thành công
+- ✅ Đối chiếu tay toàn bộ endpoint frontend gọi với route nginx + prefix router backend — khớp nhau
+- ✅ Đối chiếu toàn bộ `require_permission(...)` string được dùng với `ROLE_PERMISSIONS` khai báo ở từng service — không có lỗi chính tả/thiếu quyền
+- ✅ Kiểm tra chuỗi migration (`down_revision`) từng service — liền mạch, không xung đột
+- ⚠️ **Chưa quét xong toàn bộ** — đây là 1 dự án lớn, đợt quét này tập trung vào các lớp lỗi có xác suất cao nhất (auth/permission, routing, migration) dựa trên pattern lỗi đã gặp qua Docker thật. Nên coi đây là "đợt 1", có thể còn sót lỗi ở các phần chưa rà kỹ (VD: logic nghiệp vụ chi tiết trong từng CRUD, edge case validate dữ liệu đầu vào).
+
+## ✅ Checkpoint 11: quét lỗi toàn bộ dự án (đợt 2) — logic nghiệp vụ, race condition, UX lỗi bị nuốt
+
+### Race condition thật
+- **`start_exam` (exam_service)**: kiểm tra `attempt_count >= max_attempts` rồi mới tạo attempt — 2 request song song (double-click "Vào thi" hoặc mở 2 tab) đều có thể pass check trước khi request nào commit, **bỏ qua được giới hạn số lần thi**. Đã sửa bằng `pg_advisory_xact_lock` khoá theo `(exam_id, user_id)` trong suốt transaction.
+  - Khi viết fix này phát hiện luôn: dùng `hash()` của Python để tính lock key **không an toàn** (bị random hoá theo từng process/worker, PYTHONHASHSEED) — cùng 1 khoá có thể ra giá trị khác nhau giữa các worker uvicorn, làm khoá vô nghĩa. Đã sửa dùng `hashtext()` của chính Postgres (deterministic thật).
+- **`upsert_exam_attempt_answer`**: ném `Exception` Python thuần thay vì `HTTPException` khi race condition hiếm gặp xảy ra (lưu đáp án đúng lúc hết giờ) → học sinh nhận lỗi 500 khó hiểu. Đã bắt và chuyển thành lỗi 400 rõ ràng.
+
+### Bug dữ liệu/logic
+- **Thứ tự câu hỏi sai khi thêm thủ công**: câu hỏi thêm qua "Thêm câu hỏi thủ công" trong `ManageExamDialog` không set `question_order` → mặc định `None` → bị coi như `0` khi sắp xếp → luôn nhảy lên đầu danh sách bất kể thêm lúc nào. Đã sửa tự tính thứ tự kế tiếp nếu không truyền vào.
+- **Giới hạn `limit` quá thấp khi tự động sinh đề**: `exam_generator.py` fetch tối đa 100 câu từ ngân hàng rồi mới lọc theo loại câu hỏi ở client — với ngân hàng câu hỏi lớn, có thể báo sai "không đủ câu hỏi" dù thực tế đủ (chỉ là nằm ngoài 100 câu đầu). Đã tăng giới hạn lên 500 (cả 2 phía exam_service và question_service phải khớp nhau, question_service trước đó giới hạn cứng `le=100` sẽ từ chối request nếu chỉ sửa 1 phía).
+
+### Lỗ hổng nhỏ: admin tự khoá chính mình
+Trước đây admin có thể tự xoá hoặc tự hạ quyền chính tài khoản đang đăng nhập qua `AdminUsers.tsx` — nếu hệ thống chỉ có 1 admin, thao tác nhầm sẽ tự khoá luôn quyền truy cập quản trị. Đã thêm chặn ở backend (`PUT`/`DELETE /users/{id}`): không cho tự xoá, không cho tự hạ quyền khỏi admin, không cho tự vô hiệu hoá chính mình.
+
+### Lỗi UX bị nuốt mất — sửa hàng loạt (11 chỗ)
+Rà toàn bộ `catch (err)` trong frontend, phát hiện rất nhiều nơi chỉ hiện message chung chung ("Xoá thất bại.") thay vì lý do thật từ backend (VD: "Không thể tự xoá chính tài khoản đang đăng nhập", "Điểm chấm không được vượt quá điểm tối đa"). Đã sửa đồng loạt ở: `AdminUsers.tsx` (2 chỗ), `AdminExams.tsx` (2 chỗ), `AdminQuestions.tsx` (2 chỗ), `AdminCategories.tsx` (2 chỗ), `ManualQuestionDialog.tsx`, `ManualGrading.tsx`.
+
+**Đáng chú ý nhất**: `ExamRoom.tsx`'s `handleAnswerSelect` — lỗi lưu đáp án trước đây **chỉ log console, học sinh hoàn toàn không biết đáp án của mình chưa được lưu vào server** (VD do mất mạng tạm thời hoặc bài thi hết giờ giữa chừng) — rủi ro mất đáp án oan mà không có cảnh báo gì. Đã thêm Snackbar cảnh báo rõ ràng ngay khi lưu đáp án thất bại.
+
+### Đã kiểm tra lại (checkpoint 11)
+- ✅ `python3 -m py_compile` — sạch toàn bộ backend
+- ✅ `npx tsc --noEmit` — 0 lỗi
+- ✅ `npm run build` — build production thành công
+
 ## ⏳ Vẫn còn thiếu / có thể mở rộng thêm (chưa làm, do giới hạn thời gian phiên này)
 1. **Test thật qua Docker + trình duyệt thật** — đặc biệt livestream WebRTC (cần 2 thiết bị thật để test peer-to-peer), có thể cần TURN server nếu mạng có NAT/firewall nghiêm ngặt.
 2. **Deepfake/face-swap detection thật sự** — hiện chỉ chặn được ở lớp "tên thiết bị camera đáng ngờ" (heuristic), chưa có model phân tích khung hình video để phát hiện deepfake thật — cần model chuyên biệt + dữ liệu huấn luyện, việc lớn, nên làm ở giai đoạn riêng nếu cần mức độ chống gian lận cao hơn.

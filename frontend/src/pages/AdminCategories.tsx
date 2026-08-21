@@ -67,9 +67,9 @@ export default function AdminCategories() {
       }
       setDialog({ open: false, editing: null });
       fetchCategories();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to save category', err);
-      setSnackbar({ open: true, message: 'Lưu danh mục thất bại.', severity: 'error' });
+      setSnackbar({ open: true, message: err.response?.data?.detail || 'Lưu danh mục thất bại.', severity: 'error' });
     }
   };
 
@@ -79,9 +79,9 @@ export default function AdminCategories() {
       await adminApi.deleteCategory(deleteDialog.id);
       setCategories((prev) => prev.filter((c) => c.id !== deleteDialog.id));
       setSnackbar({ open: true, message: 'Đã xoá danh mục.', severity: 'success' });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to delete category', err);
-      setSnackbar({ open: true, message: 'Xoá danh mục thất bại.', severity: 'error' });
+      setSnackbar({ open: true, message: err.response?.data?.detail || 'Xoá danh mục thất bại.', severity: 'error' });
     } finally {
       setDeleteDialog({ open: false, id: null });
     }

@@ -68,20 +68,31 @@ class GradingEngine:
                 correct_pairs = _safe_json_parse(correct_pairs_raw)
                 submitted_pairs = _safe_json_parse(user_answer_raw)
 
-                def normalize(pairs):
+                def normalize(pairs, dedupe_left=False):
                     if not isinstance(pairs, list):
                         return set()
                     out = set()
+                    seen_left = set()
                     for p in pairs:
                         if isinstance(p, (list, tuple)) and len(p) == 2:
-                            out.add((str(p[0]), str(p[1])))
+                            left, right = str(p[0]), str(p[1])
                         elif isinstance(p, str) and ":" in p:
-                            l, r = p.split(":", 1)
-                            out.add((l, r))
+                            left, right = p.split(":", 1)
+                        else:
+                            continue
+                        # Chặn gian lận: nếu 1 vế trái xuất hiện nhiều lần (VD học sinh
+                        # gọi thẳng API submit hết mọi tổ hợp có thể thay vì nối qua giao
+                        # diện thật — giao diện dropdown chỉ cho chọn 1 vế phải/vế trái),
+                        # chỉ tính CẶP ĐẦU TIÊN của vế trái đó, bỏ qua các cặp trùng sau.
+                        if dedupe_left:
+                            if left in seen_left:
+                                continue
+                            seen_left.add(left)
+                        out.add((left, right))
                     return out
 
                 correct_set = normalize(correct_pairs)
-                submitted_set = normalize(submitted_pairs)
+                submitted_set = normalize(submitted_pairs, dedupe_left=True)
 
                 if correct_set:
                     # Chấm điểm bán phần: điểm theo tỉ lệ số cặp nối đúng trên tổng số cặp.

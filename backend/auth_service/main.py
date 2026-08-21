@@ -89,7 +89,13 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
             headers={"WWW-Authenticate": "Bearer"},
         )
         
-    access_token = auth.create_access_token(data={"sub": str(user.id)})
+    # Nhúng "role" vào JWT: realtime_service (Socket.IO) không có kết nối DB riêng nên
+    # không tự tra cứu lại quyền được như các service khác (question_service gọi HTTP
+    # /me, exam_service/grading_service tự query DB) — trước đây payload JWT hoàn toàn
+    # thiếu "role", khiến mọi kiểm tra quyền trong realtime_service luôn nhận None.
+    # Đánh đổi: nếu vai trò người dùng bị đổi khi đang đăng nhập, token cũ vẫn giữ role
+    # cũ tới khi hết hạn (mặc định 30 phút) hoặc refresh — chấp nhận được vì token sống ngắn.
+    access_token = auth.create_access_token(data={"sub": str(user.id), "role": user.role})
     refresh_token = auth.create_refresh_token(data={"sub": str(user.id)})
     
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
@@ -145,12 +151,12 @@ async def refresh_token(request: Request, body: RefreshTokenRequest, db: AsyncSe
     if user is None:
         raise credentials_exception
         
-    access_token = auth.create_access_token(data={"sub": str(user.id)})
+    access_token = auth.create_access_token(data={"sub": str(user.id), "role": user.role})
     new_refresh_token = auth.create_refresh_token(data={"sub": str(user.id)})
     
     return {"access_token": access_token, "refresh_token": new_refresh_token, "token_type": "bearer"}
 
-@app.post("/users", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)
+@app.post("/users", response_model=schemas.AdminUserCreateResponse, status_code=status.HTTP_201_CREATED)
 async def create_user_admin(
     user_in: schemas.AdminUserCreate,
     current_user: models.User = Depends(get_current_user),
@@ -165,9 +171,16 @@ async def create_user_admin(
         raise HTTPException(status_code=400, detail="Username or email already registered")
 
     requires_reset = False
+    generated_password = None
     password_to_hash = user_in.password
     if not password_to_hash:
-        password_to_hash = "123456"
+        # Trước đây hardcode "123456" — mật khẩu mặc định cực kỳ dễ đoán, dù có
+        # requires_password_change buộc đổi ngay lần đăng nhập đầu, tài khoản vẫn có
+        # 1 khoảng thời gian dễ bị đoán trúng trước khi người dùng thật đăng nhập lần đầu.
+        # Sinh ngẫu nhiên + trả về cho admin xem 1 lần để tự gửi lại cho người dùng.
+        import secrets
+        generated_password = secrets.token_urlsafe(9)
+        password_to_hash = generated_password
         requires_reset = True
 
     hashed_password = auth.get_password_hash(password_to_hash)
@@ -182,7 +195,9 @@ async def create_user_admin(
     db.add(db_user)
     await db.commit()
     await db.refresh(db_user)
-    return db_user
+    response = schemas.AdminUserCreateResponse.model_validate(db_user)
+    response.temp_password = generated_password
+    return response
 
 @app.get("/users", response_model=list[schemas.UserResponse])
 async def list_users(
@@ -206,6 +221,11 @@ async def update_user(
 ):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not enough permissions")
+    if str(current_user.id) == user_id and (
+        (user_update.role is not None and user_update.role != "admin")
+        or user_update.is_active is False
+    ):
+        raise HTTPException(status_code=400, detail="Không thể tự hạ quyền hoặc tự vô hiệu hoá chính tài khoản đang đăng nhập.")
     query = select(models.User).where(models.User.id == user_id)
     result = await db.execute(query)
     user = result.scalars().first()
@@ -228,6 +248,8 @@ async def delete_user(
 ):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not enough permissions")
+    if str(current_user.id) == user_id:
+        raise HTTPException(status_code=400, detail="Không thể tự xoá chính tài khoản đang đăng nhập.")
     query = select(models.User).where(models.User.id == user_id)
     result = await db.execute(query)
     user = result.scalars().first()

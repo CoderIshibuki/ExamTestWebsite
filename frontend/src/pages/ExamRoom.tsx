@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback, useState, useContext, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, Button, CircularProgress, Paper, Grid, Container } from '@mui/material';
+import { Box, Typography, Button, CircularProgress, Paper, Grid, Container, Snackbar, Alert } from '@mui/material';
 import { ErrorOutlined } from '@mui/icons-material';
 import { useTimer } from '../hooks/useTimer';
 import { useProctoring } from '../hooks/useProctoring';
@@ -23,6 +23,7 @@ const ExamRoom: React.FC = () => {
   const { isActive, violationCount, videoRef, cameraReady, cameraError, cameraStream } = useProctoring(examId || '', state.attemptId || '');
   useProctorStreamBroadcaster(examId || '', cameraStream);
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
+  const [saveAnswerError, setSaveAnswerError] = useState<string | null>(null);
 
   const initExam = useCallback(async () => {
     try {
@@ -98,8 +99,14 @@ const ExamRoom: React.FC = () => {
       setAnswer(currentQ.id, answer);
       try {
         await examApi.saveAnswer(state.attemptId, currentQ.id, answer);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to save answer:', err);
+        // Trước đây lỗi lưu đáp án chỉ log console — học sinh không hề biết đáp án của
+        // mình CHƯA được lưu vào server (VD do mất mạng tạm thời hoặc bài thi đã hết giờ),
+        // dễ mất đáp án oan mà không ai cảnh báo gì cả.
+        setSaveAnswerError(
+          err?.response?.data?.detail || 'Không thể lưu đáp án — kiểm tra kết nối mạng và thử chọn lại đáp án.'
+        );
       }
     }
   };
@@ -225,6 +232,17 @@ const ExamRoom: React.FC = () => {
       <Paper sx={{ p: 1.5, display: 'flex', justifyContent: 'center', borderRadius: 0, borderTop: '1px solid', borderColor: 'divider', position: 'fixed', bottom: 0, width: '100%', zIndex: 1200, bgcolor: 'white' }}>
         <ProctoringStatus isActive={isActive} violationCount={violationCount} />
       </Paper>
+
+      <Snackbar
+        open={!!saveAnswerError}
+        autoHideDuration={6000}
+        onClose={() => setSaveAnswerError(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert severity="error" onClose={() => setSaveAnswerError(null)} sx={{ width: '100%' }}>
+          {saveAnswerError}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

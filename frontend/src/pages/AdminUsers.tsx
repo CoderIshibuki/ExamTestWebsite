@@ -1,4 +1,4 @@
-import { Box, Button, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, TextField, DialogContentText, Chip, MenuItem, FormControlLabel, Switch, Snackbar } from '@mui/material';
+import { Box, Button, Typography, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, TextField, DialogContentText, Chip, MenuItem, FormControlLabel, Switch, Snackbar } from '@mui/material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import type { GridColDef } from '@mui/x-data-grid';
 import { useState, useEffect } from 'react';
@@ -38,6 +38,7 @@ const AdminUsers = () => {
   const [editUser, setEditUser] = useState<User | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
+  const [tempPasswordDialog, setTempPasswordDialog] = useState<{ open: boolean; username: string; password: string }>({ open: false, username: '', password: '' });
 
   const { control, handleSubmit, reset } = useForm<CreateFormValues>({
     defaultValues: { username: '', email: '', full_name: '', password: '', role: 'student' },
@@ -67,10 +68,16 @@ const AdminUsers = () => {
 
   const onSubmit = async (data: CreateFormValues) => {
     try {
-      await adminApi.createUser(data);
+      const newUser = await adminApi.createUser(data);
       setOpen(false);
       reset();
-      setSnackbar({ open: true, message: 'Đã tạo tài khoản mới.', severity: 'success' });
+      if (newUser?.temp_password) {
+        // Mật khẩu tạm sinh ngẫu nhiên (không phải "123456" cố định như trước) — chỉ
+        // hiện được 1 LẦN DUY NHẤT ngay lúc này, sau đó chỉ có bản hash trong DB.
+        setTempPasswordDialog({ open: true, username: newUser.username, password: newUser.temp_password });
+      } else {
+        setSnackbar({ open: true, message: 'Đã tạo tài khoản mới.', severity: 'success' });
+      }
       fetchUsers();
     } catch (err: any) {
       console.error('Failed to create user', err);
@@ -90,9 +97,9 @@ const AdminUsers = () => {
       setEditUser(null);
       setSnackbar({ open: true, message: 'Đã cập nhật tài khoản.', severity: 'success' });
       fetchUsers();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update user', err);
-      setSnackbar({ open: true, message: 'Cập nhật thất bại.', severity: 'error' });
+      setSnackbar({ open: true, message: err.response?.data?.detail || 'Cập nhật thất bại.', severity: 'error' });
     }
   };
 
@@ -106,9 +113,9 @@ const AdminUsers = () => {
       await adminApi.deleteUser(deleteDialog.id);
       setUsers((prev) => prev.filter((u) => u.id !== deleteDialog.id));
       setSnackbar({ open: true, message: 'Đã xoá tài khoản.', severity: 'success' });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to delete user', err);
-      setSnackbar({ open: true, message: 'Xoá tài khoản thất bại.', severity: 'error' });
+      setSnackbar({ open: true, message: err.response?.data?.detail || 'Xoá tài khoản thất bại.', severity: 'error' });
     } finally {
       setDeleteDialog({ open: false, id: null });
     }
@@ -251,6 +258,40 @@ const AdminUsers = () => {
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setDeleteDialog({ open: false, id: null })} sx={{ borderRadius: 2, textTransform: 'none' }}>Huỷ</Button>
           <Button onClick={confirmDelete} color="error" variant="contained" sx={{ borderRadius: 2, textTransform: 'none' }}>Xoá</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Mật khẩu tạm chỉ hiện được 1 lần duy nhất ngay sau khi tạo — không lưu lại được
+          sau đó vì server chỉ giữ bản hash, không giữ mật khẩu gốc. */}
+      <Dialog open={tempPasswordDialog.open} onClose={() => setTempPasswordDialog({ open: false, username: '', password: '' })} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>Đã tạo tài khoản thành công</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Gửi lại thông tin sau cho <strong>{tempPasswordDialog.username}</strong> — mật khẩu tạm chỉ hiện được 1 lần, hãy sao chép ngay:
+          </DialogContentText>
+          <Box sx={{ p: 2, bgcolor: '#F8FAFC', border: '1px dashed', borderColor: 'divider', borderRadius: 2, textAlign: 'center' }}>
+            <Typography sx={{ fontFamily: 'monospace', fontSize: '1.2rem', fontWeight: 700, letterSpacing: 1 }}>
+              {tempPasswordDialog.password}
+            </Typography>
+          </Box>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
+            Người dùng sẽ được yêu cầu đổi mật khẩu ngay khi đăng nhập lần đầu.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            variant="contained"
+            onClick={() => {
+              navigator.clipboard?.writeText(tempPasswordDialog.password);
+              setSnackbar({ open: true, message: 'Đã sao chép mật khẩu.', severity: 'success' });
+            }}
+            sx={{ borderRadius: 2, textTransform: 'none' }}
+          >
+            Sao chép
+          </Button>
+          <Button onClick={() => setTempPasswordDialog({ open: false, username: '', password: '' })} sx={{ borderRadius: 2, textTransform: 'none' }}>
+            Đóng
+          </Button>
         </DialogActions>
       </Dialog>
 

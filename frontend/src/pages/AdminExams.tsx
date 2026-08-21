@@ -65,9 +65,9 @@ const AdminExams = () => {
       if (newExam?.id) {
         setManageDialog({ open: true, examId: newExam.id, title: data.title });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to create exam', err);
-      setSnackbar({ open: true, message: 'Tạo đề thi thất bại.', severity: 'error' });
+      setSnackbar({ open: true, message: err.response?.data?.detail || 'Tạo đề thi thất bại.', severity: 'error' });
     }
   };
 
@@ -81,9 +81,9 @@ const AdminExams = () => {
       await adminApi.deleteExam(deleteDialog.id);
       setExams((prev) => prev.filter((e) => e.id !== deleteDialog.id));
       setSnackbar({ open: true, message: 'Đã xoá đề thi.', severity: 'success' });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to delete exam', err);
-      setSnackbar({ open: true, message: 'Xoá đề thi thất bại.', severity: 'error' });
+      setSnackbar({ open: true, message: err.response?.data?.detail || 'Xoá đề thi thất bại.', severity: 'error' });
     } finally {
       setDeleteDialog({ open: false, id: null });
     }
