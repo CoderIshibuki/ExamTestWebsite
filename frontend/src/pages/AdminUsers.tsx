@@ -28,7 +28,14 @@ interface EditFormValues {
   is_active: boolean;
 }
 
-const ROLES = ['student', 'teacher', 'admin'];
+const ROLES = ['student', 'teacher', 'proctor', 'admin'];
+
+const ROLE_LABELS: Record<string, string> = {
+  student: 'Học sinh',
+  teacher: 'Giáo viên',
+  proctor: 'Giám thị',
+  admin: 'Quản trị viên',
+};
 
 const AdminUsers = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -72,8 +79,6 @@ const AdminUsers = () => {
       setOpen(false);
       reset();
       if (newUser?.temp_password) {
-        // Mật khẩu tạm sinh ngẫu nhiên (không phải "123456" cố định như trước) — chỉ
-        // hiện được 1 LẦN DUY NHẤT ngay lúc này, sau đó chỉ có bản hash trong DB.
         setTempPasswordDialog({ open: true, username: newUser.username, password: newUser.temp_password });
       } else {
         setSnackbar({ open: true, message: 'Đã tạo tài khoản mới.', severity: 'success' });
@@ -85,7 +90,7 @@ const AdminUsers = () => {
     }
   };
 
-  const openEditDialog = (user: User) => {
+  const handleEditClick = (user: User) => {
     setEditUser(user);
     resetEdit({ role: user.role, is_active: user.is_active });
   };
@@ -128,15 +133,18 @@ const AdminUsers = () => {
     {
       field: 'role',
       headerName: 'Vai trò',
-      width: 140,
-      renderCell: (params) => (
-        <Chip
-          label={params.value}
-          color={params.value === 'admin' ? 'secondary' : params.value === 'teacher' ? 'info' : 'primary'}
-          size="small"
-          sx={{ fontWeight: 'bold', textTransform: 'capitalize' }}
-        />
-      )
+      width: 150,
+      renderCell: (params) => {
+        const color = params.value === 'admin' ? 'secondary' : params.value === 'teacher' ? 'info' : params.value === 'proctor' ? 'warning' : 'primary';
+        return (
+          <Chip
+            label={ROLE_LABELS[params.value] || params.value}
+            color={color as any}
+            size="small"
+            sx={{ fontWeight: 'bold' }}
+          />
+        );
+      }
     },
     {
       field: 'is_active',
@@ -153,7 +161,7 @@ const AdminUsers = () => {
       sortable: false,
       renderCell: (params) => (
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="text" color="primary" size="small" sx={{ minWidth: 0, p: 1 }} onClick={() => openEditDialog(params.row)}>
+          <Button variant="text" color="primary" size="small" sx={{ minWidth: 0, p: 1 }} onClick={() => handleEditClick(params.row)}>
             <EditIcon fontSize="small" />
           </Button>
           <Button variant="text" color="error" size="small" onClick={() => handleDeleteClick(params.row.id)} sx={{ minWidth: 0, p: 1 }}>
@@ -165,13 +173,25 @@ const AdminUsers = () => {
   ];
 
   return (
-    <Box sx={{ p: 4, minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
+    <Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="body2" sx={{ color: '#64748B' }}>
+          Quản lý danh sách tài khoản học sinh, giáo viên, giám thị và phân quyền quản trị.
+        </Typography>
         <Button
           variant="contained"
           startIcon={<PersonAddIcon />}
           onClick={() => setOpen(true)}
-          sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 'bold', px: 3, py: 1 }}
+          sx={{
+            bgcolor: '#2563EB',
+            '&:hover': { bgcolor: '#1D4ED8' },
+            borderRadius: 2.5,
+            textTransform: 'none',
+            fontWeight: 700,
+            px: 3,
+            py: 1,
+            boxShadow: '0 2px 6px rgba(37,99,235,0.2)',
+          }}
         >
           Thêm người dùng
         </Button>
@@ -179,7 +199,17 @@ const AdminUsers = () => {
 
       {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>}
 
-      <Paper sx={{ height: 600, width: '100%', borderRadius: 3, overflow: 'hidden' }}>
+      <Paper
+        sx={{
+          height: 600,
+          width: '100%',
+          borderRadius: 3.5,
+          border: '1px solid #E2E8F0',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          overflow: 'hidden',
+          bgcolor: '#FFFFFF',
+        }}
+      >
         {loading ? (
           <Box sx={{ p: 3 }}>
             <Skeleton variant="rectangular" height={50} sx={{ mb: 2, borderRadius: 1 }} />
@@ -194,7 +224,11 @@ const AdminUsers = () => {
             initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
             pageSizeOptions={[5, 10, 25]}
             disableRowSelectionOnClick
-            sx={{ border: 'none', '& .MuiDataGrid-cell:focus': { outline: 'none' } }}
+            sx={{
+              border: 'none',
+              '& .MuiDataGrid-cell:focus': { outline: 'none' },
+              '& .MuiDataGrid-columnHeaders': { bgcolor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontWeight: 700 },
+            }}
           />
         )}
       </Paper>
@@ -215,7 +249,7 @@ const AdminUsers = () => {
             <Controller name="role" control={control} rules={{ required: true }}
               render={({ field }) => (
                 <TextField {...field} select label="Vai trò" fullWidth required>
-                  {ROLES.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
+                  {ROLES.map((r) => <MenuItem key={r} value={r}>{ROLE_LABELS[r] || r}</MenuItem>)}
                 </TextField>
               )} />
           </form>
@@ -234,7 +268,7 @@ const AdminUsers = () => {
             <Controller name="role" control={editControl}
               render={({ field }) => (
                 <TextField {...field} select label="Vai trò" fullWidth sx={{ mb: 2, mt: 1 }}>
-                  {ROLES.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
+                  {ROLES.map((r) => <MenuItem key={r} value={r}>{ROLE_LABELS[r] || r}</MenuItem>)}
                 </TextField>
               )} />
             <Controller name="is_active" control={editControl}

@@ -16,8 +16,19 @@ def register_connection_handlers(sio):
         try:
             user = validate_token(token)
             
+            client_ip = environ.get('HTTP_X_REAL_IP') or environ.get('HTTP_X_FORWARDED_FOR') or environ.get('REMOTE_ADDR', '127.0.0.1')
+            if client_ip and ',' in client_ip:
+                client_ip = client_ip.split(',')[0].strip()
+
             # Save user session details in socketio session
-            await sio.save_session(sid, {'user_id': user['id'], 'role': user.get('role'), 'token': token})
+            await sio.save_session(sid, {
+                'user_id': user['id'],
+                'username': user.get('username') or '',
+                'full_name': user.get('full_name') or '',
+                'role': user.get('role'),
+                'token': token,
+                'client_ip': client_ip or '127.0.0.1'
+            })
             
             print(f"Client {sid} connected with user_id: {user['id']}")
             return True

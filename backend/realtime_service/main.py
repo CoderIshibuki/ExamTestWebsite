@@ -56,24 +56,26 @@ async def shutdown_event():
 async def health_check():
     return {"status": "ok"}
 
+from typing import Optional
+
 class ProctorAlert(BaseModel):
     exam_id: str
     user_id: str
     severity: str
     message: str
     violation_id: str
+    type: Optional[str] = "violation"
+    risk_score: Optional[int] = 0
+    timestamp: Optional[str] = None
+    details: Optional[dict] = None
 
 def require_internal_token(x_internal_token: str = Header(None)):
-    """Dùng cho endpoint chỉ nên được gọi bởi service khác (VD proctoring_service), không
-    phải trực tiếp bởi trình duyệt người dùng."""
     if not x_internal_token or x_internal_token != settings.JWT_SECRET:
         raise HTTPException(status_code=403, detail="Invalid internal service token")
     return True
 
 
 def require_staff_bearer(authorization: str = Header(None)):
-    """Dùng cho endpoint gọi trực tiếp từ frontend giám thị — bắt buộc JWT hợp lệ có
-    role admin/teacher, không cho học sinh hay người chưa đăng nhập xem được."""
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="Not authenticated")
     token = authorization.split(" ", 1)[1]
@@ -81,7 +83,7 @@ def require_staff_bearer(authorization: str = Header(None)):
         user = validate_token(token)
     except ValueError:
         raise HTTPException(status_code=401, detail="Invalid token")
-    if user.get("role") not in ("admin", "teacher"):
+    if user.get("role") not in ("admin", "teacher", "proctor"):
         raise HTTPException(status_code=403, detail="Only proctors can view this")
     return user
 
@@ -89,12 +91,29 @@ def require_staff_bearer(authorization: str = Header(None)):
 @app.post("/api/v1/realtime/alert")
 async def broadcast_alert(alert: ProctorAlert, _: bool = Depends(require_internal_token)):
     payload = alert.dict()
-    await sio.emit("proctor:alert", payload, room=f"proctor:{alert.exam_id}")
+    await sio.emit("proctor:violation", payload, room=f"proctor:{alert.exam_id}")
+    await sio.emit("proctor:risk_update", {"exam_id": alert.exam_id, "user_id": alert.user_id, "risk_score": alert.risk_score}, room=f"proctor:{alert.exam_id}")
+    if alert.severity in ("high", "critical") or alert.risk_score >= 30:
+        await sio.emit("proctor:alert", payload, room=f"proctor:{alert.exam_id}")
     return {"status": "alert_broadcasted"}
 
 @app.get("/api/v1/realtime/exams/{exam_id}/students")
 async def get_exam_students(exam_id: str, _: dict = Depends(require_staff_bearer)):
+    import json
     client = await redis_client.get_client()
     clients_set = await client.smembers(f"exam:room:{exam_id}:clients")
-    user_ids = [c.decode('utf-8') for c in clients_set]
-    return {"exam_id": exam_id, "online_students": user_ids}
+    students_list = []
+    user_ids = []
+    for c in clients_set:
+        uid = c if isinstance(c, str) else c.decode('utf-8')
+        user_ids.append(uid)
+        info_json = await client.get(f"exam:room:{exam_id}:student_info:{uid}")
+        if info_json:
+            try:
+                info = json.loads(info_json if isinstance(info_json, str) else info_json.decode('utf-8'))
+                students_list.append(info)
+            except Exception:
+                students_list.append({"user_id": uid})
+        else:
+            students_list.append({"user_id": uid})
+    return {"exam_id": exam_id, "online_students": user_ids, "students": students_list}

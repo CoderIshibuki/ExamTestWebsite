@@ -6,7 +6,7 @@ from uuid import UUID
 class SubmissionCreate(BaseModel):
     attempt_id: UUID
     exam_id: UUID
-    user_id: str
+    user_id: UUID | str
     answers: Dict[str, str]
 
 class QuestionResultSchema(BaseModel):
@@ -28,7 +28,7 @@ class GradingResult(BaseModel):
 class ResultResponse(BaseModel):
     id: UUID
     exam_id: UUID
-    user_id: str
+    user_id: UUID | str
     score: Optional[float]
     total_possible: Optional[float]
     percentage: Optional[float]
@@ -58,7 +58,7 @@ class PendingManualGradeItem(BaseModel):
     result_id: UUID
     attempt_id: UUID
     exam_id: UUID
-    user_id: str
+    user_id: UUID | str
     question_id: str
     user_answer: Optional[str]
     point_possible: float

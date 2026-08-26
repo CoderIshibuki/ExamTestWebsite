@@ -16,7 +16,16 @@ async def create_exam(db: AsyncSession, exam: schemas.ExamCreate, user_id: str) 
     return db_exam
 
 async def get_exams(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[models.Exam]:
-    result = await db.execute(select(models.Exam).offset(skip).limit(limit))
+    result = await db.execute(
+        select(models.Exam)
+        .options(
+            selectinload(models.Exam.collaborators),
+            selectinload(models.Exam.proctors),
+            selectinload(models.Exam.roster)
+        )
+        .offset(skip)
+        .limit(limit)
+    )
     return result.scalars().all()
 
 async def count_exams(db: AsyncSession) -> int:

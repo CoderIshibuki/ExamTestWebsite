@@ -46,9 +46,9 @@ async def save_result(session_maker, exam_id: str, user_id: str, result_data: di
         try:
             # Create Result
             db_result = Result(
-                attempt_id=UUID(attempt_id) if attempt_id else None,
-                exam_id=UUID(exam_id),
-                user_id=user_id,
+                attempt_id=UUID(str(attempt_id)) if attempt_id else None,
+                exam_id=UUID(str(exam_id)),
+                user_id=UUID(str(user_id)),
                 score=result_data["score"],
                 total_possible=result_data["total_possible"],
                 percentage=result_data["percentage"],

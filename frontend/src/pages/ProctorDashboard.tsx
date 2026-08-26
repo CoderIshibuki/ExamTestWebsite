@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { Box, Typography, CircularProgress, Grid, Paper, Alert } from '@mui/material';
+import { Box, Typography, Button, CircularProgress, Grid, Paper, Alert } from '@mui/material';
 import { useProctoringData } from '../hooks/useProctoringData';
 import { useProctorStreamViewer } from '../hooks/useProctorWebSocket';
 import StudentList from '../components/Proctor/StudentList';
@@ -46,17 +46,28 @@ const ProctorDashboard = () => {
 
   return (
     <Box sx={{ flexGrow: 1, height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#0f172a', color: '#f8fafc' }}>
-      <Box sx={{ p: 3, borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', bgcolor: '#0f172a' }}>
-        <VisibilityIcon sx={{ fontSize: 32, color: '#38bdf8', mr: 2 }} />
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: 0.5 }}>
-            Live Proctoring Center
-          </Typography>
-          <Typography variant="subtitle2" sx={{ color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#22c55e', display: 'inline-block' }} />
-            Session ID: {examId}
-          </Typography>
+      <Box sx={{ p: 2.5, px: 3.5, borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: '#0f172a' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <VisibilityIcon sx={{ fontSize: 30, color: '#38bdf8' }} />
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: 0.5 }}>
+              Trung tâm Giám sát Thi Trực tiếp (Live Proctoring)
+            </Typography>
+            <Typography variant="caption" sx={{ color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box component="span" sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#22c55e', display: 'inline-block' }} />
+              Mã phòng thi: {examId}
+            </Typography>
+          </Box>
         </Box>
+
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => window.history.back()}
+          sx={{ color: '#94a3b8', borderColor: '#334155', borderRadius: 2, textTransform: 'none', fontWeight: 600, '&:hover': { borderColor: '#64748b', color: '#fff' } }}
+        >
+          Rời phòng giám sát
+        </Button>
       </Box>
       
       <Grid container sx={{ flexGrow: 1, overflow: 'hidden' }}>

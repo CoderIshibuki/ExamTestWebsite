@@ -30,6 +30,10 @@ export const useProctorWebSocket = (examId: string) => {
       setEvents((prev) => [...prev, { type: 'alert', payload: alert }]);
     });
 
+    newSocket.on('proctor:violation', (data) => {
+      setEvents((prev) => [...prev, { type: 'violation', payload: data }]);
+    });
+
     newSocket.on('proctor:student_joined', (data) => {
       setEvents((prev) => [...prev, { type: 'student_joined', payload: data }]);
     });

@@ -31,6 +31,10 @@ export interface PendingManualGradeItem {
 }
 
 export const gradingApi = {
+  getMyResults: async (): Promise<any[]> => {
+    const response = await apiClient.get('/v1/results/user/my-results');
+    return response.data;
+  },
   getExamResult: async (attemptId: string): Promise<ExamResult> => {
     const response = await apiClient.get(`/v1/grading/result/${attemptId}`);
     return response.data;

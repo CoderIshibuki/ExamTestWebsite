@@ -44,6 +44,10 @@ async def list_exams(skip: int = 0, limit: int = 100, db: AsyncSession = Depends
     key = f"exams:list:{role}:{user_id}:{skip}:{limit}"
     return await cache.get_or_set(key, fetch_data, ttl=300)
 
+@router.get("/published", response_model=List[schemas.ExamResponse])
+async def list_published_exams(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    return await list_exams(skip=skip, limit=limit, db=db, current_user=current_user)
+
 @router.post("/", response_model=schemas.ExamResponse, status_code=status.HTTP_201_CREATED)
 async def create_exam(
     exam: schemas.ExamCreate,

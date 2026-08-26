@@ -34,25 +34,40 @@ export const useProctoringData = (examId: string) => {
     const fetchInitialData = async () => {
       try {
         setLoading(true);
-        // Fetch students
-        const studentsRes = await apiClient.get(`/v1/realtime/exams/${examId}/students`);
-        
-        // Backend returns: { exam_id: string, online_students: string[] }
-        const userIds = studentsRes.data.online_students || [];
-        const mappedStudents: StudentSession[] = userIds.map((id: string) => ({
-          user_id: id,
-          full_name: userMap[id]?.full_name,
-          username: userMap[id]?.username,
-          is_online: true,
-          risk_score: 0,
-          violations_count: 0
-        }));
-        
-        setStudents(mappedStudents);
-
-        // Fetch violations
+        // Fetch violations first
         const violationsData = await proctoringApi.getViolations(examId);
         setViolations(violationsData);
+
+        // Calculate violation counts and risk scores per user
+        const violationCounts: Record<string, number> = {};
+        const riskScores: Record<string, number> = {};
+        const severityWeights: Record<string, number> = { critical: 10, high: 5, medium: 2, low: 1 };
+
+        (violationsData || []).forEach((v) => {
+          violationCounts[v.user_id] = (violationCounts[v.user_id] || 0) + 1;
+          const w = severityWeights[v.severity] || 0;
+          riskScores[v.user_id] = (riskScores[v.user_id] || 0) + w;
+        });
+
+        // Fetch online students
+        const studentsRes = await apiClient.get(`/v1/realtime/exams/${examId}/students`);
+        const serverStudents = studentsRes.data.students || [];
+        const userIds = studentsRes.data.online_students || [];
+
+        const mappedStudents: StudentSession[] = userIds.map((id: string) => {
+          const found = serverStudents.find((s: any) => s.user_id === id);
+          return {
+            user_id: id,
+            full_name: found?.full_name || userMap[id]?.full_name || 'Thí sinh',
+            username: found?.username || userMap[id]?.username || 'student',
+            ip: found?.ip || '127.0.0.1',
+            is_online: true,
+            risk_score: riskScores[id] || 0,
+            violations_count: violationCounts[id] || 0,
+          };
+        });
+        
+        setStudents(mappedStudents);
       } catch (error: any) {
         if (error.response && error.response.status === 403) {
           setUnauthorized(true);
@@ -68,23 +83,31 @@ export const useProctoringData = (examId: string) => {
     if (examId) {
       fetchInitialData();
     }
-  }, [examId]);
+  }, [examId, userMap]);
 
   useEffect(() => {
     if (events.length > 0) {
       const lastEvent = events[events.length - 1];
       if (lastEvent.type === 'student_joined') {
+        const payload = lastEvent.payload;
         setStudents((prev) => {
-          const exists = prev.find((s) => s.user_id === lastEvent.payload.user_id);
+          const exists = prev.find((s) => s.user_id === payload.user_id);
           if (exists) {
-            return prev.map((s) => s.user_id === lastEvent.payload.user_id ? { ...s, is_online: true } : s);
+            return prev.map((s) => s.user_id === payload.user_id ? {
+              ...s,
+              is_online: true,
+              full_name: payload.full_name || userMap[payload.user_id]?.full_name || s.full_name,
+              username: payload.username || userMap[payload.user_id]?.username || s.username,
+              ip: payload.ip || s.ip,
+            } : s);
           }
           return [
             ...prev,
             {
-              user_id: lastEvent.payload.user_id,
-              full_name: userMap[lastEvent.payload.user_id]?.full_name,
-              username: userMap[lastEvent.payload.user_id]?.username,
+              user_id: payload.user_id,
+              full_name: payload.full_name || userMap[payload.user_id]?.full_name || 'Thí sinh',
+              username: payload.username || userMap[payload.user_id]?.username || 'student',
+              ip: payload.ip || '127.0.0.1',
               is_online: true,
               risk_score: 0,
               violations_count: 0,
@@ -93,17 +116,45 @@ export const useProctoringData = (examId: string) => {
         });
       } else if (lastEvent.type === 'student_left') {
         setStudents((prev) => prev.map((s) => s.user_id === lastEvent.payload.user_id ? { ...s, is_online: false } : s));
+      } else if (lastEvent.type === 'violation') {
+        const payload = lastEvent.payload;
+        const studentInfo = students.find((s) => s.user_id === payload.user_id);
+        const newViolation: Violation = {
+          id: payload.violation_id || String(Date.now()),
+          exam_id: payload.exam_id,
+          exam_session_id: payload.exam_session_id || '',
+          user_id: payload.user_id,
+          full_name: payload.full_name || userMap[payload.user_id]?.full_name || studentInfo?.full_name,
+          username: payload.username || userMap[payload.user_id]?.username || studentInfo?.username,
+          ip: payload.ip || studentInfo?.ip || '127.0.0.1',
+          type: payload.type || 'violation',
+          severity: payload.severity || 'medium',
+          timestamp: payload.timestamp || new Date().toISOString(),
+          details: payload.details || {},
+        };
+        setViolations((prev) => [newViolation, ...prev]);
+        setStudents((prev) =>
+          prev.map((s) =>
+            s.user_id === payload.user_id
+              ? {
+                  ...s,
+                  violations_count: (s.violations_count || 0) + 1,
+                  risk_score: payload.risk_score !== undefined ? payload.risk_score : (s.risk_score || 0),
+                }
+              : s
+          )
+        );
       } else if (lastEvent.type === 'risk_update') {
-        setStudents((prev) => prev.map((s) => s.user_id === lastEvent.payload.user_id ? { ...s, risk_score: lastEvent.payload.risk_score } : s));
-      } else if (lastEvent.type === 'alert') {
-        // We could also push to violations if it's a violation event, but alerts are separate.
-        // Assuming some alerts might correspond to violations:
-        if (lastEvent.payload.type === 'violation') {
-           // We might need to fetch violations again or construct one
-        }
+        setStudents((prev) =>
+          prev.map((s) =>
+            s.user_id === lastEvent.payload.user_id
+              ? { ...s, risk_score: lastEvent.payload.risk_score }
+              : s
+          )
+        );
       }
     }
-  }, [events]);
+  }, [events, userMap, students]);
 
   return { students, violations, alerts, clearAlerts, loading, unauthorized, error, socket };
 };

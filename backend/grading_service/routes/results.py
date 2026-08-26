@@ -17,6 +17,16 @@ router = APIRouter(prefix="/api/v1/results", tags=["Results"])
 
 from services.exam_client import ExamClient
 
+@router.get("/user/my-results")
+async def get_my_results(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    from sqlalchemy import desc
+    stmt = select(models.Result).where(models.Result.user_id == UUID(str(current_user["id"]))).order_by(desc(models.Result.created_at))
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
 @router.get("/exam/{exam_id}")
 async def get_results_by_exam(
     exam_id: UUID,
@@ -37,7 +47,7 @@ async def get_results_by_exam(
         if role in ["admin", "teacher"]:
             stmt = select(models.Result).where(models.Result.exam_id == exam_id)
         else:
-            stmt = select(models.Result).where(models.Result.exam_id == exam_id, models.Result.user_id == current_user["id"])
+            stmt = select(models.Result).where(models.Result.exam_id == exam_id, models.Result.user_id == UUID(str(current_user["id"])))
         result = await db.execute(stmt)
         return result.scalars().all()
 

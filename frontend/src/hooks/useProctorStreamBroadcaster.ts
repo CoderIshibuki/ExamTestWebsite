@@ -15,6 +15,14 @@ export function useProctorStreamBroadcaster(examId: string, stream: MediaStream 
     if (!examId || !stream) return;
 
     const token = localStorage.getItem('access_token') || '';
+    let userId = '';
+    try {
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        userId = payload.sub || '';
+      }
+    } catch {}
+
     const wsUrl = import.meta.env.VITE_WS_URL || window.location.origin;
     const socket = io(wsUrl, {
       path: '/ws/socket.io',
@@ -36,7 +44,7 @@ export function useProctorStreamBroadcaster(examId: string, stream: MediaStream 
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-      socket.emit('webrtc_offer', { target_sid: data.proctor_sid, sdp: offer });
+      socket.emit('webrtc_offer', { target_sid: data.proctor_sid, sdp: offer, user_id: userId });
     };
 
     const handleAnswer = async (data: { sdp: RTCSessionDescriptionInit; from_sid: string }) => {

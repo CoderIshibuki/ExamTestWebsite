@@ -1,4 +1,4 @@
-import { Box, Button, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, TextField, Snackbar } from '@mui/material';
+import { Box, Button, Typography, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, TextField, Snackbar } from '@mui/material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import type { GridColDef } from '@mui/x-data-grid';
 import { useState, useEffect } from 'react';
@@ -177,16 +177,43 @@ const AdminExams = () => {
   ];
 
   return (
-    <Box sx={{ p: 4, minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)} sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 'bold', px: 3, py: 1 }}>
+    <Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="body2" sx={{ color: '#64748B' }}>
+          Quản lý toàn bộ danh sách đề thi, thêm câu hỏi, công bố và theo dõi giám sát trực tiếp.
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setCreateOpen(true)}
+          sx={{
+            bgcolor: '#2563EB',
+            '&:hover': { bgcolor: '#1D4ED8' },
+            borderRadius: 2.5,
+            textTransform: 'none',
+            fontWeight: 700,
+            px: 3,
+            py: 1,
+            boxShadow: '0 2px 6px rgba(37,99,235,0.2)',
+          }}
+        >
           Tạo đề thi mới
         </Button>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>}
 
-      <Paper sx={{ height: 600, width: '100%', borderRadius: 3, overflow: 'hidden' }}>
+      <Paper
+        sx={{
+          height: 600,
+          width: '100%',
+          borderRadius: 3.5,
+          border: '1px solid #E2E8F0',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          overflow: 'hidden',
+          bgcolor: '#FFFFFF',
+        }}
+      >
         {loading ? (
           <Box sx={{ p: 3 }}>
             <Skeleton variant="rectangular" height={50} sx={{ mb: 2, borderRadius: 1 }} />
@@ -201,7 +228,11 @@ const AdminExams = () => {
             initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
             pageSizeOptions={[5, 10, 25]}
             disableRowSelectionOnClick
-            sx={{ border: 'none', '& .MuiDataGrid-cell:focus': { outline: 'none' } }}
+            sx={{
+              border: 'none',
+              '& .MuiDataGrid-cell:focus': { outline: 'none' },
+              '& .MuiDataGrid-columnHeaders': { bgcolor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontWeight: 700 },
+            }}
           />
         )}
       </Paper>

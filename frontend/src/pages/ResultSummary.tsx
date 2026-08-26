@@ -1,6 +1,5 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
 import {
   Box, Typography, Button, Paper, CircularProgress, Divider, Container, Fade, Alert,
   Accordion, AccordionSummary, AccordionDetails, Chip,
@@ -19,7 +18,6 @@ const ResultSummary: React.FC = () => {
   const [questionsMap, setQuestionsMap] = useState<Record<string, ExamQuestionDetail>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useContext(AuthContext);
 
   useEffect(() => {
     if (attemptId) {
@@ -69,7 +67,7 @@ const ResultSummary: React.FC = () => {
           <Typography color="text.secondary" sx={{ mb: 4 }}>
             {error}
           </Typography>
-          <Button variant="contained" onClick={() => navigate(`/${user?.role}/dashboard`)} startIcon={<Home />}>
+          <Button variant="contained" onClick={() => navigate('/dashboard')} startIcon={<Home />}>
             Về trang chủ
           </Button>
         </Paper>
@@ -84,7 +82,7 @@ const ResultSummary: React.FC = () => {
           <Typography variant="h5" color="text.secondary" gutterBottom>
             Không tìm thấy kết quả.
           </Typography>
-          <Button variant="contained" sx={{ mt: 3 }} onClick={() => navigate(`/${user?.role}/dashboard`)} startIcon={<Home />}>
+          <Button variant="contained" sx={{ mt: 3 }} onClick={() => navigate('/dashboard')} startIcon={<Home />}>
             Về trang chủ
           </Button>
         </Paper>
@@ -190,7 +188,7 @@ const ResultSummary: React.FC = () => {
               size="large"
               fullWidth
               sx={{ py: 1.5, fontSize: '1.1rem', fontWeight: 600, borderRadius: 2, textTransform: 'none' }}
-              onClick={() => navigate(`/${user?.role}/dashboard`)}
+              onClick={() => navigate('/dashboard')}
               startIcon={<Home />}
               aria-label="Trở về màn hình chính"
             >

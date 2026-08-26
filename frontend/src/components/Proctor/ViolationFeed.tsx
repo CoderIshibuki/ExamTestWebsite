@@ -1,4 +1,4 @@
-import { Box, Typography, List, ListItem, ListItemText, Divider, Chip } from '@mui/material';
+import { Box, Typography, List, ListItem, ListItemText, Chip } from '@mui/material';
 import type { Violation } from '../../types/proctoring';
 
 interface ViolationFeedProps {
@@ -26,46 +26,60 @@ const SEVERITY_COLOR: Record<string, 'error' | 'warning' | 'info' | 'default'> =
 };
 
 const ViolationFeed = ({ violations }: ViolationFeedProps) => {
+  const sortedViolations = [...violations].sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
+
   return (
-    <Box sx={{ height: '100%', overflowY: 'auto', bgcolor: 'background.paper', borderLeft: 1, borderColor: 'divider' }}>
-      <Box sx={{ p: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+    <Box sx={{ height: '100%', overflowY: 'auto', bgcolor: '#162032', color: '#f8fafc' }}>
+      <Box sx={{ p: 2, borderBottom: '1px solid #1e293b' }}>
+        <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#f8fafc' }}>
           Vi phạm gần đây
         </Typography>
       </Box>
-      <Divider />
-      <List>
-        {violations.slice().reverse().map((violation, index) => (
-          <Box key={violation.id || index}>
-            <ListItem alignItems="flex-start">
+      <List sx={{ p: 0 }}>
+        {sortedViolations.map((violation, index) => (
+          <Box key={violation.id || index} sx={{ borderBottom: '1px solid #1e293b' }}>
+            <ListItem alignItems="flex-start" sx={{ px: 2, py: 1.5 }}>
               <ListItemText
                 primary={
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#f1f5f9' }}>
                       {VIOLATION_LABELS[violation.type] || violation.type}
                     </Typography>
                     <Chip
                       label={violation.severity}
                       size="small"
                       color={SEVERITY_COLOR[violation.severity] || 'default'}
+                      sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', height: 20 }}
                     />
                   </Box>
                 }
                 secondary={
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    Học sinh: {violation.user_id}
-                    <br />
-                    {new Date(violation.timestamp).toLocaleTimeString('vi-VN')}
-                  </Typography>
+                  <Box component="span" sx={{ display: 'block', color: '#94a3b8', fontSize: '0.8rem', mt: 0.5 }}>
+                    <Box component="span" sx={{ display: 'block', color: '#e2e8f0', fontWeight: 600 }}>
+                      {violation.full_name || violation.username || 'Thí sinh'}{' '}
+                      <Box component="span" sx={{ color: '#38bdf8', fontWeight: 500 }}>
+                        (@{violation.username || 'student'})
+                      </Box>
+                    </Box>
+                    <Box component="span" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#64748b', mt: 0.3 }}>
+                      <Box component="span" sx={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#94a3b8' }}>
+                        IP: {violation.ip || '127.0.0.1'}
+                      </Box>
+                      <Box component="span">
+                        {new Date(violation.timestamp).toLocaleTimeString('vi-VN')}
+                      </Box>
+                    </Box>
+                  </Box>
                 }
               />
             </ListItem>
-            <Divider component="li" />
           </Box>
         ))}
-        {violations.length === 0 && (
-          <ListItem>
-            <ListItemText primary={<Typography color="text.secondary" sx={{ textAlign: 'center' }}>Chưa có vi phạm nào</Typography>} />
+        {sortedViolations.length === 0 && (
+          <ListItem sx={{ py: 4 }}>
+            <ListItemText primary={<Typography sx={{ color: '#64748b', textAlign: 'center' }}>Chưa có vi phạm nào</Typography>} />
           </ListItem>
         )}
       </List>

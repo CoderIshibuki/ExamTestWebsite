@@ -89,42 +89,66 @@ export default function AdminCategories() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 'bold' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="body2" sx={{ color: '#64748B' }}>
+          Tổ chức ngân hàng câu hỏi theo từng chủ đề hoặc môn học cụ thể.
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={openCreate}
+          sx={{
+            bgcolor: '#2563EB',
+            '&:hover': { bgcolor: '#1D4ED8' },
+            borderRadius: 2.5,
+            textTransform: 'none',
+            fontWeight: 700,
+            px: 3,
+            py: 1,
+            boxShadow: '0 2px 6px rgba(37,99,235,0.2)',
+          }}
+        >
           Thêm danh mục
         </Button>
       </Box>
 
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Danh mục giúp tổ chức ngân hàng câu hỏi theo chủ đề (VD: "Toán 10 - Đại số", "Lịch sử thế giới"), thay vì chỉ gõ tay
-        tên môn học tự do khi tạo câu hỏi.
-      </Typography>
-
       {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>}
 
-      <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
+      <Paper
+        sx={{
+          borderRadius: 3.5,
+          border: '1px solid #E2E8F0',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          overflow: 'hidden',
+          bgcolor: '#FFFFFF',
+        }}
+      >
         {loading ? (
           <Box sx={{ p: 3 }}>
-            <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 1 }} />
+            <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 2 }} />
           </Box>
         ) : categories.length === 0 ? (
           <Box sx={{ p: 6, textAlign: 'center' }}>
-            <Typography color="text.secondary">Chưa có danh mục nào. Bấm "Thêm danh mục" để tạo mới.</Typography>
+            <Typography sx={{ color: '#64748B' }}>Chưa có danh mục nào. Bấm "Thêm danh mục" để tạo mới.</Typography>
           </Box>
         ) : (
-          <List>
+          <List sx={{ p: 0 }}>
             {categories.map((cat) => (
               <ListItem
                 key={cat.id}
                 divider
+                sx={{ py: 2, px: 3 }}
                 secondaryAction={
                   <Box sx={{ display: 'flex', gap: 1 }}>
-                    <IconButton onClick={() => openEdit(cat)}><EditIcon fontSize="small" /></IconButton>
+                    <IconButton onClick={() => openEdit(cat)} sx={{ color: '#2563EB' }}><EditIcon fontSize="small" /></IconButton>
                     <IconButton color="error" onClick={() => setDeleteDialog({ open: true, id: cat.id })}><DeleteIcon fontSize="small" /></IconButton>
                   </Box>
                 }
               >
-                <ListItemText primary={cat.name} secondary={cat.description} />
+                <ListItemText
+                  primary={<Typography sx={{ fontWeight: 700, color: '#0F172A' }}>{cat.name}</Typography>}
+                  secondary={<Typography sx={{ color: '#64748B', fontSize: '0.85rem' }}>{cat.description || 'Không có mô tả'}</Typography>}
+                />
               </ListItem>
             ))}
           </List>

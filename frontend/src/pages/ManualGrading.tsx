@@ -63,8 +63,11 @@ export default function ManualGrading() {
   const isImageAnswer = (answer: string | null) => !!answer && answer.startsWith('data:image');
 
   return (
-    <Box sx={{ p: 4, minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mb: 3 }}>
+    <Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+        <Typography variant="body2" sx={{ color: '#64748B' }}>
+          Chấm điểm các bài làm tự luận của học sinh và bổ sung nhận xét chi tiết.
+        </Typography>
         <Chip label={`${items.length} bài chờ chấm`} color={items.length > 0 ? 'warning' : 'success'} sx={{ fontWeight: 700 }} />
       </Box>
 

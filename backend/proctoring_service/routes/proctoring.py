@@ -58,7 +58,9 @@ async def log_event(
         event.exam_id, 
         current_user["id"], 
         violation.id,
-        violation.severity
+        violation.severity,
+        violation.type,
+        violation.details
     )
     
     violation.risk_score_at_event = current_risk_score

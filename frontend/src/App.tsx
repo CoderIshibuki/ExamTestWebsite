@@ -13,6 +13,7 @@ import ResetPassword from './pages/ResetPassword';
 import ChangePassword from './pages/ChangePassword';
 import Dashboard from './pages/Dashboard';
 import ExamList from './pages/ExamList';
+import StudentResults from './pages/StudentResults';
 import ExamRoom from './pages/ExamRoom';
 import { ExamProvider } from './context/ExamContext';
 import ResultSummary from './pages/ResultSummary';
@@ -55,6 +56,11 @@ function App() {
           <Route path="/student/exams" element={
             <RoleRoute allowedRoles={['student', 'admin']}>
               <ExamList />
+            </RoleRoute>
+          } />
+          <Route path="/student/results" element={
+            <RoleRoute allowedRoles={['student', 'admin']}>
+              <StudentResults />
             </RoleRoute>
           } />
           <Route path="/student/exam/:id" element={

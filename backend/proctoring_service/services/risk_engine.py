@@ -52,7 +52,9 @@ async def calculate_risk_and_alert(
     exam_id: UUID,
     user_id: str,
     current_violation_id: UUID,
-    current_severity: str
+    current_severity: str,
+    violation_type: str = "violation",
+    details: dict = None
 ) -> int:
     redis_key = await _get_redis_key(exam_id, user_id)
     state = await _load_risk_state(redis_key)
@@ -63,27 +65,50 @@ async def calculate_risk_and_alert(
     weight = SEVERITY_WEIGHTS.get(current_severity, 0)
     current_score += weight
     violations.append(str(current_violation_id))
+    now_iso = datetime.now(timezone.utc).isoformat()
 
     state = {
         "score": current_score,
-        "last_violation": datetime.now(timezone.utc).isoformat(),
+        "last_violation": now_iso,
         "violations": violations
     }
 
     await _save_risk_state(redis_key, state)
 
-    if current_score >= RISK_THRESHOLD:
-        await send_alert(exam_id, user_id, current_violation_id)
+    # Luôn gửi thông báo vi phạm sang realtime_service để giám thị thấy ngay lập tức
+    await send_violation_broadcast(
+        exam_id=exam_id,
+        user_id=user_id,
+        violation_id=current_violation_id,
+        severity=current_severity,
+        violation_type=violation_type,
+        risk_score=current_score,
+        timestamp=now_iso,
+        details=details
+    )
 
     return current_score
 
-async def send_alert(exam_id: UUID, user_id: str, violation_id: UUID):
+async def send_violation_broadcast(
+    exam_id: UUID,
+    user_id: str,
+    violation_id: UUID,
+    severity: str,
+    violation_type: str,
+    risk_score: int,
+    timestamp: str,
+    details: dict = None
+):
     payload = {
         "exam_id": str(exam_id),
         "user_id": user_id,
-        "severity": "high",
-        "message": "Risk threshold exceeded",
-        "violation_id": str(violation_id)
+        "severity": severity,
+        "message": f"Phát hiện vi phạm: {violation_type}",
+        "violation_id": str(violation_id),
+        "type": violation_type,
+        "risk_score": risk_score,
+        "timestamp": timestamp,
+        "details": details or {}
     }
 
     try:

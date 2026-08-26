@@ -51,9 +51,9 @@ async def submit_exam(
 
     # Create submission record
     db_submission = models.Submission(
-        attempt_id=UUID(attempt_id),
-        exam_id=submission.exam_id,
-        user_id=submission.user_id,
+        attempt_id=UUID(str(attempt_id)),
+        exam_id=UUID(str(submission.exam_id)),
+        user_id=UUID(str(submission.user_id)),
         answers=submission.answers
     )
     db.add(db_submission)
