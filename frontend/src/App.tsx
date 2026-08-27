@@ -1,39 +1,50 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Box, CircularProgress } from '@mui/material';
 import { AuthProvider } from './context/AuthContext';
 import RoleRoute from './components/RoleRoute';
 import AdminRoute from './components/AdminRoute';
 import StaffRoute from './components/StaffRoute';
-import Home from './pages/Home';
-import Unauthorized from './pages/Unauthorized';
 
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import ChangePassword from './pages/ChangePassword';
-import Dashboard from './pages/Dashboard';
-import ExamList from './pages/ExamList';
-import StudentResults from './pages/StudentResults';
-import ExamRoom from './pages/ExamRoom';
+// Lazy loaded page components for optimal performance and code splitting
+const Home = lazy(() => import('./pages/Home'));
+const Unauthorized = lazy(() => import('./pages/Unauthorized'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const ChangePassword = lazy(() => import('./pages/ChangePassword'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const ExamList = lazy(() => import('./pages/ExamList'));
+const StudentResults = lazy(() => import('./pages/StudentResults'));
+const ExamRoom = lazy(() => import('./pages/ExamRoom'));
+const ResultSummary = lazy(() => import('./pages/ResultSummary'));
+const CameraTest = lazy(() => import('./components/CameraTest'));
+const ProctorDashboard = lazy(() => import('./pages/ProctorDashboard'));
+
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const AdminUsers = lazy(() => import('./pages/AdminUsers'));
+const AdminQuestions = lazy(() => import('./pages/AdminQuestions'));
+const AdminCategories = lazy(() => import('./pages/AdminCategories'));
+const AdminExams = lazy(() => import('./pages/AdminExams'));
+const AdminReports = lazy(() => import('./pages/AdminReports'));
+const ManualGrading = lazy(() => import('./pages/ManualGrading'));
+const AdminLayout = lazy(() => import('./components/AdminLayout'));
+
 import { ExamProvider } from './context/ExamContext';
-import ResultSummary from './pages/ResultSummary';
-import CameraTest from './components/CameraTest';
-import ProctorDashboard from './pages/ProctorDashboard';
 
-import AdminDashboard from './pages/AdminDashboard';
-import AdminUsers from './pages/AdminUsers';
-import AdminQuestions from './pages/AdminQuestions';
-import AdminCategories from './pages/AdminCategories';
-import AdminExams from './pages/AdminExams';
-import AdminReports from './pages/AdminReports';
-import ManualGrading from './pages/ManualGrading';
-import AdminLayout from './components/AdminLayout';
+const PageLoader = () => (
+  <Box sx={{ display: 'flex', height: '100vh', width: '100vw', justifyContent: 'center', alignItems: 'center', bgcolor: '#F8FAFC' }}>
+    <CircularProgress size={40} thickness={4} sx={{ color: '#2563EB' }} />
+  </Box>
+);
 
 function App() {
   return (
     <AuthProvider>
       <Router>
-        <Routes>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -167,6 +178,7 @@ function App() {
           
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
+        </Suspense>
       </Router>
     </AuthProvider>
   );
