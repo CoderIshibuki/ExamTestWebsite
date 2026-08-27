@@ -505,7 +505,7 @@ async def delete_single_attempt(
     exam_id: str,
     attempt_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_permission("exam:write"))
+    current_user: dict = Depends(require_permission("exam:delete"))
 ):
     success = await crud.delete_exam_attempt(db, attempt_id)
     if not success:
@@ -517,7 +517,7 @@ async def reset_student_attempts(
     exam_id: str,
     user_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_permission("exam:write"))
+    current_user: dict = Depends(require_permission("exam:delete"))
 ):
     deleted_count = await crud.delete_user_exam_attempts(db, exam_id, user_id)
     return {

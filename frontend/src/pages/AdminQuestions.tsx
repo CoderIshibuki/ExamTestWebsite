@@ -145,49 +145,30 @@ const AdminQuestions = () => {
     {
       field: 'content',
       headerName: 'Nội dung câu hỏi',
-      flex: 3,
-      minWidth: 280,
+      flex: 3.5,
+      minWidth: 320,
       valueGetter: (_value, row) => row.content?.text || '',
     },
     {
       field: 'type',
       headerName: 'Loại câu hỏi',
-      flex: 1.4,
-      minWidth: 170,
+      flex: 1.5,
+      minWidth: 180,
       renderCell: (params) => (
         <Chip label={TYPE_LABELS[params.value] || params.value} size="small" color="primary" variant="outlined" />
       ),
     },
     {
       field: 'subject',
-      headerName: 'Môn học',
-      flex: 1,
-      minWidth: 120,
+      headerName: 'Môn học / Danh mục',
+      flex: 1.5,
+      minWidth: 150,
       valueGetter: (_value, row) => row.metadata?.subject || '',
       renderCell: (params) => (
         <Box sx={{ bgcolor: '#e3f2fd', color: '#1976d2', px: 1.5, py: 0.5, borderRadius: 2, fontSize: '0.85rem', fontWeight: 600 }}>
-          {params.value}
+          {params.value || 'Chung'}
         </Box>
       ),
-    },
-    {
-      field: 'difficulty',
-      headerName: 'Độ khó',
-      flex: 1,
-      minWidth: 110,
-      valueGetter: (_value, row) => row.metadata?.difficulty || '',
-      renderCell: (params) => {
-        let color = '#757575';
-        let bg = '#f5f5f5';
-        if (params.value === 'easy') { color = '#2e7d32'; bg = '#e8f5e9'; }
-        else if (params.value === 'medium') { color = '#ed6c02'; bg = '#fff3e0'; }
-        else if (params.value === 'hard') { color = '#d32f2f'; bg = '#ffebee'; }
-        return (
-          <Box sx={{ bgcolor: bg, color, px: 1.5, py: 0.5, borderRadius: 2, fontSize: '0.85rem', fontWeight: 600, textTransform: 'capitalize' }}>
-            {params.value}
-          </Box>
-        );
-      },
     },
     {
       field: 'actions',

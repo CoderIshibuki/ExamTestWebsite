@@ -30,7 +30,7 @@ export default function ManualQuestionDialog({ open, onClose, onSave }: ManualQu
   const [subject, setSubject] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
-  const [difficulty, setDifficulty] = useState('medium');
+  const difficulty = 'medium';
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -173,12 +173,7 @@ export default function ManualQuestionDialog({ open, onClose, onSave }: ManualQu
                 <MenuItem key={qt.value} value={qt.value}>{qt.label}</MenuItem>
               ))}
             </TextField>
-            <TextField label="Môn học" variant="filled" fullWidth required value={subject} onChange={(e) => setSubject(e.target.value)} />
-            <TextField select label="Độ khó" variant="filled" fullWidth value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
-              <MenuItem value="easy">Dễ</MenuItem>
-              <MenuItem value="medium">Trung bình</MenuItem>
-              <MenuItem value="hard">Khó</MenuItem>
-            </TextField>
+            <TextField label="Môn học / Chủ đề" variant="filled" fullWidth required value={subject} onChange={(e) => setSubject(e.target.value)} />
           </Box>
 
           <TextField select label="Danh mục (tuỳ chọn)" variant="filled" fullWidth value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>

@@ -36,7 +36,6 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
   const [bank, setBank] = useState<any[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [genSubject, setGenSubject] = useState('');
-  const [genDifficulty, setGenDifficulty] = useState('medium');
   const [genCount, setGenCount] = useState(5);
   const [genTypes, setGenTypes] = useState<string[]>(['multiple_choice']);
   const [generating, setGenerating] = useState(false);
@@ -207,7 +206,7 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
     try {
       await adminApi.generateExamQuestions(examId, {
         subject: genSubject,
-        difficulty: genDifficulty,
+        difficulty: 'medium',
         num_questions: genCount,
         question_types: genTypes,
       });
@@ -349,14 +348,9 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
 
               <Typography sx={{ fontWeight: 600, mb: 1 }}>Tự động chọn ngẫu nhiên từ ngân hàng</Typography>
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-                <TextField label="Môn học" size="small" value={genSubject} onChange={(e) => setGenSubject(e.target.value)} sx={{ width: 160 }} />
-                <TextField select label="Độ khó" size="small" value={genDifficulty} onChange={(e) => setGenDifficulty(e.target.value)} sx={{ width: 140 }}>
-                  <MenuItem value="easy">Dễ</MenuItem>
-                  <MenuItem value="medium">Trung bình</MenuItem>
-                  <MenuItem value="hard">Khó</MenuItem>
-                </TextField>
+                <TextField label="Môn học / Chủ đề" size="small" value={genSubject} onChange={(e) => setGenSubject(e.target.value)} sx={{ width: 180 }} />
                 <TextField
-                  select label="Loại câu hỏi" size="small" sx={{ width: 200 }}
+                  select label="Loại câu hỏi" size="small" sx={{ width: 220 }}
                   value={genTypes[0] || 'multiple_choice'}
                   onChange={(e) => setGenTypes([e.target.value])}
                 >

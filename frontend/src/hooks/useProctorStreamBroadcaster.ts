@@ -7,12 +7,16 @@ import { io, Socket } from 'socket.io-client';
  * Không tự chủ động gửi video cho ai — chỉ phản hồi khi CÓ yêu cầu cụ thể, và học sinh
  * đã được thông báo rõ đang bị giám sát camera (khung camera hiện trong ExamRoom).
  */
-export function useProctorStreamBroadcaster(examId: string, stream: MediaStream | null) {
+export function useProctorStreamBroadcaster(
+  examId: string,
+  stream: MediaStream | null,
+  onProctorAction?: (data: { action: string; reason?: string; penalty_percent?: number; penalty_minutes?: number }) => void
+) {
   const socketRef = useRef<Socket | null>(null);
   const peersRef = useRef<Record<string, RTCPeerConnection>>({});
 
   useEffect(() => {
-    if (!examId || !stream) return;
+    if (!examId) return;
 
     const token = localStorage.getItem('access_token') || '';
     let userId = '';
@@ -31,6 +35,7 @@ export function useProctorStreamBroadcaster(examId: string, stream: MediaStream 
     socketRef.current = socket;
 
     const handleStreamRequested = async (data: { proctor_sid: string }) => {
+      if (!stream) return;
       const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
       peersRef.current[data.proctor_sid] = pc;
 
@@ -57,17 +62,25 @@ export function useProctorStreamBroadcaster(examId: string, stream: MediaStream 
       pc?.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(() => {});
     };
 
+    const handleProctorAction = (data: any) => {
+      if (!data) return;
+      if (data.user_id === userId || data.user_id === '*' || !data.user_id) {
+        onProctorAction?.(data);
+      }
+    };
+
     socket.on('connect', () => {
       socket.emit('join_exam', { exam_id: examId });
     });
     socket.on('webrtc_stream_requested', handleStreamRequested);
     socket.on('webrtc_answer', handleAnswer);
     socket.on('webrtc_ice_candidate', handleIceCandidate);
+    socket.on('student:proctor_action', handleProctorAction);
 
     return () => {
       Object.values(peersRef.current).forEach((pc) => pc.close());
       peersRef.current = {};
       socket.disconnect();
     };
-  }, [examId, stream]);
+  }, [examId, stream, onProctorAction]);
 }

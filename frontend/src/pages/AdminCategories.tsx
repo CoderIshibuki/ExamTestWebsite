@@ -167,14 +167,18 @@ export default function AdminCategories() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, id: null })}>
-        <DialogTitle sx={{ fontWeight: 'bold', color: 'error.main' }}>Xoá danh mục</DialogTitle>
+      <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, id: null })} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800, color: 'error.main' }}>Xoá danh mục & Câu hỏi</DialogTitle>
         <DialogContent>
-          <DialogContentText>Bạn có chắc muốn xoá danh mục này? Các câu hỏi đã gán danh mục này sẽ không bị xoá.</DialogContentText>
+          <DialogContentText sx={{ color: '#334155', lineHeight: 1.6 }}>
+            ⚠️ <b>Cảnh báo:</b> Khi xoá danh mục này, <b>TOÀN BỘ câu hỏi thuộc danh mục</b> sẽ bị xoá vĩnh viễn khỏi hệ thống để tinh gọn ngân hàng đề.
+            <br /><br />
+            Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xoá?
+          </DialogContentText>
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setDeleteDialog({ open: false, id: null })} sx={{ borderRadius: 2, textTransform: 'none' }}>Huỷ</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained" sx={{ borderRadius: 2, textTransform: 'none' }}>Xoá</Button>
+        <DialogActions sx={{ p: 2.5, pt: 0 }}>
+          <Button onClick={() => setDeleteDialog({ open: false, id: null })} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}>Huỷ</Button>
+          <Button onClick={confirmDelete} color="error" variant="contained" sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700 }}>Xác nhận xoá tất cả</Button>
         </DialogActions>
       </Dialog>
 

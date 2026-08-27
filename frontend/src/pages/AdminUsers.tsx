@@ -28,12 +28,11 @@ interface EditFormValues {
   is_active: boolean;
 }
 
-const ROLES = ['student', 'teacher', 'proctor', 'admin'];
+const ROLES = ['student', 'teacher', 'admin'];
 
 const ROLE_LABELS: Record<string, string> = {
   student: 'Học sinh',
   teacher: 'Giáo viên',
-  proctor: 'Giám thị',
   admin: 'Quản trị viên',
 };
 

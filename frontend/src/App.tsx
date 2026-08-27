@@ -30,6 +30,7 @@ const AdminExams = lazy(() => import('./pages/AdminExams'));
 const AdminReports = lazy(() => import('./pages/AdminReports'));
 const ManualGrading = lazy(() => import('./pages/ManualGrading'));
 const AdminLayout = lazy(() => import('./components/AdminLayout'));
+const StudentLayout = lazy(() => import('./components/StudentLayout'));
 
 import { ExamProvider } from './context/ExamContext';
 
@@ -45,6 +46,7 @@ function App() {
       <Router>
         <Suspense fallback={<PageLoader />}>
           <Routes>
+          {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -52,26 +54,34 @@ function App() {
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route path="/change-password" element={
             <RoleRoute allowedRoles={['student', 'teacher', 'admin']}>
-              <ChangePassword />
+              <StudentLayout>
+                <ChangePassword />
+              </StudentLayout>
             </RoleRoute>
           } />
           
           <Route path="/" element={<Home />} />
           <Route path="/dashboard" element={
             <RoleRoute allowedRoles={['student', 'teacher', 'admin']}>
-              <Dashboard />
+              <StudentLayout>
+                <Dashboard />
+              </StudentLayout>
             </RoleRoute>
           } />
 
           {/* Student Routes */}
           <Route path="/student/exams" element={
             <RoleRoute allowedRoles={['student', 'admin']}>
-              <ExamList />
+              <StudentLayout>
+                <ExamList />
+              </StudentLayout>
             </RoleRoute>
           } />
           <Route path="/student/results" element={
             <RoleRoute allowedRoles={['student', 'admin']}>
-              <StudentResults />
+              <StudentLayout>
+                <StudentResults />
+              </StudentLayout>
             </RoleRoute>
           } />
           <Route path="/student/exam/:id" element={
@@ -83,12 +93,16 @@ function App() {
           } />
           <Route path="/student/result/:attemptId" element={
             <RoleRoute allowedRoles={['student', 'admin']}>
-              <ResultSummary />
+              <StudentLayout>
+                <ResultSummary />
+              </StudentLayout>
             </RoleRoute>
           } />
           <Route path="/student/camera-test" element={
             <RoleRoute allowedRoles={['student', 'admin']}>
-              <CameraTest />
+              <StudentLayout>
+                <CameraTest />
+              </StudentLayout>
             </RoleRoute>
           } />
 

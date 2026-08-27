@@ -127,11 +127,8 @@ async def delete_category(category_id: str):
     # Xoá danh mục
     result = await db_instance.db.categories.delete_one({"_id": ObjectId(category_id)})
     if result.deleted_count == 1:
-        # Cập nhật các câu hỏi thuộc danh mục này thành unassigned (không xoá câu hỏi của người dùng)
-        await db_instance.db.questions.update_many(
-            {"category_id": ObjectId(category_id)},
-            {"$unset": {"category_id": ""}}
-        )
+        # Xoá toàn bộ câu hỏi thuộc danh mục này
+        await db_instance.db.questions.delete_many({"category_id": ObjectId(category_id)})
         return True
     return False
 

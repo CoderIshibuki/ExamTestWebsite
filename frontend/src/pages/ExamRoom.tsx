@@ -1,7 +1,11 @@
 import React, { useEffect, useCallback, useState, useContext, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, Button, CircularProgress, Paper, Grid, Container, Snackbar, Alert } from '@mui/material';
-import { ErrorOutlined } from '@mui/icons-material';
+import {
+  Box, Typography, Button, CircularProgress, Paper, Grid, Container,
+  Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogContentText,
+  DialogActions,
+} from '@mui/material';
+import { ErrorOutlined, WarningAmber as WarningIcon, Block as BlockIcon } from '@mui/icons-material';
 import { useTimer } from '../hooks/useTimer';
 import { useProctoring } from '../hooks/useProctoring';
 import { useProctorStreamBroadcaster } from '../hooks/useProctorStreamBroadcaster';
@@ -18,13 +22,68 @@ const ExamRoom: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
 
-  
   const { state, setStatus, setQuestions, setAnswer, nextQuestion, prevQuestion, goToQuestion, setExamId, setAttemptId } = useExamContext();
   const { isActive, violationCount, videoRef, cameraReady, cameraError, cameraStream } = useProctoring(examId || '', state.attemptId || '');
-  useProctorStreamBroadcaster(examId || '', cameraStream);
+  
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [saveAnswerError, setSaveAnswerError] = useState<string | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
+  const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
+  
+  // Kỷ luật phòng thi từ Giám thị
+  const [isBanned, setIsBanned] = useState(false);
+  const [bannedReason, setBannedReason] = useState('');
+  const [disciplinaryAlert, setDisciplinaryAlert] = useState<{ message: string; severity: 'warning' | 'error' | 'info' } | null>(null);
+
+  const handleProctorAction = useCallback((data: any) => {
+    if (!data) return;
+    if (data.action === 'terminate') {
+      setIsBanned(true);
+      setBannedReason(data.reason || 'Vi phạm quy chế phòng thi nghiêm trọng.');
+      setStatus('error');
+    } else if (data.action === 'time_penalty') {
+      const minutes = Number(data.penalty_minutes) || 5;
+      setExpiresAt((prev) => (prev ? new Date(prev.getTime() - minutes * 60000) : null));
+      setDisciplinaryAlert({
+        message: `⚠️ GIÁM THỊ PHẠT: Bạn vừa bị trừ ${minutes} phút thời gian làm bài! Lý do: ${data.reason || 'Vi phạm quy chế'}`,
+        severity: 'warning',
+      });
+    } else if (data.action === 'score_penalty') {
+      const percent = Number(data.penalty_percent) || 10;
+      setDisciplinaryAlert({
+        message: `⚠️ GIÁM THỊ PHẠT: Bài thi của bạn bị trừ trực tiếp ${percent}% tổng điểm! Lý do: ${data.reason || 'Vi phạm quy chế'}`,
+        severity: 'error',
+      });
+    } else if (data.action === 'warning') {
+      setDisciplinaryAlert({
+        message: `🚨 CẢNH BÁO TỪ GIÁM THỊ: ${data.reason || 'Vui lòng tập trung làm bài và nhìn thẳng camera!'}`,
+        severity: 'warning',
+      });
+    }
+  }, [setStatus]);
+
+  useProctorStreamBroadcaster(examId || '', cameraStream, handleProctorAction);
+
+  // Khóa nút Back trình duyệt khi đang làm bài thi
+  useEffect(() => {
+    if (state.status === 'in_progress') {
+      window.history.pushState(null, '', window.location.href);
+      const handlePopState = () => {
+        window.history.pushState(null, '', window.location.href);
+        alert('⚠️ BẠN ĐANG TRONG PHÒNG THI!\nKhông được phép quay lại trang trước khi chưa hoàn thành hoặc nộp bài thi.');
+      };
+      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        e.preventDefault();
+        e.returnValue = '';
+      };
+      window.addEventListener('popstate', handlePopState);
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+      };
+    }
+  }, [state.status]);
 
   const initExam = useCallback(async () => {
     try {
@@ -36,8 +95,6 @@ const ExamRoom: React.FC = () => {
         examApi.startExam(examId || '')
       ]);
 
-      // Chuyển shape backend (ExamQuestionDetail) sang shape dùng trong phòng thi (Question).
-      // Với câu nối cột: quy ước option id bắt đầu "L_" là cột trái, "R_" là cột phải.
       const questions: Question[] = rawQuestions.map((q) => {
         const isMatching = q.type === 'matching';
         return {
@@ -75,19 +132,18 @@ const ExamRoom: React.FC = () => {
 
   const submitExam = useCallback(async () => {
     if (!state.attemptId) return;
+    setConfirmSubmitOpen(false);
     setStatus('submitting');
     try {
       await examApi.submitExam(state.attemptId);
-      navigate(`/${user?.role}/result/${state.attemptId}`);
+      navigate(`/${user?.role || 'student'}/result/${state.attemptId}`);
     } catch (err) {
       console.error('Failed to submit exam:', err);
       setStatus('error');
       alert('Không thể nộp bài. Vui lòng thử lại!');
     }
-  }, [state.attemptId, setStatus, navigate, examId]);
+  }, [state.attemptId, setStatus, navigate, user]);
 
-  // Số giây còn lại tính từ thời điểm hết hạn (expires_at), chỉ cần tính khi
-  // expiresAt thay đổi (tức là khi bài thi vừa load xong), không tính lại mỗi render.
   const initialSecondsLeft = useMemo(() => {
     if (!expiresAt) return 0;
     const diff = Math.floor((expiresAt.getTime() - Date.now()) / 1000);
@@ -104,9 +160,6 @@ const ExamRoom: React.FC = () => {
         await examApi.saveAnswer(state.attemptId, currentQ.id, answer);
       } catch (err: any) {
         console.error('Failed to save answer:', err);
-        // Trước đây lỗi lưu đáp án chỉ log console — học sinh không hề biết đáp án của
-        // mình CHƯA được lưu vào server (VD do mất mạng tạm thời hoặc bài thi đã hết giờ),
-        // dễ mất đáp án oan mà không ai cảnh báo gì cả.
         setSaveAnswerError(
           err?.response?.data?.detail || 'Không thể lưu đáp án — kiểm tra kết nối mạng và thử chọn lại đáp án.'
         );
@@ -114,10 +167,18 @@ const ExamRoom: React.FC = () => {
     }
   };
 
+  // Tính số câu hỏi chưa làm
+  const unansweredCount = useMemo(() => {
+    return state.questions.filter((q) => {
+      const ans = state.answers[q.id];
+      if (ans === undefined || ans === null || ans === '') return true;
+      if (Array.isArray(ans) && ans.length === 0) return true;
+      return false;
+    }).length;
+  }, [state.questions, state.answers]);
+
   const handleFinish = () => {
-    if (window.confirm('Bạn có chắc chắn muốn nộp bài?')) {
-      submitExam();
-    }
+    setConfirmSubmitOpen(true);
   };
 
   if (state.status === 'joining' || state.status === 'idle') {
@@ -125,6 +186,73 @@ const ExamRoom: React.FC = () => {
       <Box sx={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: 2, bgcolor: 'background.default' }} role="status" aria-busy="true">
         <CircularProgress size={60} thickness={4} />
         <Typography variant="h6" color="text.secondary">Đang chuẩn bị phòng thi...</Typography>
+      </Box>
+    );
+  }
+
+  if (isBanned) {
+    return (
+      <Box sx={{ display: 'flex', minHeight: '100vh', justifyContent: 'center', alignItems: 'center', bgcolor: '#450a0a', p: 3 }}>
+        <Paper
+          elevation={0}
+          sx={{
+            p: 5,
+            textAlign: 'center',
+            borderRadius: 1.5,
+            maxWidth: 520,
+            width: '100%',
+            border: '2px solid #ef4444',
+            bgcolor: '#1c1917',
+            color: '#f8fafc',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+          }}
+        >
+          <Box
+            sx={{
+              width: 80,
+              height: 80,
+              borderRadius: 1.5,
+              bgcolor: '#7f1d1d',
+              color: '#fca5a5',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mx: 'auto',
+              mb: 3,
+            }}
+          >
+            <BlockIcon sx={{ fontSize: 44 }} />
+          </Box>
+          <Typography variant="h4" sx={{ fontWeight: 900, color: '#ef4444', mb: 1.5 }}>
+            BỊ CẤM THI / ĐUỔI THI
+          </Typography>
+          <Typography variant="body1" sx={{ color: '#e2e8f0', mb: 2, fontWeight: 600 }}>
+            Bạn đã bị giám thị truất quyền làm bài và đình chỉ thi do vi phạm quy chế thi.
+          </Typography>
+          <Box sx={{ p: 2, bgcolor: '#292524', borderRadius: 1.5, mb: 4, border: '1px solid #44403c' }}>
+            <Typography variant="caption" sx={{ color: '#94a3b8', display: 'block', mb: 0.5, textTransform: 'uppercase', fontWeight: 700 }}>
+              Lý do xử lý kỷ luật:
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#f87171', fontWeight: 700 }}>
+              {bannedReason || 'Vi phạm quy chế phòng thi nghiêm trọng.'}
+            </Typography>
+          </Box>
+          <Button
+            variant="contained"
+            color="error"
+            size="large"
+            onClick={() => navigate('/dashboard')}
+            sx={{
+              fontWeight: 800,
+              borderRadius: 1.5,
+              py: 1.3,
+              px: 4,
+              textTransform: 'none',
+            }}
+          >
+            Rời khỏi phòng thi
+          </Button>
+        </Paper>
       </Box>
     );
   }
@@ -139,7 +267,7 @@ const ExamRoom: React.FC = () => {
           sx={{
             p: 5,
             textAlign: 'center',
-            borderRadius: 4,
+            borderRadius: 1.5,
             maxWidth: 480,
             width: '100%',
             border: '1px solid #E2E8F0',
@@ -151,20 +279,20 @@ const ExamRoom: React.FC = () => {
             <>
               <Box
                 sx={{
-                  width: 72,
-                  height: 72,
-                  borderRadius: 3,
+                  width: 64,
+                  height: 64,
+                  borderRadius: 1.5,
                   bgcolor: '#EFF6FF',
                   color: '#2563EB',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   mx: 'auto',
-                  mb: 2.5,
-                  border: '2px solid #DBEAFE',
+                  mb: 2,
+                  border: '1px solid #DBEAFE',
                 }}
               >
-                <Typography sx={{ fontSize: '2rem' }}>🎓</Typography>
+                <Typography sx={{ fontSize: '1.8rem' }}>🎓</Typography>
               </Box>
               <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A', mb: 1 }}>
                 Bạn đã tham gia kỳ thi này rồi
@@ -181,8 +309,8 @@ const ExamRoom: React.FC = () => {
                     bgcolor: '#2563EB',
                     color: '#fff',
                     fontWeight: 700,
-                    borderRadius: 2.5,
-                    py: 1.3,
+                    borderRadius: 1.5,
+                    py: 1.2,
                     textTransform: 'none',
                     '&:hover': { bgcolor: '#1D4ED8' },
                   }}
@@ -197,7 +325,7 @@ const ExamRoom: React.FC = () => {
                     borderColor: '#E2E8F0',
                     color: '#475569',
                     fontWeight: 600,
-                    borderRadius: 2.5,
+                    borderRadius: 1.5,
                     py: 1.2,
                     textTransform: 'none',
                     '&:hover': { bgcolor: '#F8FAFC' },
@@ -209,7 +337,7 @@ const ExamRoom: React.FC = () => {
             </>
           ) : (
             <>
-              <ErrorOutlined color="error" sx={{ fontSize: 64, mb: 2 }} />
+              <ErrorOutlined color="error" sx={{ fontSize: 60, mb: 2 }} />
               <Typography variant="h5" color="error" sx={{ fontWeight: 800, mb: 1 }}>
                 Không thể vào phòng thi
               </Typography>
@@ -223,7 +351,7 @@ const ExamRoom: React.FC = () => {
                 sx={{
                   bgcolor: '#2563EB',
                   fontWeight: 700,
-                  borderRadius: 2.5,
+                  borderRadius: 1.5,
                   py: 1.2,
                   px: 4,
                   textTransform: 'none',
@@ -461,13 +589,70 @@ const ExamRoom: React.FC = () => {
         <ProctoringStatus isActive={isActive} violationCount={violationCount} />
       </Paper>
 
+      {/* Hộp thoại xác nhận nộp bài kèm cảnh báo câu chưa làm */}
+      <Dialog
+        open={confirmSubmitOpen}
+        onClose={() => setConfirmSubmitOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{ paper: { sx: { borderRadius: 1.5 } } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: unansweredCount > 0 ? 'warning.dark' : '#0F172A', display: 'flex', alignItems: 'center', gap: 1 }}>
+          {unansweredCount > 0 ? <WarningIcon color="warning" /> : null}
+          {unansweredCount > 0 ? 'Cảnh báo chưa hoàn thành' : 'Xác nhận nộp bài'}
+        </DialogTitle>
+        <DialogContent>
+          {unansweredCount > 0 ? (
+            <DialogContentText sx={{ color: '#334155', lineHeight: 1.6 }}>
+              Bạn còn <b>{unansweredCount}</b> trên tổng số <b>{state.questions.length}</b> câu hỏi chưa trả lời (hoặc chưa chọn đáp án).
+              <br /><br />
+              Bạn có chắc chắn muốn nộp bài thi ngay bây giờ không?
+            </DialogContentText>
+          ) : (
+            <DialogContentText sx={{ color: '#334155', lineHeight: 1.6 }}>
+              Bạn đã hoàn thành tất cả <b>{state.questions.length}</b> câu hỏi. Bạn có chắc chắn muốn nộp bài để kết thúc phiên thi không?
+            </DialogContentText>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5, pt: 0 }}>
+          <Button onClick={() => setConfirmSubmitOpen(false)} sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 600 }}>
+            Làm tiếp
+          </Button>
+          <Button
+            variant="contained"
+            color={unansweredCount > 0 ? 'warning' : 'primary'}
+            onClick={submitExam}
+            sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 700 }}
+          >
+            {unansweredCount > 0 ? 'Vẫn nộp bài' : 'Xác nhận nộp bài'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Thông báo kỷ luật thời gian thực từ giám thị */}
+      <Snackbar
+        open={!!disciplinaryAlert}
+        autoHideDuration={8000}
+        onClose={() => setDisciplinaryAlert(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          severity={disciplinaryAlert?.severity || 'warning'}
+          variant="filled"
+          onClose={() => setDisciplinaryAlert(null)}
+          sx={{ width: '100%', borderRadius: 1.5, fontWeight: 700, boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}
+        >
+          {disciplinaryAlert?.message}
+        </Alert>
+      </Snackbar>
+
       <Snackbar
         open={!!saveAnswerError}
         autoHideDuration={6000}
         onClose={() => setSaveAnswerError(null)}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <Alert severity="error" onClose={() => setSaveAnswerError(null)} sx={{ width: '100%' }}>
+        <Alert severity="error" onClose={() => setSaveAnswerError(null)} sx={{ width: '100%', borderRadius: 1 }}>
           {saveAnswerError}
         </Alert>
       </Snackbar>

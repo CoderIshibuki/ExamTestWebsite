@@ -72,20 +72,20 @@ const AdminDashboard = () => {
 
   return (
     <Box>
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={2.5} sx={{ mb: 3.5 }}>
         {kpis.map((kpi, i) => (
           <Grid size={{ xs: 12, sm: 4 }} key={i}>
             <Card
               sx={{
-                borderRadius: 3.5,
+                borderRadius: 1.5,
                 border: '1px solid #E2E8F0',
                 bgcolor: '#FFFFFF',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                transition: 'all 0.2s ease',
-                '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 8px 16px -4px rgba(0,0,0,0.08)' },
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.02)',
+                transition: 'all 0.15s ease',
+                '&:hover': { transform: 'translateY(-1px)', boxShadow: '0 4px 12px -2px rgba(0,0,0,0.08)' },
               }}
             >
-              <CardContent sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <CardContent sx={{ p: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.5 }}>
                     {kpi.label}
@@ -94,7 +94,7 @@ const AdminDashboard = () => {
                     {kpi.value}
                   </Typography>
                 </Box>
-                <Avatar sx={{ bgcolor: kpi.bg, width: 54, height: 54, borderRadius: 2.5 }}>
+                <Avatar sx={{ bgcolor: kpi.bg, width: 48, height: 48, borderRadius: 1.2 }}>
                   {kpi.icon}
                 </Avatar>
               </CardContent>
@@ -105,17 +105,17 @@ const AdminDashboard = () => {
 
       <Paper
         sx={{
-          p: 3.5,
-          borderRadius: 3.5,
+          p: 3,
+          borderRadius: 1.5,
           border: '1px solid #E2E8F0',
           bgcolor: '#FFFFFF',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.02)',
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <TrendingUp sx={{ color: '#2563EB', fontSize: 24 }} />
-            <Typography variant="h6" sx={{ fontWeight: 800, color: '#0F172A' }}>
+            <TrendingUp sx={{ color: '#2563EB', fontSize: 22 }} />
+            <Typography variant="h6" sx={{ fontWeight: 800, color: '#0F172A', fontSize: '1.1rem' }}>
               Xu hướng Hoạt động Hệ thống
             </Typography>
           </Box>
@@ -132,7 +132,7 @@ const AdminDashboard = () => {
               <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 12 }} />
               <Tooltip
                 contentStyle={{
-                  borderRadius: 10,
+                  borderRadius: 6,
                   border: '1px solid #E2E8F0',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
                   backgroundColor: '#FFFFFF',

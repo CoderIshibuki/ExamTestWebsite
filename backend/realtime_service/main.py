@@ -117,3 +117,28 @@ async def get_exam_students(exam_id: str, _: dict = Depends(require_staff_bearer
         else:
             students_list.append({"user_id": uid})
     return {"exam_id": exam_id, "online_students": user_ids, "students": students_list}
+
+class ProctorActionRequest(BaseModel):
+    user_id: str
+    action: str  # "terminate", "time_penalty", "score_penalty", "warning"
+    reason: Optional[str] = None
+    penalty_percent: Optional[int] = 0
+    penalty_minutes: Optional[int] = 0
+
+@app.post("/api/v1/realtime/exams/{exam_id}/proctor/action")
+async def send_proctor_action(exam_id: str, payload: ProctorActionRequest, current_user: dict = Depends(require_staff_bearer)):
+    event_data = {
+        "exam_id": exam_id,
+        "user_id": payload.user_id,
+        "action": payload.action,
+        "reason": payload.reason or "Vi phạm quy chế phòng thi",
+        "penalty_percent": payload.penalty_percent,
+        "penalty_minutes": payload.penalty_minutes,
+        "by_proctor": current_user.get("sub") or current_user.get("id"),
+    }
+    
+    # Broadcast to student and proctor room
+    await sio.emit("student:proctor_action", event_data, room=f"exam:{exam_id}")
+    await sio.emit("proctor:action_logged", event_data, room=f"proctor:{exam_id}")
+    return {"status": "action_dispatched", "data": event_data}
+
