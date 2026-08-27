@@ -85,24 +85,33 @@ const ExamList: React.FC = () => {
         </Toolbar>
       </AppBar>
 
-      {/* Header Banner */}
-      <Box sx={{ bgcolor: '#1E40AF', pt: 6, pb: 10, color: '#ffffff' }}>
-        <Container maxWidth="lg">
-          <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
+      {/* Main Container */}
+      <Container maxWidth="lg" sx={{ py: 5 }}>
+        {/* Clean Header */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A', mb: 0.5 }}>
             Danh sách Kỳ thi đang mở
           </Typography>
-          <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.85)' }}>
-            Chọn đề thi phù hợp và bắt đầu làm bài. Hãy kiểm tra camera và kết nối mạng trước khi thi.
+          <Typography variant="body2" sx={{ color: '#64748B' }}>
+            Xem danh sách các đề thi được công bố và chọn bài thi phù hợp để bắt đầu làm bài.
           </Typography>
-        </Container>
-      </Box>
+        </Box>
 
-      <Container maxWidth="lg" sx={{ mt: -4, pb: 8 }}>
         {/* Search Bar */}
-        <Paper sx={{ p: 2, mb: 4, borderRadius: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #E2E8F0' }}>
+        <Paper
+          elevation={0}
+          sx={{
+            p: 1.5,
+            mb: 4,
+            borderRadius: 3,
+            border: '1px solid #E2E8F0',
+            bgcolor: '#FFFFFF',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+          }}
+        >
           <TextField
             fullWidth
-            placeholder="Tìm kiếm đề thi theo tên hoặc mô tả..."
+            placeholder="Tìm kiếm đề thi theo tên môn, mã đề hoặc mô tả..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             slotProps={{
@@ -116,7 +125,7 @@ const ExamList: React.FC = () => {
             }}
             variant="outlined"
             size="small"
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#F8FAFC' } }}
           />
         </Paper>
 

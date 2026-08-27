@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import {
-  Paper, Typography, RadioGroup, FormControlLabel, Radio,
+  Paper, Typography, RadioGroup, Radio,
   Checkbox, FormGroup, TextField, Button, Box, Chip,
   Select, MenuItem, Alert,
 } from '@mui/material';
@@ -61,20 +61,37 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
       case 'multiple_choice': {
         const value = typeof selectedAnswer === 'string' ? selectedAnswer : '';
         return (
-          <RadioGroup value={value} onChange={(e) => onSelectAnswer(e.target.value)}>
-            {question.options.map((option) => (
-              <FormControlLabel
-                key={option.id}
-                value={option.id}
-                control={<Radio />}
-                label={option.text}
-                sx={{
-                  border: '1px solid', borderColor: value === option.id ? 'primary.main' : 'divider',
-                  borderRadius: 2, mb: 1.5, mx: 0, py: 1, px: 2,
-                  bgcolor: value === option.id ? '#EEF2FF' : 'transparent',
-                }}
-              />
-            ))}
+          <RadioGroup value={value} onChange={(e) => onSelectAnswer(e.target.value)} sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {question.options.map((option) => {
+              const isSelected = value === option.id;
+              return (
+                <Box
+                  key={option.id}
+                  onClick={() => onSelectAnswer(option.id)}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    border: isSelected ? '2px solid #2563EB' : '1px solid #E2E8F0',
+                    borderRadius: 2.5,
+                    px: 2.5,
+                    py: 1.2,
+                    bgcolor: isSelected ? '#EFF6FF' : '#FFFFFF',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    boxShadow: isSelected ? '0 2px 4px rgba(37,99,235,0.08)' : '0 1px 2px rgba(0,0,0,0.02)',
+                    '&:hover': {
+                      borderColor: isSelected ? '#2563EB' : '#94A3B8',
+                      bgcolor: isSelected ? '#EFF6FF' : '#F8FAFC',
+                    },
+                  }}
+                >
+                  <Radio checked={isSelected} sx={{ p: 0.5, mr: 1.5, color: isSelected ? '#2563EB' : '#94A3B8' }} />
+                  <Typography sx={{ fontWeight: isSelected ? 600 : 400, color: isSelected ? '#1E3A8A' : '#1E293B', fontSize: '1rem', flex: 1 }}>
+                    {option.text}
+                  </Typography>
+                </Box>
+              );
+            })}
           </RadioGroup>
         );
       }
@@ -89,22 +106,40 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
         };
         return (
           <>
-            <Alert severity="info" variant="outlined" sx={{ mb: 2 }}>
-              Câu này có thể có nhiều đáp án đúng — chọn tất cả đáp án bạn cho là đúng.
+            <Alert severity="info" sx={{ mb: 2.5, borderRadius: 2, bgcolor: '#EFF6FF', color: '#1E40AF', border: '1px solid #DBEAFE' }}>
+              Câu hỏi nhiều đáp án đúng — vui lòng chọn tất cả các đáp án bạn cho là chính xác.
             </Alert>
-            <FormGroup>
-              {question.options.map((option) => (
-                <FormControlLabel
-                  key={option.id}
-                  control={<Checkbox checked={selected.includes(option.id)} onChange={() => toggle(option.id)} />}
-                  label={option.text}
-                  sx={{
-                    border: '1px solid', borderColor: selected.includes(option.id) ? 'primary.main' : 'divider',
-                    borderRadius: 2, mb: 1.5, mx: 0, py: 1, px: 2,
-                    bgcolor: selected.includes(option.id) ? '#EEF2FF' : 'transparent',
-                  }}
-                />
-              ))}
+            <FormGroup sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              {question.options.map((option) => {
+                const isSelected = selected.includes(option.id);
+                return (
+                  <Box
+                    key={option.id}
+                    onClick={() => toggle(option.id)}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      border: isSelected ? '2px solid #2563EB' : '1px solid #E2E8F0',
+                      borderRadius: 2.5,
+                      px: 2.5,
+                      py: 1.2,
+                      bgcolor: isSelected ? '#EFF6FF' : '#FFFFFF',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      boxShadow: isSelected ? '0 2px 4px rgba(37,99,235,0.08)' : '0 1px 2px rgba(0,0,0,0.02)',
+                      '&:hover': {
+                        borderColor: isSelected ? '#2563EB' : '#94A3B8',
+                        bgcolor: isSelected ? '#EFF6FF' : '#F8FAFC',
+                      },
+                    }}
+                  >
+                    <Checkbox checked={isSelected} sx={{ p: 0.5, mr: 1.5, color: isSelected ? '#2563EB' : '#94A3B8' }} />
+                    <Typography sx={{ fontWeight: isSelected ? 600 : 400, color: isSelected ? '#1E3A8A' : '#1E293B', fontSize: '1rem', flex: 1 }}>
+                      {option.text}
+                    </Typography>
+                  </Box>
+                );
+              })}
             </FormGroup>
           </>
         );
@@ -222,13 +257,36 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
   };
 
   return (
-    <Paper sx={{ p: 4, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
-        Câu {questionIndex + 1}:
-      </Typography>
-      <Typography variant="body1" sx={{ fontSize: '1.1rem', mb: 4, whiteSpace: 'pre-wrap' }}>
+    <Paper
+      sx={{
+        p: 4,
+        borderRadius: 3.5,
+        border: '1px solid #E2E8F0',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        bgcolor: '#FFFFFF',
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2.5 }}>
+        <Chip
+          label={`Câu ${questionIndex + 1}`}
+          color="primary"
+          sx={{ fontWeight: 800, fontSize: '0.85rem', height: 28, bgcolor: '#2563EB', color: '#FFFFFF' }}
+        />
+        <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 600 }}>
+          {question.type === 'multiple_select'
+            ? 'Trắc nghiệm chọn nhiều'
+            : question.type === 'matching'
+            ? 'Câu hỏi nối cột'
+            : question.type === 'essay'
+            ? 'Tự luận'
+            : 'Trắc nghiệm'}
+        </Typography>
+      </Box>
+
+      <Typography variant="body1" sx={{ fontSize: '1.15rem', fontWeight: 600, color: '#0F172A', mb: 3.5, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
         {question.content}
       </Typography>
+
       {renderByType()}
     </Paper>
   );

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Box, Typography, Button, Paper, CircularProgress, Divider, Container, Fade, Alert,
+  Box, Typography, Button, Paper, CircularProgress, Container, Fade, Alert,
   Accordion, AccordionSummary, AccordionDetails, Chip,
 } from '@mui/material';
 import { CheckCircleOutlined, CancelOutlined, EmojiEvents, Home, ExpandMore, HourglassEmpty } from '@mui/icons-material';
@@ -135,74 +135,109 @@ const ResultSummary: React.FC = () => {
   const passed = result.percentage >= passingScore;
 
   return (
-    <Box sx={{ minHeight: '100vh', pt: 8, pb: 8, bgcolor: '#F3F4F6', display: 'flex', justifyContent: 'center' }}>
-      <Container maxWidth="sm">
-        <Fade in={true} timeout={800}>
-          <Paper sx={{ p: { xs: 3, md: 5 }, textAlign: 'center', borderRadius: 4, bgcolor: 'white', border: '1px solid', borderColor: 'divider' }}>
-            <Box sx={{ mb: 3 }}>
+    <Box sx={{ minHeight: '100vh', pt: 6, pb: 8, bgcolor: '#F8FAFC', display: 'flex', justifyContent: 'center' }}>
+      <Container maxWidth="md">
+        <Fade in={true} timeout={600}>
+          <Paper
+            sx={{
+              p: { xs: 3, md: 5 },
+              textAlign: 'center',
+              borderRadius: 4,
+              bgcolor: '#FFFFFF',
+              border: '1px solid #E2E8F0',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            }}
+          >
+            <Box sx={{ mb: 2 }}>
               {passed ? (
-                <EmojiEvents sx={{ fontSize: 80, color: '#F59E0B' }} aria-hidden="true" />
+                <EmojiEvents sx={{ fontSize: 72, color: '#F59E0B' }} aria-hidden="true" />
               ) : (
-                <CancelOutlined sx={{ fontSize: 80, color: '#EF4444' }} aria-hidden="true" />
+                <CancelOutlined sx={{ fontSize: 72, color: '#EF4444' }} aria-hidden="true" />
               )}
             </Box>
-            <Typography variant="h3" gutterBottom color={passed ? '#10B981' : '#EF4444'} sx={{ fontWeight: 800 }}>
-              {passed ? 'Chúc mừng!' : 'Chưa đạt'}
+            <Typography variant="h4" gutterBottom color={passed ? '#10B981' : '#EF4444'} sx={{ fontWeight: 800 }}>
+              {passed ? 'Chúc mừng bạn đã hoàn thành xuất sắc!' : 'Rất tiếc, bạn chưa đạt yêu cầu!'}
             </Typography>
-            <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, color: '#1F2937' }}>
-              Điểm số của bạn: {result.score} / {result.total_possible}
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, color: '#0F172A' }}>
+              Điểm số: <Box component="span" sx={{ color: '#2563EB', fontSize: '1.4rem' }}>{result.score} / {result.total_possible}</Box>
             </Typography>
-            <Typography variant="h6" sx={{ color: '#6B7280', mb: 4 }}>
-              Tỷ lệ đúng: <span style={{ fontWeight: 'bold' }}>{result.percentage}%</span> (Ngưỡng đạt: {passingScore}%)
+            <Typography variant="body2" sx={{ color: '#64748B', mb: 3 }}>
+              Tỷ lệ chính xác: <span style={{ fontWeight: 700, color: '#0F172A' }}>{result.percentage}%</span> (Ngưỡng đạt: {passingScore}%)
             </Typography>
 
             {result.has_pending_manual_grading && (
-              <Alert severity="info" sx={{ mb: 3, textAlign: 'left' }}>
-                Bài thi có câu tự luận đang chờ giáo viên chấm điểm — điểm số ở trên là điểm tạm tính,
-                có thể thay đổi sau khi giáo viên chấm xong.
+              <Alert severity="info" sx={{ mb: 3, textAlign: 'left', borderRadius: 2.5, bgcolor: '#EFF6FF', border: '1px solid #DBEAFE', color: '#1E40AF' }}>
+                Bài thi có câu tự luận đang chờ giáo viên chấm điểm — điểm số ở trên là điểm tạm tính, có thể thay đổi sau khi giáo viên chấm xong.
               </Alert>
             )}
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-around', my: 4, p: 3, bgcolor: '#F9FAFB', borderRadius: 3 }}>
-              <Box>
-                <Typography variant="h3" sx={{ color: '#10B981', fontWeight: 'bold', mb: 1 }}>
+            {/* Bento Grid Stats */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, my: 3 }}>
+              <Box sx={{ p: 2.5, bgcolor: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: 3 }}>
+                <Typography variant="h4" sx={{ color: '#059669', fontWeight: 800, mb: 0.5 }}>
                   {result.correct_count}
                 </Typography>
-                <Typography variant="body1" sx={{ color: '#4B5563', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CheckCircleOutlined fontSize="small" /> Câu đúng
+                <Typography variant="body2" sx={{ color: '#065F46', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.8 }}>
+                  <CheckCircleOutlined fontSize="small" /> Câu trả lời đúng
                 </Typography>
               </Box>
-              <Divider orientation="vertical" flexItem />
-              <Box>
-                <Typography variant="h3" sx={{ color: '#EF4444', fontWeight: 'bold', mb: 1 }}>
+
+              <Box sx={{ p: 2.5, bgcolor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 3 }}>
+                <Typography variant="h4" sx={{ color: '#DC2626', fontWeight: 800, mb: 0.5 }}>
                   {result.incorrect_count}
                 </Typography>
-                <Typography variant="body1" sx={{ color: '#4B5563', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CancelOutlined fontSize="small" /> Câu sai
+                <Typography variant="body2" sx={{ color: '#991B1B', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.8 }}>
+                  <CancelOutlined fontSize="small" /> Câu trả lời sai
                 </Typography>
               </Box>
             </Box>
 
-            <Button
-              variant="contained"
-              size="large"
-              fullWidth
-              sx={{ py: 1.5, fontSize: '1.1rem', fontWeight: 600, borderRadius: 2, textTransform: 'none' }}
-              onClick={() => navigate('/dashboard')}
-              startIcon={<Home />}
-              aria-label="Trở về màn hình chính"
-            >
-              Trở về màn hình chính
-            </Button>
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap', mt: 4 }}>
+              <Button
+                variant="outlined"
+                onClick={() => navigate('/student/results')}
+                sx={{
+                  py: 1.2,
+                  px: 3,
+                  fontSize: '0.95rem',
+                  fontWeight: 600,
+                  borderRadius: 2.5,
+                  textTransform: 'none',
+                  borderColor: '#CBD5E1',
+                  color: '#475569',
+                }}
+              >
+                Xem lịch sử học tập
+              </Button>
+              <Button
+                variant="contained"
+                onClick={() => navigate('/dashboard')}
+                startIcon={<Home />}
+                aria-label="Trở về bảng điều khiển"
+                sx={{
+                  py: 1.2,
+                  px: 3.5,
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
+                  borderRadius: 2.5,
+                  textTransform: 'none',
+                  bgcolor: '#2563EB',
+                  '&:hover': { bgcolor: '#1D4ED8' },
+                  boxShadow: '0 2px 6px rgba(37,99,235,0.2)',
+                }}
+              >
+                Về bảng điều khiển
+              </Button>
+            </Box>
           </Paper>
         </Fade>
 
-        {/* Chi tiết từng câu — chỉ hiện được khi có dữ liệu question_results + nội dung câu hỏi thật */}
+        {/* Chi tiết từng câu */}
         {result.question_results && result.question_results.length > 0 && Object.keys(questionsMap).length > 0 && (
-          <Fade in={true} timeout={1000}>
-            <Paper sx={{ mt: 3, p: { xs: 2, md: 3 }, borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, textAlign: 'left' }}>
-                Chi tiết từng câu
+          <Fade in={true} timeout={800}>
+            <Paper sx={{ mt: 3.5, p: { xs: 2.5, md: 4 }, borderRadius: 4, border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', bgcolor: '#FFFFFF' }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, mb: 2.5, textAlign: 'left', color: '#0F172A' }}>
+                Chi tiết đáp án từng câu hỏi
               </Typography>
               {result.question_results.map((qr, idx) => {
                 const q = questionsMap[qr.question_id];

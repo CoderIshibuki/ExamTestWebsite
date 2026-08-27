@@ -106,29 +106,28 @@ export default function StudentResults() {
         </Toolbar>
       </AppBar>
 
-      {/* Header Banner */}
-      <Box sx={{ bgcolor: '#1E40AF', pt: 6, pb: 10, color: '#ffffff' }}>
-        <Container maxWidth="lg">
-          <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
+      {/* Main Container */}
+      <Container maxWidth="lg" sx={{ py: 5 }}>
+        {/* Clean Header */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A', mb: 0.5 }}>
             Kết quả học tập & Lịch sử làm bài
           </Typography>
-          <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.85)' }}>
-            Theo dõi tiến độ, điểm số và xem lại chi tiết bài làm của bạn trong từng kỳ thi.
+          <Typography variant="body2" sx={{ color: '#64748B' }}>
+            Theo dõi tiến độ học tập, điểm số và xem lại chi tiết bài làm của bạn trong từng kỳ thi.
           </Typography>
-        </Container>
-      </Box>
+        </Box>
 
-      <Container maxWidth="lg" sx={{ mt: -5, pb: 8 }}>
         {/* KPI Stats */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid size={{ xs: 12, sm: 4 }}>
-            <Paper sx={{ p: 3, borderRadius: 3, bgcolor: '#ffffff', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Paper sx={{ p: 3, borderRadius: 3.5, bgcolor: '#ffffff', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', gap: 2 }}>
               <Avatar sx={{ width: 52, height: 52, bgcolor: '#EFF6FF', color: '#2563EB' }}>
                 <AssignmentTurnedIn />
               </Avatar>
               <Box>
-                <Typography variant="body2" sx={{ color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Số bài đã nộp</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 800, color: '#1E293B' }}>{totalExamsTaken}</Typography>
+                <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Số bài đã nộp</Typography>
+                <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A' }}>{totalExamsTaken}</Typography>
               </Box>
             </Paper>
           </Grid>

@@ -146,19 +146,63 @@ const ExamRoom: React.FC = () => {
   const currentQuestion = state.questions[state.currentQuestionIndex];
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#F9FAFB', display: 'flex', flexDirection: 'column', pb: 8 }}>
-      <Paper sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 0, borderBottom: '1px solid', borderColor: 'divider', position: 'sticky', top: 0, zIndex: 1100, bgcolor: 'white' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#F8FAFC', display: 'flex', flexDirection: 'column', pb: 10 }}>
+      {/* Zen Topbar */}
+      <Paper
+        elevation={0}
+        sx={{
+          p: 1.5,
+          px: 3.5,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderBottom: '1px solid #E2E8F0',
+          position: 'sticky',
+          top: 0,
+          zIndex: 1100,
+          bgcolor: '#FFFFFF',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px', width: 20 }}>
+            <Box sx={{ width: 9, height: 9, bgcolor: '#E53935', borderRadius: '2px' }} />
+            <Box sx={{ width: 9, height: 9, bgcolor: '#2563EB', borderRadius: '2px' }} />
+            <Box sx={{ width: 9, height: 9, bgcolor: '#FDD835', borderRadius: '2px' }} />
+            <Box sx={{ width: 9, height: 9, bgcolor: '#10B981', borderRadius: '2px' }} />
+          </Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0F172A', display: { xs: 'none', sm: 'block' } }}>
+            Phòng thi trực tuyến
+          </Typography>
+        </Box>
+
+        {/* Center Timer */}
         <Timer timeLeft={timeLeft} isWarning={isWarning} formattedTime={formattedTime} />
-        <Typography variant="h6" sx={{ fontWeight: 600, display: { xs: 'none', sm: 'block' } }}>
-          Câu hỏi {state.currentQuestionIndex + 1} / {state.totalQuestions}
-        </Typography>
-        <Button variant="contained" color="secondary" onClick={handleFinish} disabled={state.status === 'submitting'} aria-label="Nộp bài">
-          {state.status === 'submitting' ? 'Đang nộp...' : 'Nộp bài'}
+
+        {/* Action Button */}
+        <Button
+          variant="contained"
+          onClick={handleFinish}
+          disabled={state.status === 'submitting'}
+          aria-label="Nộp bài"
+          sx={{
+            bgcolor: '#10B981',
+            '&:hover': { bgcolor: '#059669' },
+            textTransform: 'none',
+            borderRadius: 2.5,
+            fontWeight: 700,
+            px: 3,
+            py: 0.9,
+            boxShadow: '0 2px 6px rgba(16,185,129,0.2)',
+          }}
+        >
+          {state.status === 'submitting' ? 'Đang nộp...' : 'Nộp bài thi'}
         </Button>
       </Paper>
 
+      {/* Main Workspace */}
       <Container maxWidth="xl" sx={{ flexGrow: 1, py: 4 }}>
-        <Grid container spacing={4}>
+        <Grid container spacing={3.5}>
+          {/* Question Panel Area */}
           <Grid size={{ xs: 12, lg: 8 }} sx={{ order: { xs: 2, lg: 1 } }}>
             {currentQuestion ? (
               <QuestionPanel
@@ -169,67 +213,156 @@ const ExamRoom: React.FC = () => {
                 totalQuestions={state.totalQuestions}
               />
             ) : (
-              <Box sx={{ textAlign: 'center', p: 4 }}><Typography>Đang tải câu hỏi...</Typography></Box>
+              <Box sx={{ textAlign: 'center', p: 6 }}><Typography>Đang tải câu hỏi...</Typography></Box>
             )}
 
-            <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
-              <Button variant="outlined" disabled={state.currentQuestionIndex === 0} onClick={prevQuestion} aria-label="Câu trước">Câu trước</Button>
-              <Button variant="outlined" disabled={state.currentQuestionIndex === state.totalQuestions - 1} onClick={nextQuestion} aria-label="Câu tiếp theo">Câu tiếp</Button>
+            <Box sx={{ mt: 3.5, display: 'flex', justifyContent: 'space-between' }}>
+              <Button
+                variant="outlined"
+                disabled={state.currentQuestionIndex === 0}
+                onClick={prevQuestion}
+                sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 600, px: 3, borderColor: '#CBD5E1', color: '#475569' }}
+              >
+                ← Câu trước
+              </Button>
+              <Button
+                variant="contained"
+                disabled={state.currentQuestionIndex === state.totalQuestions - 1}
+                onClick={nextQuestion}
+                sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, px: 3, bgcolor: '#2563EB', '&:hover': { bgcolor: '#1D4ED8' } }}
+              >
+                Câu tiếp theo →
+              </Button>
             </Box>
           </Grid>
           
+          {/* Bento Matrix Question Navigator */}
           <Grid size={{ xs: 12, lg: 4 }} sx={{ order: { xs: 1, lg: 2 } }}>
-            <Paper sx={{ p: 3, borderRadius: 3, position: { lg: 'sticky' }, top: 100 }}>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>Danh sách câu hỏi</Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(48px, 1fr))', gap: 1.5, mt: 2 }} role="group" aria-label="Điều hướng câu hỏi">
+            <Paper
+              sx={{
+                p: 3,
+                borderRadius: 3.5,
+                border: '1px solid #E2E8F0',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                position: { lg: 'sticky' },
+                top: 85,
+                bgcolor: '#FFFFFF',
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0F172A' }}>
+                  Mục lục câu hỏi
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 600 }}>
+                  Đã làm: {Object.values(state.answers).filter(a => Array.isArray(a) ? a.length > 0 : !!a).length} / {state.totalQuestions}
+                </Typography>
+              </Box>
+
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(44px, 1fr))', gap: 1.2, mb: 3 }} role="group" aria-label="Điều hướng câu hỏi">
                 {state.questions.map((q, idx) => {
                   const ans = state.answers[q.id];
                   const answered = Array.isArray(ans) ? ans.length > 0 : !!ans;
+                  const isCurrent = state.currentQuestionIndex === idx;
+                  
+                  let bgColor = '#F8FAFC';
+                  let textColor = '#475569';
+                  let borderColor = '#E2E8F0';
+
+                  if (isCurrent) {
+                    bgColor = '#2563EB';
+                    textColor = '#FFFFFF';
+                    borderColor = '#2563EB';
+                  } else if (answered) {
+                    bgColor = '#ECFDF5';
+                    textColor = '#059669';
+                    borderColor = '#A7F3D0';
+                  }
+
                   return (
-                  <Button
-                    key={q.id}
-                    variant={answered ? 'contained' : 'outlined'}
-                    color={state.currentQuestionIndex === idx ? 'primary' : answered ? 'success' : 'inherit'}
-                    sx={{ minWidth: 0, height: 48, borderRadius: 2, fontWeight: 600, p: 0 }}
-                    onClick={() => goToQuestion(idx)}
-                    aria-label={`Đi tới câu hỏi ${idx + 1}`}
-                    aria-current={state.currentQuestionIndex === idx ? 'true' : 'false'}
-                  >
-                    {idx + 1}
-                  </Button>
+                    <Button
+                      key={q.id}
+                      onClick={() => goToQuestion(idx)}
+                      sx={{
+                        minWidth: 0,
+                        height: 44,
+                        borderRadius: 2,
+                        fontWeight: 700,
+                        fontSize: '0.9rem',
+                        p: 0,
+                        bgcolor: bgColor,
+                        color: textColor,
+                        border: `1.5px solid ${borderColor}`,
+                        '&:hover': {
+                          bgcolor: isCurrent ? '#1D4ED8' : '#EFF6FF',
+                          borderColor: '#2563EB',
+                        },
+                      }}
+                      aria-label={`Đi tới câu hỏi ${idx + 1}`}
+                      aria-current={isCurrent ? 'true' : 'false'}
+                    >
+                      {idx + 1}
+                    </Button>
                   );
                 })}
+              </Box>
+
+              {/* Status Legend */}
+              <Box sx={{ pt: 2, borderTop: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: '#2563EB' }} />
+                  <Typography variant="caption" sx={{ color: '#475569', fontWeight: 500 }}>Đang xem</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: '#ECFDF5', border: '1px solid #A7F3D0' }} />
+                  <Typography variant="caption" sx={{ color: '#475569', fontWeight: 500 }}>Đã chọn đáp án</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0' }} />
+                  <Typography variant="caption" sx={{ color: '#475569', fontWeight: 500 }}>Chưa trả lời</Typography>
+                </Box>
               </Box>
             </Paper>
           </Grid>
         </Grid>
       </Container>
 
-      {/* Khung camera nhỏ nổi góc màn hình — minh bạch cho thí sinh biết đang được giám sát
-          qua camera (Face Mesh + phát hiện vật thể chạy hoàn toàn trong trình duyệt máy
-          thí sinh, không có hình ảnh nào được gửi lên server, chỉ gửi sự kiện vi phạm). */}
-      <Box sx={{ position: 'fixed', bottom: 90, right: 16, zIndex: 1150, width: 160 }}>
+      {/* Floating PIP Camera */}
+      <Box sx={{ position: 'fixed', bottom: 70, right: 20, zIndex: 1150, width: 160 }}>
         {cameraError ? (
-          <Paper sx={{ p: 1.5, bgcolor: '#FEF2F2', border: '1px solid', borderColor: 'error.light', borderRadius: 2 }}>
-            <Typography variant="caption" color="error.main">{cameraError}</Typography>
+          <Paper sx={{ p: 1.5, bgcolor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 2.5, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+            <Typography variant="caption" color="error.main" sx={{ fontWeight: 600 }}>{cameraError}</Typography>
           </Paper>
         ) : (
-          <Paper sx={{ p: 0.5, borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+          <Paper sx={{ p: 0.6, borderRadius: 2.5, overflow: 'hidden', border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', bgcolor: '#FFFFFF' }}>
             <video
               ref={videoRef}
               muted
               playsInline
               aria-label="Camera giám sát thi (chỉ hiển thị cho bạn, không lưu hình ảnh)"
-              style={{ width: '100%', borderRadius: 6, display: 'block', transform: 'scaleX(-1)', opacity: cameraReady ? 1 : 0.3 }}
+              style={{ width: '100%', borderRadius: 8, display: 'block', transform: 'scaleX(-1)', opacity: cameraReady ? 1 : 0.3 }}
             />
-            <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', color: 'text.secondary', mt: 0.5 }}>
-              {cameraReady ? 'Đang giám sát' : 'Đang kết nối camera...'}
+            <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', color: '#64748B', fontWeight: 600, mt: 0.5, fontSize: '0.7rem' }}>
+              {cameraReady ? '● AI Giám sát ON' : 'Đang mở camera...'}
             </Typography>
           </Paper>
         )}
       </Box>
 
-      <Paper sx={{ p: 1.5, display: 'flex', justifyContent: 'center', borderRadius: 0, borderTop: '1px solid', borderColor: 'divider', position: 'fixed', bottom: 0, width: '100%', zIndex: 1200, bgcolor: 'white' }}>
+      {/* Bottom Status Pill */}
+      <Paper
+        elevation={0}
+        sx={{
+          p: 1.2,
+          display: 'flex',
+          justifyContent: 'center',
+          borderTop: '1px solid #E2E8F0',
+          position: 'fixed',
+          bottom: 0,
+          width: '100%',
+          zIndex: 1200,
+          bgcolor: '#FFFFFF',
+        }}
+      >
         <ProctoringStatus isActive={isActive} violationCount={violationCount} />
       </Paper>
 
