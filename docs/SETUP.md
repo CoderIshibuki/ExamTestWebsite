@@ -1,138 +1,324 @@
-# Hướng dẫn dựng môi trường phát triển
+# HƯỚNG DẪN CÀI ĐẶT & TRIỂN KHAI HỆ THỐNG CHI TIẾT
+> **ExamSystem** — Nền tảng Khảo thí & Giám thị Trực tuyến Chuẩn AI (Microservices Architecture).
 
-## Vì sao nên dùng Docker?
+---
 
-Dự án này có kiến trúc **microservices**: 6 backend service Python (FastAPI) riêng biệt, 3 loại database (PostgreSQL, MongoDB, Redis), 1 Celery worker và 1 API Gateway (nginx). Nếu không dùng Docker, bạn phải tự cài và cấu hình từng thành phần này thủ công, chạy tay ~9 tiến trình song song, và tự sửa mọi biến môi trường trỏ đúng `localhost` thay vì tên container nội bộ.
+## 📌 MỤC LỤC
 
-Docker Compose gói toàn bộ việc đó vào một lệnh duy nhất, chạy giống hệt nhau trên mọi hệ điều hành (Windows/Mac/Linux).
+1. [Yêu cầu Hệ thống & Phần mềm](#1-yêu-cầu-hệ-thống--phần-mềm)
+2. [Cài đặt Nhanh bằng Docker & Docker Compose (Khuyên dùng ⭐⭐⭐⭐⭐)](#2-cài-đặt-nhanh-bằng-docker--docker-compose-khuyên-dùng-)
+   - [Bước 1: Clone mã nguồn từ GitHub](#bước-1-clone-mã-nguồn-từ-github)
+   - [Bước 2: Cấu hình Biến môi trường (.env)](#bước-2-cấu-hình-biến-môi-trường-env)
+   - [Bước 3: Tạo Chứng chỉ SSL Dev](#bước-3-tạo-chứng-chỉ-ssl-dev)
+   - [Bước 4: Khởi động toàn bộ Hệ thống](#bước-4-khởi-động-toàn-bộ-hệ-thống)
+   - [Bước 5: Kiểm tra Trạng thái Dịch vụ & Đăng nhập](#bước-5-kiểm-tra-trạng-thái-dịch-vụ--đăng-nhập)
+3. [Cài đặt & Khởi chạy Thủ công (Không dùng Docker)](#3-cài-đặt--khởi-chạy-thủ-công-không-dùng-docker)
+   - [3.1. Cài đặt 3 Cơ sở Dữ liệu](#31-cài-đặt-3-cơ-sở-dữ-liệu)
+   - [3.2. Cấu hình & Chạy từng Backend Service](#32-cấu-hình--chạy-từng-backend-service)
+   - [3.3. Cài đặt Nginx API Gateway](#33-cài-đặt-nginx-api-gateway)
+   - [3.4. Khởi chạy Frontend React](#34-khởi-chạy-frontend-react)
+4. [Chạy Frontend riêng biệt để Phát triển Giao diện](#4-chạy-frontend-riêng-biệt-để-phát-triển-giao-diện)
+5. [Cấu hình Model AI Giám sát (MediaPipe & YOLOv8n)](#5-cấu-hình-model-ai-giám-sát-mediapipe--yolov8n)
+6. [Lệnh Quản trị & Vận hành Thường dùng (Cheat Sheet)](#6-lệnh-quản-trị--vận-hành-thường-dùng-cheat-sheet)
+7. [Khắc phục Sự cố Cài đặt Thường gặp (Troubleshooting)](#7-khắc-phục-sự-cố-cài-đặt-thường-gặp-troubleshooting)
 
-## 1. Cài Docker
+---
 
-- **Windows/Mac:** cài [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- **Linux (Ubuntu/Debian):**
-  ```bash
-  sudo apt update
-  sudo apt install docker.io docker-compose-plugin
-  ```
+## 1. Yêu cầu Hệ thống & Phần mềm
 
-## 2. Clone repo & cấu hình biến môi trường
+### 1.1. Cấu hình Phần cứng Tối thiểu
+* **CPU:** 4 Cores (khuyến nghị 4-8 Cores để chạy mượt 6 microservices và AI Vision).
+* **RAM:** Tối thiểu 8 GB (khuyến nghị 16 GB).
+* **Dung lượng ổ đĩa:** Tối thiểu 10 GB trống (cho Docker images và Database volumes).
 
+### 1.2. Phần mềm Cần chuẩn bị
+| Phần mềm | Phiên bản yêu cầu | Mục đích |
+| :--- | :--- | :--- |
+| **Git** | 2.30+ | Tải mã nguồn |
+| **Docker Desktop** *(Win/Mac)* hoặc **Docker Engine** *(Linux)* | 24.0+ & Compose v2 | Đóng gói và chạy toàn bộ dịch vụ |
+| **Node.js** *(Tuỳ chọn)* | 18.x - 22.x LTS | Chỉ cần khi chạy Frontend ngoài Docker |
+| **Python** *(Tuỳ chọn)* | 3.11+ | Dùng chạy script sinh SSL hoặc chạy Backend không qua Docker |
+
+---
+
+## 2. Cài đặt Nhanh bằng Docker & Docker Compose (Khuyên dùng ⭐⭐⭐⭐⭐)
+
+Đây là phương pháp chuẩn hoá nhất. Docker sẽ tự động tải các cơ sở dữ liệu, build 6 dịch vụ backend, cấu hình mạng nội bộ và khởi chạy Nginx Gateway chỉ với **1 lệnh duy nhất**.
+
+### Bước 1: Clone mã nguồn từ GitHub
+Mở Terminal / PowerShell và chạy:
 ```bash
 git clone https://github.com/CoderIshibuki/ExamTestWebsite.git
 cd ExamTestWebsite
-cp .env.example .env
-cp frontend/.env.example frontend/.env
 ```
 
-Mở file `.env` vừa tạo và điền giá trị thật (mật khẩu DB, `JWT_SECRET` ngẫu nhiên đủ mạnh,...). **Không commit các file `.env` này lên Git** — xem chi tiết từng biến tại [ENV_VARS.md](ENV_VARS.md).
+---
 
-> `frontend/.env` mặc định `VITE_API_URL=/api` — **không đổi thành `/api/v1`**, vì các API client trong `frontend/src/api/*.ts` đã tự thêm tiền tố `/v1/...` vào sau baseURL. Đổi giá trị này sẽ khiến toàn bộ API thi/chấm điểm/giám sát bị lỗi 404 (double `/v1/v1/`).
+### Bước 2: Cấu hình Biến môi trường (.env)
+Tạo file cấu hình từ file mẫu có sẵn:
 
-## 3. Tạo SSL certificate (dev, self-signed)
+* Trên **Linux / macOS**:
+  ```bash
+  cp .env.example .env
+  cp frontend/.env.example frontend/.env
+  ```
+* Trên **Windows PowerShell**:
+  ```powershell
+  Copy-Item .env.example .env
+  Copy-Item frontend/.env.example frontend/.env
+  ```
 
-Nginx gateway lắng nghe cả HTTPS (443), cần cert. Không commit cert lên Git — mỗi máy tự tạo cert riêng:
+#### Kiểm tra các biến quan trọng trong file `.env`:
+Mở file `.env` bằng trình soạn thảo (VS Code / Notepad / Vim):
+```ini
+# --- BẢO MẬT & JWT ---
+JWT_SECRET=your_super_secret_jwt_key_at_least_32_chars_long
+INTERNAL_SERVICE_TOKEN=your_internal_service_secret_token_here
+
+# --- CƠ SỞ DỮ LIỆU ---
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=exam_system
+
+MONGO_INITDB_ROOT_USERNAME=mongo
+MONGO_INITDB_ROOT_PASSWORD=mongo
+MONGO_URI=mongodb://mongo:mongo@mongodb:27017
+
+REDIS_HOST=redis
+REDIS_PORT=6379
+
+# --- EMAIL (TUỲ CHỌN) ---
+# Nếu chưa có SMTP thật, để trống hệ thống sẽ log link reset password ra console
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM=no-reply@examsystem.local
+```
+
+> ⚠️ **LƯU Ý QUAN TRỌNG VỀ `frontend/.env`:**
+> Giá trị mặc định là `VITE_API_URL=/api` — **TUYỆT ĐỐI KHÔNG ĐỔI thành `/api/v1`**, vì code frontend đã tự động gắn tiền tố `/v1/...`. Nếu sửa sẽ gây lỗi 404 toàn bộ hệ thống (`/api/v1/v1/...`).
+
+---
+
+### Bước 3: Tạo Chứng chỉ SSL Dev (HTTPS)
+Nginx Gateway yêu cầu chứng chỉ SSL để hỗ trợ giao thức HTTPS và cấp quyền Camera WebRTC trên trình duyệt:
 
 ```bash
+# Cài đặt thư viện cryptography (nếu máy chưa có)
 pip install cryptography
+
+# Chạy script tự động sinh cert nội bộ
 python scripts/generate_ssl.py
 ```
-
-Script sẽ tạo `nginx/ssl/cert.pem` và `nginx/ssl/key.pem` (tự động bị `.gitignore` bỏ qua).
-
-## 4. Dựng toàn bộ hệ thống
-
-```bash
-docker compose up --build
-```
-
-Lần đầu chạy sẽ build image cho 6 service Python + tải image PostgreSQL/MongoDB/Redis/nginx — có thể mất vài phút. Các lần sau chỉ cần:
-
-```bash
-docker compose up
-```
-
-Kiểm tra các service đã "healthy":
-```bash
-docker compose ps
-```
-
-## 5. Truy cập ứng dụng
-
-- Ứng dụng (qua API Gateway): `http://localhost`
-- Swagger docs (Auth service): `http://localhost/docs`
-- Từng service riêng lẻ (debug): `http://localhost:800{0..5}/health`
-
-## 6. Dừng / dọn dẹp
-
-```bash
-docker compose down            # dừng, giữ lại dữ liệu (volumes)
-docker compose down -v         # dừng và xoá luôn dữ liệu database
-```
+*Script sẽ tự động tạo `nginx/ssl/cert.pem` và `nginx/ssl/key.pem`.*
 
 ---
 
-## Chạy frontend riêng để phát triển giao diện
-
-Nếu chỉ sửa UI và có backend chạy sẵn (Docker ở máy khác, hoặc server dùng chung), không cần cài Docker ở máy làm việc — chỉ cần Node.js:
+### Bước 4: Khởi động toàn bộ Hệ thống
+Chạy lệnh khởi động Docker Compose:
 
 ```bash
-cd frontend
-npm install
-npm run dev
+docker compose up --build -d
 ```
-
-Sửa `frontend/.env` để `VITE_API_URL` trỏ tới backend đang chạy (VD: `http://192.168.1.10/api` nếu backend chạy ở máy khác trong cùng mạng LAN).
+*Lần đầu chạy sẽ mất khoảng 2-5 phút để tải Docker images và build container.*
 
 ---
 
-## Chạy không dùng Docker
+### Bước 5: Kiểm tra Trạng thái Dịch vụ & Đăng nhập
 
-Chỉ nên làm khi thực sự không thể cài Docker (VD: máy công ty bị khoá quyền admin). Cân nhắc dùng 1 VPS nhỏ có sẵn Docker thay vì làm theo cách này nếu có thể.
+1. **Kiểm tra trạng thái các container:**
+   ```bash
+   docker compose ps
+   ```
+   *Tất cả 10 container (`nginx`, `auth_service`, `question_service`, `exam_service`, `realtime_service`, `grading_service`, `celery_worker`, `proctoring_service`, `postgres`, `mongodb`, `redis`) phải ở trạng thái `Up / healthy`.*
 
-### 1. Cài database
+2. **Tài khoản Quản trị viên (Admin) mặc định:**
+   Hệ thống đã tự động chạy script seed tài khoản admin đầu tiên khi khởi động:
+   * **URL truy cập:** `http://localhost` (hoặc `https://localhost`)
+   * **Username:** `admin`
+   * **Password:** `Admin@123456`
+   * **Email:** `admin@example.com`
 
-Cài PostgreSQL 15, MongoDB 6, Redis 7 trực tiếp lên máy — cấu hình user/password/port khớp với giá trị trong `.env`.
+3. **Cổng kiểm tra Swagger API Documentation:**
+   * Auth Service Docs: `http://localhost/docs` (hoặc `http://localhost:8000/docs`)
+   * Question Service Docs: `http://localhost:8001/docs`
+   * Exam Service Docs: `http://localhost:8002/docs`
+   * Grading Service Docs: `http://localhost:8004/docs`
+   * Proctoring Service Docs: `http://localhost:8005/docs`
 
-### 2. Chạy từng backend service
+---
 
-Với **mỗi** service trong `backend/{auth,question,exam,realtime,grading,proctoring}_service`:
+## 3. Cài đặt & Khởi chạy Thủ công (Không dùng Docker)
 
+*Phương pháp này chỉ áp dụng khi máy tính của bạn không thể cài đặt Docker.*
+
+### 3.1. Cài đặt 3 Cơ sở Dữ liệu
+1. **PostgreSQL 15+**:
+   - Cài đặt PostgreSQL, tạo database `exam_system`.
+   - Cấp quyền cho user `postgres` với password `postgres`.
+2. **MongoDB 6+**:
+   - Cài đặt MongoDB Community Server, chạy cổng `27017`.
+3. **Redis 7+**:
+   - Cài đặt Redis server, chạy cổng `6379`.
+
+---
+
+### 3.2. Cấu hình & Chạy từng Backend Service
+Mỗi service nằm trong thư mục con của `backend/`. Bạn cần mở **6 cửa sổ Terminal** riêng biệt:
+
+#### 1. `auth_service` (Cổng 8000):
 ```bash
 cd backend/auth_service
-python -m venv venv
-source venv/bin/activate      # Windows: venv\Scripts\activate
+python -m venv venv && source venv/bin/activate  # Trên Windows: venv\Scripts\activate
 pip install -r requirements.txt
-# Sửa biến môi trường trong .env: đổi các host "postgres", "mongodb", "redis"
-# thành "localhost" vì không còn Docker network nội bộ nữa.
-uvicorn main:app --reload --port 8000
+alembic upgrade head
+python create_admin.py
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Lặp lại cho các service còn lại, mỗi service dùng 1 cổng riêng (xem bảng cổng trong [README.md](../README.md#kiến-trúc-hệ-thống)) và 1 terminal riêng.
+#### 2. `question_service` (Cổng 8001):
+```bash
+cd backend/question_service
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+```
 
-### 3. Chạy Celery worker (cho grading_service)
+#### 3. `exam_service` (Cổng 8002):
+```bash
+cd backend/exam_service
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn main:app --host 0.0.0.0 --port 8002 --reload
+```
 
+#### 4. `realtime_service` (Cổng 8003):
+```bash
+cd backend/realtime_service
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 8003 --reload
+```
+
+#### 5. `grading_service` & Celery Worker (Cổng 8004):
 ```bash
 cd backend/grading_service
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+alembic upgrade head
+
+# Terminal 5A: Chạy API
+uvicorn main:app --host 0.0.0.0 --port 8004 --reload
+
+# Terminal 5B: Chạy Celery Background Worker
 celery -A tasks.celery_app worker --loglevel=info
 ```
 
-### 4. Cấu hình nginx thật
+#### 6. `proctoring_service` (Cổng 8005):
+```bash
+cd backend/proctoring_service
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn main:app --host 0.0.0.0 --port 8005 --reload
+```
 
-Chép nội dung `nginx/nginx.conf` vào cấu hình nginx cài trên máy, sửa các `upstream` từ tên container (`auth_service:8000`) thành `localhost:8000`, `localhost:8001`,...
+---
 
-### 5. Chạy frontend
+### 3.3. Cài đặt Nginx API Gateway
+1. Cài đặt Nginx trên máy.
+2. Sao chép file cấu hình `nginx/nginx.conf` vào thư mục cấu hình của Nginx (`/etc/nginx/nginx.conf` hoặc `C:\nginx\conf\nginx.conf`).
+3. Khởi động Nginx: `nginx -s reload`.
 
+---
+
+### 3.4. Khởi chạy Frontend React
+Mở terminal tại thư mục `frontend`:
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+Truy cập: `http://localhost:5173`.
 
-## Troubleshooting
+---
 
-| Triệu chứng | Nguyên nhân thường gặp |
-|---|---|
-| Gọi API bị 404 khắp nơi (trừ đăng nhập) | `VITE_API_URL` bị đặt sai (`/api/v1` thay vì `/api`) — xem mục 2 |
-| `docker compose up` báo lỗi thiếu biến môi trường | Chưa `cp .env.example .env` hoặc thiếu biến — xem [ENV_VARS.md](ENV_VARS.md) |
-| nginx không khởi động được (thiếu cert) | Chưa chạy `python scripts/generate_ssl.py` |
-| Đăng nhập được nhưng vào trang nào cũng bị đá về `/login` | `JWT_SECRET` khác nhau giữa các service — đảm bảo dùng chung 1 file `.env` |
+## 4. Chạy Frontend riêng biệt để Phát triển Giao diện
+
+Nếu bạn là Frontend Developer và đã có backend đang chạy trong Docker (hoặc trên Server chung):
+```bash
+cd frontend
+
+# Cài đặt toàn bộ thư viện
+npm install
+
+# Khởi chạy Vite Dev Server (Hỗ trợ Hot Module Replacement tức thì)
+npm run dev
+```
+
+* **Kiểm tra lỗi TypeScript:** `npm run build`
+* **Chạy bộ kiểm thử tự động:** `npm test`
+
+---
+
+## 5. Cấu hình Model AI Giám sát (MediaPipe & YOLOv8n)
+
+### 5.1. MediaPipe Face Landmarker (Nhận diện khuôn mặt & Hướng nhìn)
+* Model và WASM runtime được cấu hình tải tự động từ CDN chính thức của Google MediaPipe lúc thí sinh vào phòng thi. Không cần tải thủ công.
+
+### 5.2. YOLOv8n ONNX (Phát hiện Điện thoại / Sách lạ - Tuỳ chọn)
+Để kích hoạt tính năng nhận diện thiết bị gian lận ngoại vi:
+1. Mở terminal và xuất model ONNX:
+   ```bash
+   pip install ultralytics
+   python -c "from ultralytics import YOLO; YOLO('yolov8n.pt').export(format='onnx')"
+   ```
+2. Sao chép file `yolov8n.onnx` vừa tạo vào thư mục:
+   `frontend/public/models/yolov8n.onnx`
+*(Nếu chưa đặt file, hệ thống sẽ tự động tắt tính năng nhận diện vật thể một cách an toàn mà không gây lỗi trang thi).*
+
+---
+
+## 6. Lệnh Quản trị & Vận hành Thường dùng (Cheat Sheet)
+
+| Mục đích | Lệnh thực thi |
+| :--- | :--- |
+| **Xem log realtime của 1 service** | `docker compose logs -f auth_service` |
+| **Xem log toàn bộ hệ thống** | `docker compose logs -f` |
+| **Khởi động lại 1 service** | `docker compose restart realtime_service` |
+| **Dừng hệ thống (giữ nguyên dữ liệu DB)** | `docker compose down` |
+| **Xoá toàn bộ hệ thống & dữ liệu DB** | `docker compose down -v` |
+| **Build lại sau khi sửa code backend/docker** | `docker compose up --build -d` |
+| **Chạy test frontend (Vitest)** | `cd frontend && npm test` |
+| **Chạy test backend (Pytest)** | `pytest backend/tests` |
+
+---
+
+## 7. Khắc phục Sự cố Cài đặt Thường gặp (Troubleshooting)
+
+### ❌ Sự cố 1: Lỗi cổng 80 hoặc 443 bị chiếm (`port is already allocated`)
+* **Nguyên nhân:** Máy tính đang chạy IIS (Windows), Apache, Skype hoặc phần mềm web server khác.
+* **Cách xử lý:**
+  1. Kiểm tra tiến trình đang chiếm cổng: `netstat -ano | findstr :80` (Windows) hoặc `sudo lsof -i :80` (Linux/Mac).
+  2. Tắt dịch vụ xung đột hoặc đổi cổng ngoài của Nginx trong `docker-compose.yml` (VD: `"8080:80"`, `"8443:443"`).
+
+### ❌ Sự cố 2: Trình duyệt cảnh báo "Kết nối của bạn không phải là riêng tư" (HTTPS SSL)
+* **Nguyên nhân:** Chứng chỉ SSL do script `generate_ssl.py` tự ký (self-signed) cho môi trường dev.
+* **Cách xử lý:**
+  - Nhấp vào nút **Nâng cao (Advanced)** trên Chrome/Edge/Firefox → Chọn **Tiếp tục truy cập localhost (Không an toàn)**.
+
+### ❌ Sự cố 3: MongoDB không kết nối được / Sai mật khẩu
+* **Nguyên nhân:** Tên biến môi trường trong file `.env` chưa đúng chuẩn.
+* **Cách xử lý:**
+  - Đảm bảo trong `.env` sử dụng biến `MONGO_URI=mongodb://mongo:mongo@mongodb:27017` (thay vì `MONGODB_URL`).
+
+### ❌ Sự cố 4: Gặp lỗi 404 khi gọi API từ Frontend
+* **Nguyên nhân:** Cấu hình `VITE_API_URL` bị đặt thành `/api/v1`.
+* **Cách xử lý:**
+  - Mở `frontend/.env` và đảm bảo: `VITE_API_URL=/api`.
+
+---
+
+*Tài liệu được cập nhật đầy đủ và đồng bộ theo phiên bản mới nhất của ExamTestWebsite.*
