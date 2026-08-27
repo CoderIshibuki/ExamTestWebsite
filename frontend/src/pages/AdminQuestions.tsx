@@ -1,19 +1,22 @@
-import { Box, Button, Typography, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, Chip, Snackbar } from '@mui/material';
+import { Box, Button, Typography, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, Chip, Snackbar, IconButton, Tooltip } from '@mui/material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import type { GridColDef } from '@mui/x-data-grid';
 import { useState, useEffect, useRef } from 'react';
 import { adminApi } from '../api/adminApi';
 import * as xlsx from 'xlsx';
 import { transformExcelRowsToQuestions } from '../utils/excelQuestionTransform';
-import { CloudUpload, Delete as DeleteIcon, Add as AddIcon, Download as DownloadIcon } from '@mui/icons-material';
+import { CloudUpload, Delete as DeleteIcon, Add as AddIcon, Download as DownloadIcon, Edit as EditIcon } from '@mui/icons-material';
 import ManualQuestionDialog from '../components/ManualQuestionDialog';
 
-// Shape thật trả về từ question_service (QuestionModel), không phải {text, category, difficulty} phẳng.
+// Shape thật trả về từ question_service (QuestionModel)
 interface Question {
   id: string;
   content: { text: string };
   type: string;
   metadata: { subject: string; difficulty: string };
+  options?: any[];
+  correct_answer?: any;
+  category_id?: string;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -30,6 +33,7 @@ const AdminQuestions = () => {
   const [error, setError] = useState('');
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<any | null>(null);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -67,9 +71,6 @@ const AdminQuestions = () => {
         const worksheet = workbook.Sheets[sheetName];
         const rows = xlsx.utils.sheet_to_json(worksheet);
 
-        // Chuyển từ bảng Excel phẳng sang đúng cấu trúc JSON backend yêu cầu — trước đây
-        // gửi thẳng dữ liệu thô nên luôn bị từ chối (trừ khi file có sẵn cấu trúc JSON lồng
-        // nhau, không thực tế với 1 file Excel bình thường).
         const { payloads, errors } = transformExcelRowsToQuestions(rows as any[]);
 
         if (payloads.length === 0) {
@@ -116,10 +117,27 @@ const AdminQuestions = () => {
     }
   };
 
-  const handleCreateQuestion = async (payload: any) => {
-    await adminApi.createQuestion(payload);
+  const handleOpenCreate = () => {
+    setEditingQuestion(null);
+    setCreateOpen(true);
+  };
+
+  const handleEditClick = (question: any) => {
+    setEditingQuestion(question);
+    setCreateOpen(true);
+  };
+
+  const handleSaveQuestion = async (payload: any) => {
+    const qId = editingQuestion?.id || editingQuestion?._id;
+    if (qId) {
+      await adminApi.updateQuestion(qId, payload);
+      setSnackbar({ open: true, message: 'Đã cập nhật câu hỏi thành công.', severity: 'success' });
+    } else {
+      await adminApi.createQuestion(payload);
+      setSnackbar({ open: true, message: 'Đã tạo câu hỏi mới.', severity: 'success' });
+    }
     setCreateOpen(false);
-    setSnackbar({ open: true, message: 'Đã tạo câu hỏi mới.', severity: 'success' });
+    setEditingQuestion(null);
     fetchQuestions();
   };
 
@@ -155,7 +173,7 @@ const AdminQuestions = () => {
       flex: 1.5,
       minWidth: 180,
       renderCell: (params) => (
-        <Chip label={TYPE_LABELS[params.value] || params.value} size="small" color="primary" variant="outlined" />
+        <Chip label={TYPE_LABELS[params.value] || params.value} size="small" color="primary" variant="outlined" sx={{ borderRadius: 1 }} />
       ),
     },
     {
@@ -165,7 +183,7 @@ const AdminQuestions = () => {
       minWidth: 150,
       valueGetter: (_value, row) => row.metadata?.subject || '',
       renderCell: (params) => (
-        <Box sx={{ bgcolor: '#e3f2fd', color: '#1976d2', px: 1.5, py: 0.5, borderRadius: 2, fontSize: '0.85rem', fontWeight: 600 }}>
+        <Box sx={{ bgcolor: '#EFF6FF', color: '#2563EB', px: 1.5, py: 0.5, borderRadius: 1, fontSize: '0.85rem', fontWeight: 600 }}>
           {params.value || 'Chung'}
         </Box>
       ),
@@ -173,20 +191,33 @@ const AdminQuestions = () => {
     {
       field: 'actions',
       headerName: 'Hành động',
-      width: 100,
+      width: 120,
       align: 'center',
       headerAlign: 'center',
       sortable: false,
       renderCell: (params) => (
-        <Button
-          variant="outlined"
-          color="error"
-          size="small"
-          onClick={() => handleDeleteClick(params.row.id || params.row._id)}
-          sx={{ borderRadius: 2, minWidth: 0, p: 1 }}
-        >
-          <DeleteIcon fontSize="small" />
-        </Button>
+        <Box sx={{ display: 'flex', gap: 0.8, alignItems: 'center', justifyContent: 'center' }}>
+          <Tooltip title="Chỉnh sửa câu hỏi">
+            <IconButton
+              size="small"
+              color="primary"
+              onClick={() => handleEditClick(params.row)}
+              sx={{ bgcolor: '#EFF6FF', borderRadius: 1, p: 0.8, '&:hover': { bgcolor: '#DBEAFE' } }}
+            >
+              <EditIcon sx={{ fontSize: 17 }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Xoá câu hỏi">
+            <IconButton
+              size="small"
+              color="error"
+              onClick={() => handleDeleteClick(params.row.id || params.row._id)}
+              sx={{ bgcolor: '#FEF2F2', borderRadius: 1, p: 0.8, '&:hover': { bgcolor: '#FEE2E2' } }}
+            >
+              <DeleteIcon sx={{ fontSize: 17 }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
       ),
     },
   ];
@@ -209,7 +240,7 @@ const AdminQuestions = () => {
             variant="outlined"
             startIcon={<CloudUpload />}
             onClick={() => fileInputRef.current?.click()}
-            sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 600, px: 2.5, py: 0.9, borderColor: '#CBD5E1', color: '#475569' }}
+            sx={{ borderRadius: 1.5, textTransform: 'none', fontWeight: 600, px: 2.5, py: 0.8, borderColor: '#CBD5E1', color: '#475569' }}
           >
             Import Excel
           </Button>
@@ -217,23 +248,22 @@ const AdminQuestions = () => {
             variant="outlined"
             startIcon={<DownloadIcon />}
             onClick={handleExport}
-            sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 600, px: 2.5, py: 0.9, borderColor: '#CBD5E1', color: '#475569' }}
+            sx={{ borderRadius: 1.5, textTransform: 'none', fontWeight: 600, px: 2.5, py: 0.8, borderColor: '#CBD5E1', color: '#475569' }}
           >
             Xuất Excel
           </Button>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => setCreateOpen(true)}
+            onClick={handleOpenCreate}
             sx={{
               bgcolor: '#2563EB',
               '&:hover': { bgcolor: '#1D4ED8' },
-              borderRadius: 2.5,
+              borderRadius: 1.5,
               textTransform: 'none',
               fontWeight: 700,
-              px: 3,
-              py: 0.9,
-              boxShadow: '0 2px 6px rgba(37,99,235,0.2)',
+              px: 2.5,
+              py: 0.8,
             }}
           >
             Tạo câu hỏi
@@ -241,15 +271,15 @@ const AdminQuestions = () => {
         </Box>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 1.5 }}>{error}</Alert>}
 
       <Paper
         sx={{
           height: 600,
           width: '100%',
-          borderRadius: 3.5,
+          borderRadius: 1.5,
           border: '1px solid #E2E8F0',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.02)',
           overflow: 'hidden',
           bgcolor: '#FFFFFF',
         }}
@@ -278,27 +308,32 @@ const AdminQuestions = () => {
         )}
       </Paper>
 
-      <ManualQuestionDialog open={createOpen} onClose={() => setCreateOpen(false)} onSave={handleCreateQuestion} />
+      <ManualQuestionDialog
+        open={createOpen}
+        onClose={() => { setCreateOpen(false); setEditingQuestion(null); }}
+        onSave={handleSaveQuestion}
+        initialQuestion={editingQuestion}
+      />
 
       <Dialog
         open={deleteDialog.open}
         onClose={() => setDeleteDialog({ open: false, id: null })}
-        slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}
+        slotProps={{ paper: { sx: { borderRadius: 1.5, p: 1 } } }}
       >
         <DialogTitle sx={{ fontWeight: 'bold', color: 'error.main' }}>Xoá câu hỏi</DialogTitle>
         <DialogContent>
           <DialogContentText>Bạn có chắc muốn xoá câu hỏi này? Hành động này không thể hoàn tác.</DialogContentText>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setDeleteDialog({ open: false, id: null })} sx={{ borderRadius: 2, textTransform: 'none' }}>Huỷ</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained" sx={{ borderRadius: 2, textTransform: 'none' }}>
+          <Button onClick={() => setDeleteDialog({ open: false, id: null })} sx={{ borderRadius: 1, textTransform: 'none' }}>Huỷ</Button>
+          <Button onClick={confirmDelete} color="error" variant="contained" sx={{ borderRadius: 1, textTransform: 'none' }}>
             Xoá
           </Button>
         </DialogActions>
       </Dialog>
 
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar((s) => ({ ...s, open: false }))}>
-        <Alert severity={snackbar.severity} sx={{ width: '100%' }}>{snackbar.message}</Alert>
+        <Alert severity={snackbar.severity} sx={{ width: '100%', borderRadius: 1.5 }}>{snackbar.message}</Alert>
       </Snackbar>
     </Box>
   );

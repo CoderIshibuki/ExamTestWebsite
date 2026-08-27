@@ -7,7 +7,6 @@ import AdminRoute from './components/AdminRoute';
 import StaffRoute from './components/StaffRoute';
 
 // Lazy loaded page components for optimal performance and code splitting
-const Home = lazy(() => import('./pages/Home'));
 const Unauthorized = lazy(() => import('./pages/Unauthorized'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
@@ -16,6 +15,7 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const ChangePassword = lazy(() => import('./pages/ChangePassword'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const ExamList = lazy(() => import('./pages/ExamList'));
+const Profile = lazy(() => import('./pages/Profile'));
 const StudentResults = lazy(() => import('./pages/StudentResults'));
 const ExamRoom = lazy(() => import('./pages/ExamRoom'));
 const ResultSummary = lazy(() => import('./pages/ResultSummary'));
@@ -60,7 +60,7 @@ function App() {
             </RoleRoute>
           } />
           
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={
             <RoleRoute allowedRoles={['student', 'teacher', 'admin']}>
               <StudentLayout>
@@ -68,10 +68,17 @@ function App() {
               </StudentLayout>
             </RoleRoute>
           } />
+          <Route path="/profile" element={
+            <RoleRoute allowedRoles={['student', 'teacher', 'admin']}>
+              <StudentLayout>
+                <Profile />
+              </StudentLayout>
+            </RoleRoute>
+          } />
 
           {/* Student Routes */}
           <Route path="/student/exams" element={
-            <RoleRoute allowedRoles={['student', 'admin']}>
+            <RoleRoute allowedRoles={['student', 'admin', 'teacher']}>
               <StudentLayout>
                 <ExamList />
               </StudentLayout>
