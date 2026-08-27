@@ -103,14 +103,22 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             }}
             onClick={() => navigate('/')}
           >
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px', width: 22 }}>
-              <Box sx={{ width: 10, height: 10, bgcolor: '#EF4444', borderRadius: '2px' }} />
-              <Box sx={{ width: 10, height: 10, bgcolor: '#3B82F6', borderRadius: '2px' }} />
-              <Box sx={{ width: 10, height: 10, bgcolor: '#EAB308', borderRadius: '2px' }} />
-              <Box sx={{ width: 10, height: 10, bgcolor: '#10B981', borderRadius: '2px' }} />
+            <Box
+              sx={{
+                width: 32,
+                height: 32,
+                borderRadius: 2,
+                background: 'linear-gradient(135deg, #2563EB 0%, #10B981 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 10px rgba(37,99,235,0.3)',
+              }}
+            >
+              <Typography sx={{ color: '#fff', fontSize: '0.9rem', fontWeight: 900 }}>✦</Typography>
             </Box>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: '#FFFFFF', letterSpacing: 0.5 }}>
-              exam<span style={{ color: '#10B981' }}>system</span>
+            <Typography variant="h6" sx={{ fontWeight: 900, color: '#FFFFFF', letterSpacing: '-0.5px' }}>
+              Exam<span style={{ color: '#38BDF8' }}>System</span>
             </Typography>
           </Box>
 

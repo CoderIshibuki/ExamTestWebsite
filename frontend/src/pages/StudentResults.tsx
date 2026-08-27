@@ -70,18 +70,35 @@ export default function StudentResults() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#F8FAFC' }}>
-      {/* Top Navbar */}
-      <AppBar position="static" elevation={0} sx={{ bgcolor: '#ffffff', borderBottom: '1px solid #E2E8F0' }}>
-        <Toolbar sx={{ maxWidth: 1200, mx: 'auto', width: '100%', display: 'flex', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer' }} onClick={() => navigate('/dashboard')}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px', width: 22 }}>
-              <Box sx={{ width: 10, height: 10, bgcolor: '#E53935', borderRadius: '2px' }} />
-              <Box sx={{ width: 10, height: 10, bgcolor: '#1E88E5', borderRadius: '2px' }} />
-              <Box sx={{ width: 10, height: 10, bgcolor: '#FDD835', borderRadius: '2px' }} />
-              <Box sx={{ width: 10, height: 10, bgcolor: '#43A047', borderRadius: '2px' }} />
+      {/* Top Floating Glassmorphic Navbar */}
+      <AppBar
+        position="sticky"
+        elevation={0}
+        sx={{
+          bgcolor: 'rgba(255, 255, 255, 0.85)',
+          backdropFilter: 'blur(16px)',
+          borderBottom: '1px solid rgba(226, 232, 240, 0.8)',
+          zIndex: 1100,
+        }}
+      >
+        <Toolbar sx={{ maxWidth: 1280, mx: 'auto', width: '100%', display: 'flex', justifyContent: 'space-between', py: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer' }} onClick={() => navigate('/dashboard')}>
+            <Box
+              sx={{
+                width: 34,
+                height: 34,
+                borderRadius: 2.5,
+                background: 'linear-gradient(135deg, #2563EB 0%, #10B981 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 10px rgba(37,99,235,0.25)',
+              }}
+            >
+              <Typography sx={{ color: '#fff', fontSize: '1rem', fontWeight: 900 }}>✦</Typography>
             </Box>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: '#1E293B' }}>
-              exam<span style={{ color: '#10B981' }}>system</span>
+            <Typography variant="h6" sx={{ fontWeight: 900, color: '#0F172A', letterSpacing: '-0.5px' }}>
+              Exam<span style={{ color: '#2563EB' }}>System</span>
             </Typography>
           </Box>
 
