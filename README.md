@@ -109,6 +109,7 @@ alembic upgrade head
 
 | Tài liệu | Nội dung |
 |---|---|
+| [docs/HUONG_DAN_SU_DUNG.md](docs/HUONG_DAN_SU_DUNG.md) | **Hướng dẫn sử dụng chi tiết** (Dành cho Học sinh, Giáo viên, Admin & Giám thị AI) |
 | [docs/SETUP.md](docs/SETUP.md) | Hướng dẫn dựng môi trường dev đầy đủ (Docker & không Docker) |
 | [docs/ENV_VARS.md](docs/ENV_VARS.md) | Danh sách toàn bộ biến môi trường cần thiết cho từng service |
 | [docs/SoDoKienTrucTongThe.md](docs/SoDoKienTrucTongThe.md) | Sơ đồ kiến trúc tổng thể (Mermaid) |
