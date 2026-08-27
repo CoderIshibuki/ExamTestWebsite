@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
   Box, Button, Paper, Skeleton, Alert, Dialog, DialogTitle, DialogContent, DialogActions,
-  DialogContentText, TextField, List, ListItem, ListItemText, IconButton, Snackbar, Typography,
+  DialogContentText, TextField, IconButton, Snackbar, Typography, Grid, Avatar, Tooltip,
 } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
+import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Category as CategoryIcon, Folder } from '@mui/icons-material';
 import { adminApi } from '../api/adminApi';
 
 interface Category {
@@ -88,102 +88,187 @@ export default function AdminCategories() {
   };
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="body2" sx={{ color: '#64748B' }}>
-          Tổ chức ngân hàng câu hỏi theo từng chủ đề hoặc môn học cụ thể.
-        </Typography>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Header Bar */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A', mb: 0.5 }}>
+            Danh mục & Chủ đề Câu hỏi
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#64748B' }}>
+            Phân loại ngân hàng câu hỏi theo môn học, chủ đề kiến thức để dễ dàng trích xuất và sinh đề thi.
+          </Typography>
+        </Box>
+
         <Button
           variant="contained"
-          startIcon={<AddIcon />}
+          startIcon={<AddIcon sx={{ fontSize: 16 }} />}
           onClick={openCreate}
           sx={{
             bgcolor: '#2563EB',
             '&:hover': { bgcolor: '#1D4ED8' },
-            borderRadius: 2.5,
+            borderRadius: 1.2,
             textTransform: 'none',
             fontWeight: 700,
-            px: 3,
-            py: 1,
-            boxShadow: '0 2px 6px rgba(37,99,235,0.2)',
+            px: 2.5,
+            py: 0.9,
           }}
         >
-          Thêm danh mục
+          Thêm danh mục mới
         </Button>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ borderRadius: 1.5 }}>{error}</Alert>}
 
-      <Paper
-        sx={{
-          borderRadius: 3.5,
-          border: '1px solid #E2E8F0',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-          overflow: 'hidden',
-          bgcolor: '#FFFFFF',
-        }}
-      >
-        {loading ? (
-          <Box sx={{ p: 3 }}>
-            <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 2 }} />
-          </Box>
-        ) : categories.length === 0 ? (
-          <Box sx={{ p: 6, textAlign: 'center' }}>
-            <Typography sx={{ color: '#64748B' }}>Chưa có danh mục nào. Bấm "Thêm danh mục" để tạo mới.</Typography>
-          </Box>
-        ) : (
-          <List sx={{ p: 0 }}>
-            {categories.map((cat) => (
-              <ListItem
-                key={cat.id}
-                divider
-                sx={{ py: 2, px: 3 }}
-                secondaryAction={
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <IconButton onClick={() => openEdit(cat)} sx={{ color: '#2563EB' }}><EditIcon fontSize="small" /></IconButton>
-                    <IconButton color="error" onClick={() => setDeleteDialog({ open: true, id: cat.id })}><DeleteIcon fontSize="small" /></IconButton>
-                  </Box>
-                }
+      {loading ? (
+        <Grid container spacing={2.5}>
+          {[1, 2, 3, 4].map((i) => (
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={i}>
+              <Skeleton variant="rectangular" height={130} sx={{ borderRadius: 1.5 }} />
+            </Grid>
+          ))}
+        </Grid>
+      ) : categories.length === 0 ? (
+        <Paper elevation={0} sx={{ p: 6, textAlign: 'center', borderRadius: 1.5, border: '1px solid #E2E8F0', bgcolor: '#FFFFFF' }}>
+          <Folder sx={{ fontSize: 48, color: '#94A3B8', mb: 1 }} />
+          <Typography sx={{ color: '#0F172A', fontWeight: 700 }}>Chưa có danh mục nào</Typography>
+          <Typography variant="body2" sx={{ color: '#64748B', mt: 0.5 }}>Bấm nút "Thêm danh mục mới" ở trên để phân loại câu hỏi.</Typography>
+        </Paper>
+      ) : (
+        <Grid container spacing={2.5}>
+          {categories.map((cat) => (
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={cat.id}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2.5,
+                  borderRadius: 1.5,
+                  border: '1px solid #E2E8F0',
+                  bgcolor: '#FFFFFF',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  height: '100%',
+                  minHeight: 140,
+                  transition: 'all 0.15s ease',
+                  '&:hover': { borderColor: '#2563EB', boxShadow: '0 4px 12px -2px rgba(37,99,235,0.1)' },
+                }}
               >
-                <ListItemText
-                  primary={<Typography sx={{ fontWeight: 700, color: '#0F172A' }}>{cat.name}</Typography>}
-                  secondary={<Typography sx={{ color: '#64748B', fontSize: '0.85rem' }}>{cat.description || 'Không có mô tả'}</Typography>}
-                />
-              </ListItem>
-            ))}
-          </List>
-        )}
-      </Paper>
+                <Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                      <Avatar sx={{ bgcolor: '#EFF6FF', color: '#2563EB', width: 36, height: 36, borderRadius: 1 }}>
+                        <CategoryIcon sx={{ fontSize: 18 }} />
+                      </Avatar>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0F172A' }}>
+                        {cat.name}
+                      </Typography>
+                    </Box>
 
-      <Dialog open={dialog.open} onClose={() => setDialog({ open: false, editing: null })} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 'bold' }}>{dialog.editing ? 'Sửa danh mục' : 'Thêm danh mục mới'}</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-          <TextField label="Tên danh mục" value={name} onChange={(e) => setName(e.target.value)} fullWidth required autoFocus />
-          <TextField label="Mô tả (tuỳ chọn)" value={description} onChange={(e) => setDescription(e.target.value)} fullWidth multiline rows={2} />
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      <Tooltip title="Chỉnh sửa">
+                        <IconButton size="small" onClick={() => openEdit(cat)} sx={{ color: '#2563EB', p: 0.6, bgcolor: '#EFF6FF', borderRadius: 1, '&:hover': { bgcolor: '#DBEAFE' } }}>
+                          <EditIcon sx={{ fontSize: 15 }} />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Xoá danh mục">
+                        <IconButton size="small" color="error" onClick={() => setDeleteDialog({ open: true, id: cat.id })} sx={{ p: 0.6, bgcolor: '#FEF2F2', borderRadius: 1, '&:hover': { bgcolor: '#FEE2E2' } }}>
+                          <DeleteIcon sx={{ fontSize: 15 }} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </Box>
+
+                  <Typography variant="body2" sx={{ color: '#64748B', mt: 1, lineHeight: 1.4 }}>
+                    {cat.description || 'Chủ đề câu hỏi trong hệ thống kiểm tra.'}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ pt: 2, mt: 1, borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="caption" sx={{ color: '#94A3B8', fontFamily: 'monospace' }}>
+                    ID: #{cat.id.slice(0, 8)}
+                  </Typography>
+                </Box>
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+      )}
+
+      {/* Create / Edit Dialog */}
+      <Dialog
+        open={dialog.open}
+        onClose={() => setDialog({ open: false, editing: null })}
+        maxWidth="sm"
+        fullWidth
+        slotProps={{ paper: { sx: { borderRadius: 1.5 } } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: '#0F172A' }}>
+          {dialog.editing ? 'Chỉnh sửa Danh mục' : 'Thêm Danh mục mới'}
+        </DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
+          <TextField
+            label="Tên danh mục / Môn học"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            fullWidth
+            required
+            autoFocus
+            sx={{ mt: 1, '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+          />
+          <TextField
+            label="Mô tả danh mục (tuỳ chọn)"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            fullWidth
+            multiline
+            rows={2}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+          />
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setDialog({ open: false, editing: null })} sx={{ borderRadius: 2, textTransform: 'none' }}>Huỷ</Button>
-          <Button variant="contained" onClick={handleSave} sx={{ borderRadius: 2, textTransform: 'none' }}>Lưu</Button>
+        <DialogActions sx={{ p: 2.5, pt: 0 }}>
+          <Button onClick={() => setDialog({ open: false, editing: null })} sx={{ borderRadius: 1.2, textTransform: 'none', fontWeight: 600 }}>
+            Huỷ
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            sx={{ bgcolor: '#2563EB', '&:hover': { bgcolor: '#1D4ED8' }, borderRadius: 1.2, textTransform: 'none', fontWeight: 700, px: 2.5 }}
+          >
+            Lưu danh mục
+          </Button>
         </DialogActions>
       </Dialog>
 
-      <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, id: null })} maxWidth="xs" fullWidth>
+      {/* Delete Cascade Dialog */}
+      <Dialog
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, id: null })}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{ paper: { sx: { borderRadius: 1.5 } } }}
+      >
         <DialogTitle sx={{ fontWeight: 800, color: 'error.main' }}>Xoá danh mục & Câu hỏi</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ color: '#334155', lineHeight: 1.6 }}>
-            ⚠️ <b>Cảnh báo:</b> Khi xoá danh mục này, <b>TOÀN BỘ câu hỏi thuộc danh mục</b> sẽ bị xoá vĩnh viễn khỏi hệ thống để tinh gọn ngân hàng đề.
+            ⚠️ <b>Cảnh báo:</b> Khi xoá danh mục này, <b>TOÀN BỘ câu hỏi thuộc danh mục</b> sẽ bị xoá vĩnh viễn khỏi ngân hàng câu hỏi.
             <br /><br />
-            Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xoá?
+            Hành động này không thể hoàn tác. Bạn có chắc chắn muốn tiếp tục?
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ p: 2.5, pt: 0 }}>
-          <Button onClick={() => setDeleteDialog({ open: false, id: null })} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}>Huỷ</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained" sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700 }}>Xác nhận xoá tất cả</Button>
+          <Button onClick={() => setDeleteDialog({ open: false, id: null })} sx={{ borderRadius: 1.2, textTransform: 'none', fontWeight: 600 }}>
+            Huỷ
+          </Button>
+          <Button onClick={confirmDelete} color="error" variant="contained" sx={{ borderRadius: 1.2, textTransform: 'none', fontWeight: 700 }}>
+            Xác nhận xoá tất cả
+          </Button>
         </DialogActions>
       </Dialog>
 
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar((s) => ({ ...s, open: false }))}>
-        <Alert severity={snackbar.severity} sx={{ width: '100%' }}>{snackbar.message}</Alert>
+        <Alert severity={snackbar.severity} sx={{ width: '100%', borderRadius: 1.5 }}>{snackbar.message}</Alert>
       </Snackbar>
     </Box>
   );

@@ -1,18 +1,29 @@
-import { Box, Button, Typography, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, TextField, Snackbar } from '@mui/material';
+import {
+  Box, Button, Typography, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent,
+  DialogActions, DialogContentText, TextField, Snackbar, Chip, Tooltip, IconButton, Grid, Avatar,
+} from '@mui/material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import type { GridColDef } from '@mui/x-data-grid';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { adminApi } from '../api/adminApi';
-import { Visibility as VisibilityIcon, Delete as DeleteIcon, Add as AddIcon, Publish as PublishIcon, Settings as SettingsIcon } from '@mui/icons-material';
+import {
+  Visibility as VisibilityIcon, Delete as DeleteIcon, Add as AddIcon,
+  Publish as PublishIcon, Settings as SettingsIcon, CheckCircle, Cancel,
+  AccessTime, Assignment, Public, Description,
+} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import ManageExamDialog from '../components/ManageExamDialog';
 
 interface Exam {
   id: string;
   title: string;
+  description?: string;
   status: string;
   duration_minutes: number;
+  passing_score?: number;
+  max_attempts?: number;
+  is_public?: boolean;
 }
 
 interface ExamFormValues {
@@ -92,7 +103,7 @@ const AdminExams = () => {
   const handlePublish = async (id: string) => {
     try {
       await adminApi.publishExam(id);
-      setSnackbar({ open: true, message: 'Đã công bố đề thi.', severity: 'success' });
+      setSnackbar({ open: true, message: 'Đã công bố đề thi cho thí sinh làm bài.', severity: 'success' });
       fetchExams();
     } catch (err: any) {
       console.error('Failed to publish exam', err);
@@ -101,120 +112,154 @@ const AdminExams = () => {
     }
   };
 
+  const stats = useMemo(() => {
+    const published = exams.filter((e) => e.status === 'published' || e.is_public).length;
+    const drafts = exams.length - published;
+    return { total: exams.length, published, drafts };
+  }, [exams]);
+
   const columns: GridColDef[] = [
     {
+      field: 'id',
+      headerName: 'MÃ ĐỀ',
+      width: 110,
+      renderCell: (params) => (
+        <Typography sx={{ fontFamily: 'monospace', fontWeight: 700, color: '#64748B', fontSize: '0.8rem' }}>
+          #{params.value?.slice(0, 8)}
+        </Typography>
+      ),
+    },
+    {
       field: 'title',
-      headerName: 'Tiêu đề đề thi',
-      flex: 2.8,
+      headerName: 'TÊN ĐỀ THI & MÔ TẢ',
+      flex: 3,
       minWidth: 260,
       renderCell: (params) => (
         <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
-          <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F172A' }}>
+          <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A', lineHeight: 1.3 }}>
             {params.value}
           </Typography>
-          <Typography variant="caption" sx={{ color: '#94A3B8', fontFamily: 'monospace', fontSize: '0.75rem' }}>
-            ID: {params.row.id}
-          </Typography>
+          {params.row.description && (
+            <Typography variant="caption" sx={{ color: '#64748B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 360 }}>
+              {params.row.description}
+            </Typography>
+          )}
         </Box>
       ),
     },
     {
       field: 'duration_minutes',
-      headerName: 'Thời lượng',
+      headerName: 'THỜI LƯỢNG',
       flex: 1,
       minWidth: 120,
-      align: 'center',
-      headerAlign: 'center',
       renderCell: (params) => (
-        <Typography variant="body2" sx={{ fontWeight: 600, color: '#475569' }}>
-          {params.value} phút
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#334155' }}>
+          <AccessTime sx={{ fontSize: 15, color: '#64748B' }} />
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>{params.value} phút</Typography>
+        </Box>
       ),
     },
     {
       field: 'status',
-      headerName: 'Trạng thái',
-      flex: 1,
-      minWidth: 130,
-      align: 'center',
-      headerAlign: 'center',
-      renderCell: (params) => (
-        <Box sx={{
-          px: 2, py: 0.5,
-          borderRadius: 4,
-          bgcolor: params.value === 'published' ? '#ECFDF5' : '#F1F5F9',
-          color: params.value === 'published' ? '#059669' : '#64748B',
-          fontWeight: 700,
-          fontSize: '0.8rem',
-          textTransform: 'capitalize'
-        }}>
-          {params.value || 'draft'}
-        </Box>
-      )
+      headerName: 'TRẠNG THÁI',
+      flex: 1.2,
+      minWidth: 140,
+      renderCell: (params) => {
+        const isPub = params.value === 'published' || params.row.is_public;
+        return (
+          <Chip
+            icon={isPub ? <CheckCircle sx={{ fontSize: '14px !important' }} /> : <Cancel sx={{ fontSize: '14px !important' }} />}
+            label={isPub ? 'Đã công bố' : 'Bản nháp'}
+            size="small"
+            color={isPub ? 'success' : 'default'}
+            variant="outlined"
+            sx={{ borderRadius: 1, fontWeight: 700, fontSize: '0.72rem' }}
+          />
+        );
+      },
     },
     {
       field: 'actions',
-      headerName: 'Hành động',
-      flex: 2.2,
-      minWidth: 320,
+      headerName: 'THAO TÁC QUẢN TRỊ',
+      flex: 2.8,
+      minWidth: 360,
       align: 'right',
       headerAlign: 'right',
       sortable: false,
-      renderCell: (params) => (
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
-          <Button
-            variant="contained"
-            color="primary"
-            size="small"
-            startIcon={<SettingsIcon />}
-            onClick={() => setManageDialog({ open: true, examId: params.row.id, title: params.row.title })}
-            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-          >
-            Quản lý
-          </Button>
-          {params.row.status !== 'published' && (
+      renderCell: (params) => {
+        const isPub = params.row.status === 'published' || params.row.is_public;
+        return (
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<SettingsIcon sx={{ fontSize: 15 }} />}
+              onClick={() => setManageDialog({ open: true, examId: params.row.id, title: params.row.title })}
+              sx={{
+                borderRadius: 1.2,
+                textTransform: 'none',
+                fontWeight: 700,
+                bgcolor: '#2563EB',
+                '&:hover': { bgcolor: '#1D4ED8' },
+                fontSize: '0.78rem',
+                px: 1.5,
+              }}
+            >
+              Cấu trúc & Câu hỏi
+            </Button>
+
+            {!isPub && (
+              <Button
+                variant="outlined"
+                color="success"
+                size="small"
+                startIcon={<PublishIcon sx={{ fontSize: 15 }} />}
+                onClick={() => handlePublish(params.row.id)}
+                sx={{ borderRadius: 1.2, textTransform: 'none', fontWeight: 700, fontSize: '0.78rem' }}
+              >
+                Công bố
+              </Button>
+            )}
+
             <Button
               variant="outlined"
-              color="success"
+              color="primary"
               size="small"
-              startIcon={<PublishIcon />}
-              onClick={() => handlePublish(params.row.id)}
-              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+              startIcon={<VisibilityIcon sx={{ fontSize: 15 }} />}
+              onClick={() => navigate(`/proctor/exam/${params.row.id}`)}
+              sx={{ borderRadius: 1.2, textTransform: 'none', fontWeight: 700, fontSize: '0.78rem' }}
             >
-              Publish
+              Giám sát
             </Button>
-          )}
-          <Button
-            variant="outlined"
-            color="primary"
-            size="small"
-            startIcon={<VisibilityIcon />}
-            onClick={() => navigate(`/proctor/exam/${params.row.id}`)}
-            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-          >
-            Proctor
-          </Button>
-          <Button
-            variant="outlined"
-            color="error"
-            size="small"
-            startIcon={<DeleteIcon />}
-            onClick={() => handleDeleteClick(params.row.id)}
-            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-          >
-            Xoá
-          </Button>
-        </Box>
-      )
+
+            <Tooltip title="Xoá đề thi">
+              <IconButton
+                size="small"
+                color="error"
+                onClick={() => handleDeleteClick(params.row.id)}
+                sx={{ bgcolor: '#FEF2F2', borderRadius: 1, p: 0.7, '&:hover': { bgcolor: '#FEE2E2' } }}
+              >
+                <DeleteIcon sx={{ fontSize: 17 }} />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        );
+      },
     },
   ];
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="body2" sx={{ color: '#64748B' }}>
-          Quản lý toàn bộ danh sách đề thi, thêm câu hỏi, công bố và theo dõi giám sát trực tiếp.
-        </Typography>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A', mb: 0.5 }}>
+            Quản lý Đề thi & Phòng thi
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#64748B' }}>
+            Khởi tạo đề thi, thiết lập ngân hàng câu hỏi, sinh đề tự động và giám sát thí sinh trong thời gian thực.
+          </Typography>
+        </Box>
+
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -222,27 +267,63 @@ const AdminExams = () => {
           sx={{
             bgcolor: '#2563EB',
             '&:hover': { bgcolor: '#1D4ED8' },
-            borderRadius: 2.5,
+            borderRadius: 1.2,
             textTransform: 'none',
             fontWeight: 700,
-            px: 3,
-            py: 1,
-            boxShadow: '0 2px 6px rgba(37,99,235,0.2)',
+            px: 2.5,
+            py: 0.9,
           }}
         >
-          Tạo đề thi mới
+          Soạn đề thi mới
         </Button>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>}
+      <Grid container spacing={2.5}>
+        <Grid size={{ xs: 12, sm: 4 }}>
+          <Box sx={{ p: 2, borderRadius: 1.5, bgcolor: '#FFFFFF', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Avatar sx={{ bgcolor: '#EFF6FF', color: '#2563EB', width: 42, height: 42, borderRadius: 1 }}>
+              <Assignment />
+            </Avatar>
+            <Box>
+              <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 700 }}>TỔNG SỐ ĐỀ THI</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#0F172A' }}>{stats.total}</Typography>
+            </Box>
+          </Box>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 4 }}>
+          <Box sx={{ p: 2, borderRadius: 1.5, bgcolor: '#FFFFFF', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Avatar sx={{ bgcolor: '#ECFDF5', color: '#10B981', width: 42, height: 42, borderRadius: 1 }}>
+              <Public />
+            </Avatar>
+            <Box>
+              <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 700 }}>ĐÃ CÔNG BỐ (PUBLIC)</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#10B981' }}>{stats.published}</Typography>
+            </Box>
+          </Box>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 4 }}>
+          <Box sx={{ p: 2, borderRadius: 1.5, bgcolor: '#FFFFFF', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Avatar sx={{ bgcolor: '#F8FAFC', color: '#64748B', width: 42, height: 42, borderRadius: 1 }}>
+              <Description />
+            </Avatar>
+            <Box>
+              <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 700 }}>ĐANG LÀ BẢN NHÁP</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#475569' }}>{stats.drafts}</Typography>
+            </Box>
+          </Box>
+        </Grid>
+      </Grid>
+
+      {error && <Alert severity="error" sx={{ borderRadius: 1.5 }}>{error}</Alert>}
 
       <Paper
+        elevation={0}
         sx={{
           height: 600,
           width: '100%',
-          borderRadius: 3.5,
+          borderRadius: 1.5,
           border: '1px solid #E2E8F0',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.02)',
           overflow: 'hidden',
           bgcolor: '#FFFFFF',
         }}
@@ -264,83 +345,163 @@ const AdminExams = () => {
             sx={{
               border: 'none',
               '& .MuiDataGrid-cell:focus': { outline: 'none' },
-              '& .MuiDataGrid-columnHeaders': { bgcolor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontWeight: 700 },
+              '& .MuiDataGrid-columnHeaders': { bgcolor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontWeight: 800, fontSize: '0.8rem', color: '#475569' },
             }}
           />
         )}
       </Paper>
 
-      {/* Dialog tạo đề thi mới */}
-      <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 'bold' }}>Tạo đề thi mới</DialogTitle>
+      <Dialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        slotProps={{ paper: { sx: { borderRadius: 1.5 } } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: '#0F172A' }}>Soạn đề thi mới</DialogTitle>
         <form onSubmit={handleSubmit(onCreateSubmit)}>
-          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-            <Controller
-              name="title"
-              control={control}
-              rules={{ required: 'Vui lòng nhập tiêu đề' }}
-              render={({ field }) => (
-                <TextField {...field} label="Tiêu đề đề thi" fullWidth error={!!errors.title} helperText={errors.title?.message} />
-              )}
-            />
-            <Controller
-              name="description"
-              control={control}
-              render={({ field }) => <TextField {...field} label="Mô tả" fullWidth multiline rows={3} />}
-            />
-            <Controller
-              name="duration_minutes"
-              control={control}
-              rules={{ required: true, min: 1 }}
-              render={({ field }) => (
-                <TextField {...field} label="Thời lượng (phút)" type="number" fullWidth
-                  onChange={(e) => field.onChange(Number(e.target.value))} />
-              )}
-            />
-            <Controller
-              name="passing_score"
-              control={control}
-              render={({ field }) => (
-                <TextField {...field} label="Điểm đạt (%)" type="number" fullWidth
-                  onChange={(e) => field.onChange(Number(e.target.value))} />
-              )}
-            />
-            <Controller
-              name="max_attempts"
-              control={control}
-              render={({ field }) => (
-                <TextField {...field} label="Số lần làm bài tối đa" type="number" fullWidth
-                  onChange={(e) => field.onChange(Number(e.target.value))} />
-              )}
-            />
+          <DialogContent>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
+              <Controller
+                name="title"
+                control={control}
+                rules={{ required: 'Tiêu đề là bắt buộc' }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Tiêu đề đề thi"
+                    variant="outlined"
+                    fullWidth
+                    required
+                    error={!!errors.title}
+                    helperText={errors.title?.message}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                  />
+                )}
+              />
+
+              <Controller
+                name="description"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Mô tả đề thi"
+                    variant="outlined"
+                    multiline
+                    rows={2}
+                    fullWidth
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                  />
+                )}
+              />
+
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <Controller
+                  name="duration_minutes"
+                  control={control}
+                  rules={{ required: 'Thời lượng là bắt buộc', min: { value: 1, message: 'Tối thiểu 1 phút' } }}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      type="number"
+                      label="Thời lượng (phút)"
+                      variant="outlined"
+                      fullWidth
+                      required
+                      error={!!errors.duration_minutes}
+                      helperText={errors.duration_minutes?.message}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                    />
+                  )}
+                />
+
+                <Controller
+                  name="passing_score"
+                  control={control}
+                  rules={{ min: { value: 0, message: 'Tối thiểu 0%' }, max: { value: 100, message: 'Tối đa 100%' } }}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      type="number"
+                      label="Ngưỡng đạt (%)"
+                      variant="outlined"
+                      fullWidth
+                      error={!!errors.passing_score}
+                      helperText={errors.passing_score?.message}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                    />
+                  )}
+                />
+              </Box>
+
+              <Controller
+                name="max_attempts"
+                control={control}
+                rules={{ min: { value: 1, message: 'Tối thiểu 1 lần' } }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    type="number"
+                    label="Số lần làm tối đa"
+                    variant="outlined"
+                    fullWidth
+                    error={!!errors.max_attempts}
+                    helperText={errors.max_attempts?.message}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                  />
+                )}
+              />
+            </Box>
           </DialogContent>
-          <DialogActions sx={{ p: 2 }}>
-            <Button onClick={() => setCreateOpen(false)} sx={{ borderRadius: 2, textTransform: 'none' }}>Huỷ</Button>
-            <Button type="submit" variant="contained" sx={{ borderRadius: 2, textTransform: 'none' }}>Tạo đề thi</Button>
+          <DialogActions sx={{ p: 2.5, pt: 0 }}>
+            <Button onClick={() => setCreateOpen(false)} sx={{ borderRadius: 1.2, textTransform: 'none', fontWeight: 600 }}>
+              Huỷ
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              sx={{ bgcolor: '#2563EB', '&:hover': { bgcolor: '#1D4ED8' }, borderRadius: 1.2, textTransform: 'none', fontWeight: 700, px: 3 }}
+            >
+              Tạo đề thi
+            </Button>
           </DialogActions>
         </form>
       </Dialog>
 
-      <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, id: null })} slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}>
-        <DialogTitle sx={{ fontWeight: 'bold', color: 'error.main' }}>Xoá đề thi</DialogTitle>
+      <Dialog
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, id: null })}
+        slotProps={{ paper: { sx: { borderRadius: 1.5, p: 1 } } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: 'error.main' }}>Xoá đề thi</DialogTitle>
         <DialogContent>
-          <DialogContentText>Bạn có chắc muốn xoá đề thi này? Hành động này không thể hoàn tác.</DialogContentText>
+          <DialogContentText>
+            Bạn có chắc chắn muốn xoá đề thi này? Toàn bộ kết quả và lượt làm bài của thí sinh liên quan sẽ không thể hoàn tác.
+          </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setDeleteDialog({ open: false, id: null })} sx={{ borderRadius: 2, textTransform: 'none' }}>Huỷ</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained" sx={{ borderRadius: 2, textTransform: 'none' }}>Xoá đề thi</Button>
+          <Button onClick={() => setDeleteDialog({ open: false, id: null })} sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 600 }}>
+            Huỷ
+          </Button>
+          <Button onClick={confirmDelete} color="error" variant="contained" sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 700 }}>
+            Xác nhận xoá
+          </Button>
         </DialogActions>
       </Dialog>
 
       <ManageExamDialog
         open={manageDialog.open}
-        onClose={() => setManageDialog({ open: false, examId: null })}
         examId={manageDialog.examId}
         examTitle={manageDialog.title}
+        onClose={() => {
+          setManageDialog({ open: false, examId: null });
+          fetchExams();
+        }}
       />
 
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar((s) => ({ ...s, open: false }))}>
-        <Alert severity={snackbar.severity} sx={{ width: '100%' }}>{snackbar.message}</Alert>
+        <Alert severity={snackbar.severity} sx={{ width: '100%', borderRadius: 1.5 }}>{snackbar.message}</Alert>
       </Snackbar>
     </Box>
   );

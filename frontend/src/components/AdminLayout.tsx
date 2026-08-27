@@ -9,6 +9,7 @@ import {
   Avatar,
   Chip,
   Button,
+  Tooltip,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -19,8 +20,11 @@ import {
   RateReview as RateReviewIcon,
   Assessment as AssessmentIcon,
   Category as CategoryIcon,
-  Home as HomeIcon,
+  School as SchoolIcon,
+  AdminPanelSettings as AdminIcon,
+  Launch as LaunchIcon,
   Person as PersonIcon,
+  FiberManualRecord,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -30,7 +34,6 @@ const SIDEBAR_W = 260;
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Quản trị viên',
   teacher: 'Giáo viên',
-  proctor: 'Giám thị',
   student: 'Học sinh',
 };
 
@@ -39,17 +42,22 @@ const menuGroups = [
     label: 'TỔNG QUAN',
     items: [
       { text: 'Bảng điều khiển', icon: <DashboardIcon fontSize="small" />, path: '/admin/dashboard', roles: ['admin'] },
-      { text: 'Quản lý tài khoản', icon: <PeopleIcon fontSize="small" />, path: '/admin/users', roles: ['admin'] },
-      { text: 'Báo cáo & Thống kê', icon: <AssessmentIcon fontSize="small" />, path: '/admin/reports', roles: ['admin', 'teacher'] },
+      { text: 'Báo cáo & Phân tích', icon: <AssessmentIcon fontSize="small" />, path: '/admin/reports', roles: ['admin', 'teacher'] },
     ],
   },
   {
     label: 'QUẢN LÝ THI CỬ',
     items: [
-      { text: 'Quản lý đề thi', icon: <AssignmentIcon fontSize="small" />, path: '/admin/exams', roles: ['admin', 'teacher'] },
-      { text: 'Ngân hàng câu hỏi', icon: <ArticleIcon fontSize="small" />, path: '/admin/questions', roles: ['admin', 'teacher'] },
-      { text: 'Danh mục câu hỏi', icon: <CategoryIcon fontSize="small" />, path: '/admin/categories', roles: ['admin', 'teacher'] },
+      { text: 'Quản lý Đề thi', icon: <AssignmentIcon fontSize="small" />, path: '/admin/exams', roles: ['admin', 'teacher'] },
+      { text: 'Ngân hàng Câu hỏi', icon: <ArticleIcon fontSize="small" />, path: '/admin/questions', roles: ['admin', 'teacher'] },
+      { text: 'Danh mục & Chủ đề', icon: <CategoryIcon fontSize="small" />, path: '/admin/categories', roles: ['admin', 'teacher'] },
       { text: 'Chấm bài tự luận', icon: <RateReviewIcon fontSize="small" />, path: '/admin/manual-grading', roles: ['admin', 'teacher'] },
+    ],
+  },
+  {
+    label: 'QUẢN TRỊ HỆ THỐNG',
+    items: [
+      { text: 'Quản lý Người dùng', icon: <PeopleIcon fontSize="small" />, path: '/admin/users', roles: ['admin'] },
     ],
   },
 ];
@@ -68,11 +76,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   };
 
   const currentItem = menuGroups.flatMap((g) => g.items).find((i) => i.path === location.pathname);
-  const currentTitle = currentItem?.text || 'Trang quản lý';
+  const currentTitle = currentItem?.text || 'Trang Quản lý';
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F8FAFC' }}>
-      {/* Sidebar - Modern Slate Theme */}
+      {/* Sidebar - Modern Dark Slate */}
       <Box
         component="nav"
         sx={{
@@ -91,95 +99,113 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         }}
       >
         <Box>
-          {/* Logo Header */}
+          {/* Brand Logo Header */}
           <Box
             sx={{
               p: 2.5,
               display: 'flex',
               alignItems: 'center',
-              gap: 1.2,
-              cursor: 'pointer',
+              justifyContent: 'space-between',
               borderBottom: '1px solid #1E293B',
+              cursor: 'pointer',
             }}
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/admin/dashboard')}
           >
-            <Box
-              sx={{
-                width: 32,
-                height: 32,
-                borderRadius: 2,
-                background: 'linear-gradient(135deg, #2563EB 0%, #10B981 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 10px rgba(37,99,235,0.3)',
-              }}
-            >
-              <Typography sx={{ color: '#fff', fontSize: '0.9rem', fontWeight: 900 }}>✦</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+              <Box
+                sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 1.2,
+                  bgcolor: '#2563EB',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fff',
+                  fontWeight: 900,
+                  fontSize: '1rem',
+                }}
+              >
+                ✦
+              </Box>
+              <Box>
+                <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#F8FAFC', lineHeight: 1.1 }}>
+                  Exam<span style={{ color: '#38BDF8' }}>System</span>
+                </Typography>
+                <Typography sx={{ fontSize: '0.65rem', color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  {role === 'admin' ? 'Admin Portal' : 'Teacher Portal'}
+                </Typography>
+              </Box>
             </Box>
-            <Typography variant="h6" sx={{ fontWeight: 900, color: '#FFFFFF', letterSpacing: '-0.5px' }}>
-              Exam<span style={{ color: '#38BDF8' }}>System</span>
-            </Typography>
           </Box>
 
-          {/* User Brief Card */}
-          <Box sx={{ p: 2, mx: 1.5, my: 2, bgcolor: '#1E293B', borderRadius: 2.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Avatar sx={{ width: 38, height: 38, bgcolor: '#2563EB', color: '#fff', fontWeight: 700, fontSize: '0.9rem' }}>
+          {/* User Profile Mini Banner */}
+          <Box sx={{ p: 1.5, mx: 1.5, my: 1.5, bgcolor: '#1E293B', borderRadius: 1.5, display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Avatar sx={{ width: 36, height: 36, bgcolor: role === 'admin' ? '#4F46E5' : '#10B981', color: '#fff', fontWeight: 800, fontSize: '0.85rem', borderRadius: 1 }}>
               {displayName.charAt(0).toUpperCase()}
             </Avatar>
             <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', color: '#F8FAFC', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {displayName}
               </Typography>
-              <Chip
-                label={ROLE_LABELS[role] || role}
-                size="small"
-                sx={{
-                  height: 18,
-                  fontSize: '0.65rem',
-                  fontWeight: 700,
-                  bgcolor: role === 'admin' ? '#4F46E5' : '#059669',
-                  color: '#fff',
-                  mt: 0.3,
-                }}
-              />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                {role === 'admin' ? <AdminIcon sx={{ fontSize: 13, color: '#818CF8' }} /> : <SchoolIcon sx={{ fontSize: 13, color: '#34D399' }} />}
+                <Typography sx={{ fontSize: '0.68rem', color: role === 'admin' ? '#A5B4FC' : '#6EE7B7', fontWeight: 600 }}>
+                  {ROLE_LABELS[role] || role}
+                </Typography>
+              </Box>
             </Box>
           </Box>
 
-          {/* Navigation Links */}
-          {menuGroups.map((group) => {
+          {/* Navigation Groups */}
+          {menuGroups.map((group, gIdx) => {
             const items = group.items.filter((i) => i.roles.includes(role));
             if (items.length === 0) return null;
             return (
-              <Box key={group.label} sx={{ px: 1.5, mb: 2 }}>
-                <Typography sx={{ px: 1.5, pb: 0.8, fontSize: '0.68rem', fontWeight: 700, color: '#64748B', letterSpacing: '0.8px' }}>
+              <Box key={gIdx} sx={{ px: 1.5, mb: 2 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    px: 1.2,
+                    mb: 0.8,
+                    display: 'block',
+                    fontSize: '0.66rem',
+                    fontWeight: 700,
+                    color: '#64748B',
+                    letterSpacing: 0.6,
+                  }}
+                >
                   {group.label}
                 </Typography>
                 <List dense disablePadding sx={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                  {items.map((item) => {
+                  {items.map((item, iIdx) => {
                     const selected = location.pathname === item.path;
                     return (
                       <ListItemButton
-                        key={item.path}
-                        selected={selected}
+                        key={iIdx}
                         onClick={() => navigate(item.path)}
                         sx={{
                           px: 1.5,
-                          py: 0.9,
-                          borderRadius: 2,
+                          py: 0.8,
+                          borderRadius: 1.2,
                           color: selected ? '#FFFFFF' : '#94A3B8',
                           bgcolor: selected ? '#2563EB !important' : 'transparent',
-                          '&:hover': { bgcolor: selected ? '#1D4ED8' : '#1E293B', color: '#FFFFFF' },
+                          fontWeight: selected ? 700 : 500,
+                          '&:hover': {
+                            bgcolor: selected ? '#1D4ED8' : '#1E293B',
+                            color: '#FFFFFF',
+                          },
                         }}
                       >
-                        <ListItemIcon sx={{ minWidth: 32, color: selected ? '#FFFFFF' : '#94A3B8' }}>{item.icon}</ListItemIcon>
+                        <ListItemIcon sx={{ minWidth: 30, color: selected ? '#FFFFFF' : '#64748B' }}>
+                          {item.icon}
+                        </ListItemIcon>
                         <ListItemText
-                          primary={item.text}
-                          slotProps={{
-                            primary: {
-                              sx: { fontSize: '0.84rem', fontWeight: selected ? 700 : 500 },
-                            },
-                          }}
+                          primary={
+                            <Typography sx={{ fontSize: '0.82rem', fontWeight: selected ? 700 : 500, color: 'inherit' }}>
+                              {item.text}
+                            </Typography>
+                          }
                         />
                       </ListItemButton>
                     );
@@ -190,22 +216,52 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           })}
         </Box>
 
-        {/* Sidebar Footer: Quick navigation & Logout */}
-        <Box sx={{ p: 1.5, borderTop: '1px solid #1E293B' }}>
+        {/* Sidebar Footer: Switch to student mode & Logout */}
+        <Box sx={{ p: 1.5, borderTop: '1px solid #1E293B', bgcolor: '#0B1120' }}>
           <ListItemButton
             onClick={() => navigate('/dashboard')}
-            sx={{ px: 1.5, py: 0.8, borderRadius: 2, color: '#94A3B8', mb: 0.5, '&:hover': { bgcolor: '#1E293B', color: '#fff' } }}
+            sx={{
+              px: 1.5,
+              py: 0.8,
+              borderRadius: 1.2,
+              color: '#94A3B8',
+              mb: 0.5,
+              border: '1px solid #1E293B',
+              '&:hover': { bgcolor: '#1E293B', color: '#38BDF8', borderColor: '#334155' },
+            }}
           >
-            <ListItemIcon sx={{ minWidth: 32, color: '#94A3B8' }}><PersonIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="Trang cá nhân" slotProps={{ primary: { sx: { fontSize: '0.82rem', fontWeight: 500 } } }} />
+            <ListItemIcon sx={{ minWidth: 28, color: 'inherit' }}>
+              <LaunchIcon sx={{ fontSize: 16 }} />
+            </ListItemIcon>
+            <ListItemText
+              primary={
+                <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: 'inherit' }}>
+                  Giao diện Thí sinh
+                </Typography>
+              }
+            />
           </ListItemButton>
 
           <ListItemButton
             onClick={handleLogout}
-            sx={{ px: 1.5, py: 0.8, borderRadius: 2, color: '#F87171', '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.12)', color: '#EF4444' } }}
+            sx={{
+              px: 1.5,
+              py: 0.8,
+              borderRadius: 1.2,
+              color: '#F87171',
+              '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.12)', color: '#EF4444' },
+            }}
           >
-            <ListItemIcon sx={{ minWidth: 32, color: '#F87171' }}><ExitToAppIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="Đăng xuất" slotProps={{ primary: { sx: { fontSize: '0.82rem', fontWeight: 600 } } }} />
+            <ListItemIcon sx={{ minWidth: 28, color: '#F87171' }}>
+              <ExitToAppIcon sx={{ fontSize: 16 }} />
+            </ListItemIcon>
+            <ListItemText
+              primary={
+                <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: 'inherit' }}>
+                  Đăng xuất
+                </Typography>
+              }
+            />
           </ListItemButton>
         </Box>
       </Box>
@@ -214,8 +270,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         {/* Top Header Bar */}
         <Box
+          component="header"
           sx={{
-            height: 64,
+            height: 60,
             bgcolor: '#FFFFFF',
             borderBottom: '1px solid #E2E8F0',
             px: 3.5,
@@ -227,22 +284,67 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             zIndex: 10,
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: '#0F172A', fontSize: '1.15rem' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0F172A', fontSize: '1rem' }}>
               {currentTitle}
             </Typography>
+            <Chip
+              icon={<FiberManualRecord sx={{ fontSize: '9px !important', color: '#10B981 !important' }} />}
+              label="Hệ thống trực tuyến"
+              size="small"
+              sx={{
+                bgcolor: '#ECFDF5',
+                color: '#065F46',
+                fontWeight: 600,
+                fontSize: '0.7rem',
+                height: 22,
+                borderRadius: 1,
+                border: '1px solid #A7F3D0',
+              }}
+            />
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Button
-              variant="text"
-              size="small"
-              startIcon={<HomeIcon />}
-              onClick={() => navigate('/')}
-              sx={{ textTransform: 'none', color: '#64748B', fontWeight: 600, borderRadius: 2 }}
+            <Tooltip title="Vào giao diện Thí sinh (Làm bài)">
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<LaunchIcon sx={{ fontSize: 15 }} />}
+                onClick={() => navigate('/dashboard')}
+                sx={{
+                  borderRadius: 1.2,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  fontSize: '0.78rem',
+                  borderColor: '#E2E8F0',
+                  color: '#475569',
+                  '&:hover': { borderColor: '#CBD5E1', bgcolor: '#F8FAFC' },
+                }}
+              >
+                Giao diện Thí sinh
+              </Button>
+            </Tooltip>
+
+            <Box
+              onClick={() => navigate('/profile')}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                px: 1.5,
+                py: 0.5,
+                bgcolor: '#F1F5F9',
+                borderRadius: 1.2,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                '&:hover': { bgcolor: '#E2E8F0' },
+              }}
             >
-              Trang chủ
-            </Button>
+              <PersonIcon sx={{ fontSize: 17, color: '#64748B' }} />
+              <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155' }}>
+                {user?.username}
+              </Typography>
+            </Box>
           </Box>
         </Box>
 

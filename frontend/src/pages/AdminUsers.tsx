@@ -1,10 +1,13 @@
-import { Box, Button, Typography, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, TextField, DialogContentText, Chip, MenuItem, FormControlLabel, Switch, Snackbar } from '@mui/material';
+import { Box, Button, Typography, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, TextField, DialogContentText, Chip, MenuItem, FormControlLabel, Switch, Snackbar, Grid, Avatar, IconButton, Tooltip } from '@mui/material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import type { GridColDef } from '@mui/x-data-grid';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { adminApi } from '../api/adminApi';
-import { PersonAdd as PersonAddIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
+import { 
+  PersonAdd as PersonAddIcon, Delete as DeleteIcon, Edit as EditIcon, 
+  People, School, AdminPanelSettings 
+} from '@mui/icons-material';
 
 interface User {
   id: string;
@@ -54,6 +57,14 @@ const AdminUsers = () => {
     defaultValues: { role: 'student', is_active: true },
   });
 
+  const stats = useMemo(() => {
+    const total = users.length;
+    const students = users.filter((u) => u.role === 'student').length;
+    const teachers = users.filter((u) => u.role === 'teacher').length;
+    const admins = users.filter((u) => u.role === 'admin').length;
+    return { total, students, teachers, admins };
+  }, [users]);
+
   const fetchUsers = async () => {
     try {
       setLoading(true);
@@ -99,7 +110,7 @@ const AdminUsers = () => {
     try {
       await adminApi.updateUser(editUser.id, data);
       setEditUser(null);
-      setSnackbar({ open: true, message: 'Đã cập nhật tài khoản.', severity: 'success' });
+      setSnackbar({ open: true, message: 'Đã cập nhật thông tin tài khoản.', severity: 'success' });
       fetchUsers();
     } catch (err: any) {
       console.error('Failed to update user', err);
@@ -116,7 +127,7 @@ const AdminUsers = () => {
     try {
       await adminApi.deleteUser(deleteDialog.id);
       setUsers((prev) => prev.filter((u) => u.id !== deleteDialog.id));
-      setSnackbar({ open: true, message: 'Đã xoá tài khoản.', severity: 'success' });
+      setSnackbar({ open: true, message: 'Đã xoá tài khoản thành công.', severity: 'success' });
     } catch (err: any) {
       console.error('Failed to delete user', err);
       setSnackbar({ open: true, message: err.response?.data?.detail || 'Xoá tài khoản thất bại.', severity: 'error' });
@@ -126,85 +137,206 @@ const AdminUsers = () => {
   };
 
   const columns: GridColDef[] = [
-    { field: 'username', headerName: 'Tên đăng nhập', width: 180 },
-    { field: 'full_name', headerName: 'Họ tên', width: 200, flex: 1 },
-    { field: 'email', headerName: 'Email', width: 260, flex: 1 },
+    {
+      field: 'user_info',
+      headerName: 'NGƯỜI DÙNG',
+      flex: 2.5,
+      minWidth: 240,
+      valueGetter: (_v, row) => row.full_name || row.username,
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, height: '100%' }}>
+          <Avatar sx={{ width: 34, height: 34, bgcolor: params.row.role === 'admin' ? '#4F46E5' : params.row.role === 'teacher' ? '#059669' : '#2563EB', fontSize: '0.85rem', fontWeight: 800, borderRadius: 1 }}>
+            {(params.row.username || 'U').charAt(0).toUpperCase()}
+          </Avatar>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>
+              {params.row.full_name || params.row.username}
+            </Typography>
+            <Typography variant="caption" sx={{ color: '#64748B', fontFamily: 'monospace' }}>
+              @{params.row.username}
+            </Typography>
+          </Box>
+        </Box>
+      ),
+    },
+    {
+      field: 'email',
+      headerName: 'EMAIL',
+      flex: 2,
+      minWidth: 220,
+      renderCell: (params) => (
+        <Typography variant="body2" sx={{ color: '#475569', fontWeight: 500 }}>
+          {params.value}
+        </Typography>
+      ),
+    },
     {
       field: 'role',
-      headerName: 'Vai trò',
-      width: 150,
+      headerName: 'VAI TRÒ',
+      flex: 1.2,
+      minWidth: 150,
       renderCell: (params) => {
-        const color = params.value === 'admin' ? 'secondary' : params.value === 'teacher' ? 'info' : params.value === 'proctor' ? 'warning' : 'primary';
+        const isAdm = params.value === 'admin';
+        const isTch = params.value === 'teacher';
         return (
-          <Chip
-            label={ROLE_LABELS[params.value] || params.value}
-            color={color as any}
-            size="small"
-            sx={{ fontWeight: 'bold' }}
-          />
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 0.6,
+              px: 1.2,
+              py: 0.4,
+              borderRadius: 1,
+              bgcolor: isAdm ? '#EEF2FF' : isTch ? '#ECFDF5' : '#EFF6FF',
+              color: isAdm ? '#4338CA' : isTch ? '#047857' : '#1D4ED8',
+              border: `1px solid ${isAdm ? '#C7D2FE' : isTch ? '#A7F3D0' : '#BFDBFE'}`,
+              fontWeight: 700,
+              fontSize: '0.75rem',
+            }}
+          >
+            {isAdm ? <AdminPanelSettings sx={{ fontSize: 14 }} /> : isTch ? <School sx={{ fontSize: 14 }} /> : <People sx={{ fontSize: 14 }} />}
+            {ROLE_LABELS[params.value] || params.value}
+          </Box>
         );
-      }
+      },
     },
     {
       field: 'is_active',
-      headerName: 'Trạng thái',
-      width: 120,
+      headerName: 'TRẠNG THÁI',
+      flex: 1,
+      minWidth: 130,
       renderCell: (params) => (
-        <Chip label={params.value ? 'Active' : 'Disabled'} color={params.value ? 'success' : 'default'} size="small" />
-      )
+        <Chip
+          label={params.value ? 'Hoạt động' : 'Tạm khoá'}
+          size="small"
+          color={params.value ? 'success' : 'default'}
+          variant="outlined"
+          sx={{ borderRadius: 1, fontWeight: 700, fontSize: '0.72rem' }}
+        />
+      ),
     },
     {
       field: 'actions',
-      headerName: 'Hành động',
-      width: 120,
+      headerName: 'HÀNH ĐỘNG',
+      width: 110,
+      align: 'center',
+      headerAlign: 'center',
       sortable: false,
       renderCell: (params) => (
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="text" color="primary" size="small" sx={{ minWidth: 0, p: 1 }} onClick={() => handleEditClick(params.row)}>
-            <EditIcon fontSize="small" />
-          </Button>
-          <Button variant="text" color="error" size="small" onClick={() => handleDeleteClick(params.row.id)} sx={{ minWidth: 0, p: 1 }}>
-            <DeleteIcon fontSize="small" />
-          </Button>
+        <Box sx={{ display: 'flex', gap: 0.8, alignItems: 'center', justifyContent: 'center' }}>
+          <Tooltip title="Chỉnh sửa vai trò / trạng thái">
+            <IconButton
+              size="small"
+              onClick={() => handleEditClick(params.row)}
+              sx={{ bgcolor: '#EFF6FF', color: '#2563EB', borderRadius: 1, p: 0.7, '&:hover': { bgcolor: '#DBEAFE' } }}
+            >
+              <EditIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Xoá tài khoản">
+            <IconButton
+              size="small"
+              onClick={() => handleDeleteClick(params.row.id)}
+              sx={{ bgcolor: '#FEF2F2', color: '#EF4444', borderRadius: 1, p: 0.7, '&:hover': { bgcolor: '#FEE2E2' } }}
+            >
+              <DeleteIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          </Tooltip>
         </Box>
-      )
-    }
+      ),
+    },
   ];
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="body2" sx={{ color: '#64748B' }}>
-          Quản lý danh sách tài khoản học sinh, giáo viên, giám thị và phân quyền quản trị.
-        </Typography>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Header Bar */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A', mb: 0.5 }}>
+            Quản trị Người dùng & Phân quyền
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#64748B' }}>
+            Quản lý danh sách tài khoản học sinh, giáo viên và thiết lập vai trò trong hệ thống.
+          </Typography>
+        </Box>
+
         <Button
           variant="contained"
-          startIcon={<PersonAddIcon />}
+          startIcon={<PersonAddIcon sx={{ fontSize: 16 }} />}
           onClick={() => setOpen(true)}
           sx={{
             bgcolor: '#2563EB',
             '&:hover': { bgcolor: '#1D4ED8' },
-            borderRadius: 2.5,
+            borderRadius: 1.2,
             textTransform: 'none',
             fontWeight: 700,
-            px: 3,
-            py: 1,
-            boxShadow: '0 2px 6px rgba(37,99,235,0.2)',
+            px: 2.5,
+            py: 0.9,
           }}
         >
-          Thêm người dùng
+          Thêm người dùng mới
         </Button>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>}
+      {/* KPI Stats Strip */}
+      <Grid container spacing={2.5}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Box sx={{ p: 2, borderRadius: 1.5, bgcolor: '#FFFFFF', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Avatar sx={{ bgcolor: '#EFF6FF', color: '#2563EB', width: 40, height: 40, borderRadius: 1 }}>
+              <People />
+            </Avatar>
+            <Box>
+              <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 700 }}>TỔNG NGƯỜI DÙNG</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#0F172A' }}>{stats.total}</Typography>
+            </Box>
+          </Box>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Box sx={{ p: 2, borderRadius: 1.5, bgcolor: '#FFFFFF', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Avatar sx={{ bgcolor: '#ECFDF5', color: '#059669', width: 40, height: 40, borderRadius: 1 }}>
+              <People />
+            </Avatar>
+            <Box>
+              <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 700 }}>HỌC SINH</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#059669' }}>{stats.students}</Typography>
+            </Box>
+          </Box>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Box sx={{ p: 2, borderRadius: 1.5, bgcolor: '#FFFFFF', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Avatar sx={{ bgcolor: '#F5F3FF', color: '#7C3AED', width: 40, height: 40, borderRadius: 1 }}>
+              <School />
+            </Avatar>
+            <Box>
+              <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 700 }}>GIÁO VIÊN</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#7C3AED' }}>{stats.teachers}</Typography>
+            </Box>
+          </Box>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Box sx={{ p: 2, borderRadius: 1.5, bgcolor: '#FFFFFF', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Avatar sx={{ bgcolor: '#EEF2FF', color: '#4F46E5', width: 40, height: 40, borderRadius: 1 }}>
+              <AdminPanelSettings />
+            </Avatar>
+            <Box>
+              <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 700 }}>QUẢN TRỊ VIÊN</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#4F46E5' }}>{stats.admins}</Typography>
+            </Box>
+          </Box>
+        </Grid>
+      </Grid>
 
+      {error && <Alert severity="error" sx={{ borderRadius: 1.5 }}>{error}</Alert>}
+
+      {/* Main Table */}
       <Paper
+        elevation={0}
         sx={{
           height: 600,
           width: '100%',
-          borderRadius: 3.5,
+          borderRadius: 1.5,
           border: '1px solid #E2E8F0',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.02)',
           overflow: 'hidden',
           bgcolor: '#FFFFFF',
         }}
@@ -221,81 +353,189 @@ const AdminUsers = () => {
             slots={{ toolbar: GridToolbar }}
             slotProps={{ toolbar: { showQuickFilter: true, quickFilterProps: { debounceMs: 500 } } }}
             initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
-            pageSizeOptions={[5, 10, 25]}
+            pageSizeOptions={[10, 25, 50]}
             disableRowSelectionOnClick
             sx={{
               border: 'none',
               '& .MuiDataGrid-cell:focus': { outline: 'none' },
-              '& .MuiDataGrid-columnHeaders': { bgcolor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontWeight: 700 },
+              '& .MuiDataGrid-columnHeaders': { bgcolor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontWeight: 800, fontSize: '0.8rem', color: '#475569' },
             }}
           />
         )}
       </Paper>
 
-      {/* Dialog thêm người dùng */}
-      <Dialog open={open} onClose={() => setOpen(false)} slotProps={{ paper: { sx: { borderRadius: 3, minWidth: 400 } } }}>
-        <DialogTitle sx={{ fontWeight: 'bold' }}>Thêm người dùng mới</DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
-          <form id="create-user-form" onSubmit={handleSubmit(onSubmit)}>
-            <Controller name="username" control={control} rules={{ required: true }}
-              render={({ field }) => <TextField {...field} label="Tên đăng nhập" fullWidth sx={{ mb: 3, mt: 1 }} required />} />
-            <Controller name="full_name" control={control}
-              render={({ field }) => <TextField {...field} label="Họ tên" fullWidth sx={{ mb: 3 }} />} />
-            <Controller name="email" control={control} rules={{ required: true }}
-              render={({ field }) => <TextField {...field} type="email" label="Email" fullWidth sx={{ mb: 3 }} required />} />
-            <Controller name="password" control={control}
-              render={({ field }) => <TextField {...field} type="password" label="Mật khẩu (để trống = mật khẩu mặc định, bắt buộc đổi khi đăng nhập)" fullWidth sx={{ mb: 3 }} />} />
-            <Controller name="role" control={control} rules={{ required: true }}
+      {/* Create User Dialog */}
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        slotProps={{ paper: { sx: { borderRadius: 1.5 } } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: '#0F172A' }}>Thêm tài khoản mới</DialogTitle>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
+            <Controller
+              name="username"
+              control={control}
+              rules={{ required: 'Tên đăng nhập là bắt buộc' }}
+              render={({ field, fieldState }) => (
+                <TextField
+                  {...field}
+                  label="Tên đăng nhập (username)"
+                  fullWidth
+                  required
+                  error={!!fieldState.error}
+                  helperText={fieldState.error?.message}
+                  sx={{ mt: 1, '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                />
+              )}
+            />
+            <Controller
+              name="email"
+              control={control}
+              rules={{ required: 'Email là bắt buộc' }}
+              render={({ field, fieldState }) => (
+                <TextField
+                  {...field}
+                  label="Email"
+                  type="email"
+                  fullWidth
+                  required
+                  error={!!fieldState.error}
+                  helperText={fieldState.error?.message}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                />
+              )}
+            />
+            <Controller
+              name="full_name"
+              control={control}
               render={({ field }) => (
-                <TextField {...field} select label="Vai trò" fullWidth required>
-                  {ROLES.map((r) => <MenuItem key={r} value={r}>{ROLE_LABELS[r] || r}</MenuItem>)}
+                <TextField
+                  {...field}
+                  label="Họ và tên"
+                  fullWidth
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                />
+              )}
+            />
+            <Controller
+              name="password"
+              control={control}
+              rules={{ required: 'Mật khẩu là bắt buộc' }}
+              render={({ field, fieldState }) => (
+                <TextField
+                  {...field}
+                  label="Mật khẩu khởi tạo"
+                  type="password"
+                  fullWidth
+                  required
+                  error={!!fieldState.error}
+                  helperText={fieldState.error?.message}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                />
+              )}
+            />
+            <Controller
+              name="role"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  select
+                  label="Vai trò tài khoản"
+                  fullWidth
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                >
+                  {ROLES.map((role) => (
+                    <MenuItem key={role} value={role}>{ROLE_LABELS[role] || role}</MenuItem>
+                  ))}
                 </TextField>
-              )} />
-          </form>
-        </DialogContent>
-        <DialogActions sx={{ p: 3, pt: 0 }}>
-          <Button onClick={() => setOpen(false)} sx={{ borderRadius: 2, textTransform: 'none' }}>Huỷ</Button>
-          <Button type="submit" form="create-user-form" variant="contained" sx={{ borderRadius: 2, textTransform: 'none' }}>Tạo</Button>
-        </DialogActions>
+              )}
+            />
+          </DialogContent>
+          <DialogActions sx={{ p: 2.5, pt: 0 }}>
+            <Button onClick={() => setOpen(false)} sx={{ borderRadius: 1.2, textTransform: 'none', fontWeight: 600 }}>Huỷ</Button>
+            <Button type="submit" variant="contained" sx={{ bgcolor: '#2563EB', '&:hover': { bgcolor: '#1D4ED8' }, borderRadius: 1.2, textTransform: 'none', fontWeight: 700, px: 2.5 }}>
+              Tạo tài khoản
+            </Button>
+          </DialogActions>
+        </form>
       </Dialog>
 
-      {/* Dialog sửa vai trò / trạng thái */}
-      <Dialog open={!!editUser} onClose={() => setEditUser(null)} slotProps={{ paper: { sx: { borderRadius: 3, minWidth: 380 } } }}>
-        <DialogTitle sx={{ fontWeight: 'bold' }}>Sửa: {editUser?.username}</DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
-          <form id="edit-user-form" onSubmit={handleEditSubmit(onEditSubmit)}>
-            <Controller name="role" control={editControl}
+      {/* Edit User Dialog */}
+      <Dialog
+        open={Boolean(editUser)}
+        onClose={() => setEditUser(null)}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{ paper: { sx: { borderRadius: 1.5 } } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: '#0F172A' }}>Chỉnh sửa tài khoản</DialogTitle>
+        <form onSubmit={handleEditSubmit(onEditSubmit)}>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
+            <Typography variant="body2" sx={{ color: '#64748B' }}>
+              Người dùng: <b>{editUser?.full_name || editUser?.username}</b>
+            </Typography>
+            <Controller
+              name="role"
+              control={editControl}
               render={({ field }) => (
-                <TextField {...field} select label="Vai trò" fullWidth sx={{ mb: 2, mt: 1 }}>
-                  {ROLES.map((r) => <MenuItem key={r} value={r}>{ROLE_LABELS[r] || r}</MenuItem>)}
+                <TextField
+                  {...field}
+                  select
+                  label="Vai trò"
+                  fullWidth
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                >
+                  {ROLES.map((role) => (
+                    <MenuItem key={role} value={role}>{ROLE_LABELS[role] || role}</MenuItem>
+                  ))}
                 </TextField>
-              )} />
-            <Controller name="is_active" control={editControl}
+              )}
+            />
+            <Controller
+              name="is_active"
+              control={editControl}
               render={({ field }) => (
-                <FormControlLabel control={<Switch checked={field.value} onChange={(e) => field.onChange(e.target.checked)} />} label="Tài khoản đang hoạt động" />
-              )} />
-          </form>
-        </DialogContent>
-        <DialogActions sx={{ p: 3, pt: 0 }}>
-          <Button onClick={() => setEditUser(null)} sx={{ borderRadius: 2, textTransform: 'none' }}>Huỷ</Button>
-          <Button type="submit" form="edit-user-form" variant="contained" sx={{ borderRadius: 2, textTransform: 'none' }}>Lưu</Button>
-        </DialogActions>
+                <FormControlLabel
+                  control={<Switch checked={field.value} onChange={(e) => field.onChange(e.target.checked)} color="primary" />}
+                  label="Kích hoạt tài khoản"
+                />
+              )}
+            />
+          </DialogContent>
+          <DialogActions sx={{ p: 2.5, pt: 0 }}>
+            <Button onClick={() => setEditUser(null)} sx={{ borderRadius: 1.2, textTransform: 'none', fontWeight: 600 }}>Huỷ</Button>
+            <Button type="submit" variant="contained" sx={{ bgcolor: '#2563EB', '&:hover': { bgcolor: '#1D4ED8' }, borderRadius: 1.2, textTransform: 'none', fontWeight: 700, px: 2.5 }}>
+              Lưu thay đổi
+            </Button>
+          </DialogActions>
+        </form>
       </Dialog>
 
-      {/* Xác nhận xoá */}
-      <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, id: null })} slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}>
-        <DialogTitle sx={{ fontWeight: 'bold', color: 'error.main' }}>Xoá người dùng</DialogTitle>
+      {/* Delete Confirmation */}
+      <Dialog
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, id: null })}
+        slotProps={{ paper: { sx: { borderRadius: 1.5, p: 1 } } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: 'error.main' }}>Xoá tài khoản</DialogTitle>
         <DialogContent>
-          <DialogContentText>Bạn có chắc muốn xoá vĩnh viễn người dùng này?</DialogContentText>
+          <DialogContentText>
+            Bạn có chắc chắn muốn xoá tài khoản này? Người dùng sẽ không thể đăng nhập vào hệ thống nữa.
+          </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setDeleteDialog({ open: false, id: null })} sx={{ borderRadius: 2, textTransform: 'none' }}>Huỷ</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained" sx={{ borderRadius: 2, textTransform: 'none' }}>Xoá</Button>
+          <Button onClick={() => setDeleteDialog({ open: false, id: null })} sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 600 }}>Huỷ</Button>
+          <Button onClick={confirmDelete} color="error" variant="contained" sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 700 }}>
+            Xác nhận xoá
+          </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Mật khẩu tạm chỉ hiện được 1 lần duy nhất ngay sau khi tạo — không lưu lại được
-          sau đó vì server chỉ giữ bản hash, không giữ mật khẩu gốc. */}
+      {/* Password Dialog */}
       <Dialog open={tempPasswordDialog.open} onClose={() => setTempPasswordDialog({ open: false, username: '', password: '' })} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 'bold' }}>Đã tạo tài khoản thành công</DialogTitle>
         <DialogContent>
