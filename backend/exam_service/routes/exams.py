@@ -478,3 +478,50 @@ async def submit_exam(
         print(f"Error calling grading service: {e}")
         
     return submitted_attempt
+
+@router.get("/{exam_id}/attempts")
+async def get_exam_attempts(
+    exam_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_permission("exam:read"))
+):
+    attempts = await crud.get_exam_attempts_by_exam(db, exam_id)
+    return [
+        {
+            "id": str(a.id),
+            "exam_id": str(a.exam_id),
+            "user_id": str(a.user_id),
+            "attempt_number": a.attempt_number,
+            "status": a.status,
+            "started_at": a.started_at.isoformat() if a.started_at else None,
+            "submitted_at": a.submitted_at.isoformat() if a.submitted_at else None,
+            "created_at": a.created_at.isoformat() if a.created_at else None,
+        }
+        for a in attempts
+    ]
+
+@router.delete("/{exam_id}/attempts/{attempt_id}")
+async def delete_single_attempt(
+    exam_id: str,
+    attempt_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_permission("exam:write"))
+):
+    success = await crud.delete_exam_attempt(db, attempt_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Attempt not found")
+    return {"message": "Đã xoá lượt thi thành công. Thí sinh có thể vào thi lại."}
+
+@router.delete("/{exam_id}/students/{user_id}/attempts")
+async def reset_student_attempts(
+    exam_id: str,
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_permission("exam:write"))
+):
+    deleted_count = await crud.delete_user_exam_attempts(db, exam_id, user_id)
+    return {
+        "message": f"Đã xoá {deleted_count} lượt thi của thí sinh. Thí sinh có thể vào thi lại.",
+        "deleted_count": deleted_count
+    }
+

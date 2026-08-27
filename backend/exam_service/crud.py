@@ -275,3 +275,32 @@ async def submit_exam_attempt(db: AsyncSession, attempt_id: str):
     updated = result_expired.rowcount > 0
     await db.commit()
     return await get_exam_attempt(db, attempt_id), updated
+
+async def get_exam_attempts_by_exam(db: AsyncSession, exam_id: str):
+    result = await db.execute(
+        select(models.ExamAttempt)
+        .filter(models.ExamAttempt.exam_id == UUID(exam_id))
+        .order_by(models.ExamAttempt.created_at.desc())
+    )
+    return result.scalars().all()
+
+async def delete_exam_attempt(db: AsyncSession, attempt_id: str) -> bool:
+    attempt = await get_exam_attempt(db, attempt_id)
+    if not attempt:
+        return False
+    await db.delete(attempt)
+    await db.commit()
+    return True
+
+async def delete_user_exam_attempts(db: AsyncSession, exam_id: str, user_id: str) -> int:
+    from sqlalchemy import delete
+    result = await db.execute(
+        delete(models.ExamAttempt)
+        .where(
+            models.ExamAttempt.exam_id == UUID(exam_id),
+            models.ExamAttempt.user_id == user_id
+        )
+    )
+    await db.commit()
+    return result.rowcount
+

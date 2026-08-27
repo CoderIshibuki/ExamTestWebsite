@@ -138,6 +138,20 @@ export const adminApi = {
     await apiClient.delete(`/v1/exams/${examId}/schedule/${scheduleId}`);
   },
 
+  // ===== Quản lý lượt thi thí sinh (Exam Attempts) =====
+  getExamAttempts: async (examId: string) => {
+    const response = await apiClient.get(`/v1/exams/${examId}/attempts`);
+    return response.data;
+  },
+  deleteExamAttempt: async (examId: string, attemptId: string) => {
+    const response = await apiClient.delete(`/v1/exams/${examId}/attempts/${attemptId}`);
+    return response.data;
+  },
+  resetStudentAttempts: async (examId: string, userId: string) => {
+    const response = await apiClient.delete(`/v1/exams/${examId}/students/${userId}/attempts`);
+    return response.data;
+  },
+
   getOverviewStats: async () => {
     const response = await apiClient.get('/v1/exams/stats/overview');
     return response.data;

@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography,
   Tabs, Tab, List, ListItem, ListItemText, IconButton, TextField, MenuItem,
-  Chip, Alert, Autocomplete, Divider, CircularProgress,
+  Chip, Alert, Autocomplete, Divider, CircularProgress, Table, TableBody,
+  TableCell, TableContainer, TableHead, TableRow, Paper, Tooltip,
 } from '@mui/material';
-import { Delete as DeleteIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, RestartAlt as RestartAltIcon } from '@mui/icons-material';
 import { adminApi } from '../api/adminApi';
 
 interface ManageExamDialogProps {
@@ -52,6 +53,12 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
   const [loadingSchedules, setLoadingSchedules] = useState(false);
   const [newStart, setNewStart] = useState('');
   const [newEnd, setNewEnd] = useState('');
+
+  // Tab Thí sinh & Lượt thi (Attempts)
+  const [attempts, setAttempts] = useState<any[]>([]);
+  const [usersMap, setUsersMap] = useState<Record<string, any>>({});
+  const [loadingAttempts, setLoadingAttempts] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
 
   const [error, setError] = useState('');
 
@@ -105,14 +112,64 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
     }
   };
 
+  const loadAttemptsTab = async () => {
+    if (!examId) return;
+    setLoadingAttempts(true);
+    try {
+      const [attList, users] = await Promise.all([
+        adminApi.getExamAttempts(examId).catch(() => []),
+        adminApi.getUsers().catch(() => []),
+      ]);
+      setAttempts(attList || []);
+      const uMap: Record<string, any> = {};
+      (users || []).forEach((u: any) => {
+        uMap[String(u.id)] = u;
+      });
+      setUsersMap(uMap);
+    } catch (err) {
+      console.error('Failed to load attempts', err);
+      setError('Không tải được danh sách lượt thi của thí sinh.');
+    } finally {
+      setLoadingAttempts(false);
+    }
+  };
+
   useEffect(() => {
     if (open && examId) {
       setError('');
+      setSuccessMsg('');
       loadQuestionsTab();
       loadProctorsTab();
       loadSchedulesTab();
+      loadAttemptsTab();
     }
   }, [open, examId]);
+
+  const handleDeleteAttempt = async (attemptId: string, studentName: string) => {
+    if (!examId) return;
+    if (!window.confirm(`Bạn có chắc chắn muốn xoá lượt thi này của thí sinh "${studentName}" để cho phép thí sinh vào thi lại?`)) return;
+    try {
+      await adminApi.deleteExamAttempt(examId, attemptId);
+      setSuccessMsg(`Đã xoá lượt thi của "${studentName}". Thí sinh có thể vào thi lại ngay.`);
+      loadAttemptsTab();
+    } catch (err: any) {
+      console.error('Failed to delete attempt', err);
+      setError(err?.response?.data?.detail || 'Xoá lượt thi thất bại.');
+    }
+  };
+
+  const handleResetAllAttempts = async (userId: string, studentName: string) => {
+    if (!examId) return;
+    if (!window.confirm(`Bạn có chắc chắn muốn xoá TẤT CẢ lượt thi của "${studentName}" trong đề thi này?`)) return;
+    try {
+      await adminApi.resetStudentAttempts(examId, userId);
+      setSuccessMsg(`Đã reset toàn bộ lượt thi cho "${studentName}". Thí sinh có thể vào thi lại.`);
+      loadAttemptsTab();
+    } catch (err: any) {
+      console.error('Failed to reset student attempts', err);
+      setError(err?.response?.data?.detail || 'Reset lượt thi thất bại.');
+    }
+  };
 
   const existingIds = new Set(examQuestions.map((q) => q.question_id));
   const availableBank = bank.filter((q) => !existingIds.has(q.id || q._id));
@@ -238,9 +295,11 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
           <Tab label="Câu hỏi trong đề" />
           <Tab label="Giám thị coi thi" />
           <Tab label="Lịch thi" />
+          <Tab label={`Thí sinh & Lượt thi (${attempts.length})`} />
         </Tabs>
 
         {error && <Alert severity="error" sx={{ mt: 2 }} onClose={() => setError('')}>{error}</Alert>}
+        {successMsg && <Alert severity="success" sx={{ mt: 2 }} onClose={() => setSuccessMsg('')}>{successMsg}</Alert>}
 
         <TabPanel value={tab} index={0}>
           {loadingQuestions ? (
@@ -403,6 +462,95 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
                   Thêm khung giờ
                 </Button>
               </Box>
+            </>
+          )}
+        </TabPanel>
+
+        <TabPanel value={tab} index={3}>
+          {loadingAttempts ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+          ) : (
+            <>
+              <Alert severity="info" variant="outlined" sx={{ mb: 2 }}>
+                Danh sách thí sinh đã tham gia làm bài thi. Bạn có thể <b>Cho phép thi lại (Xoá lượt thi)</b> để thí sinh có thể vào làm bài lại từ đầu.
+              </Alert>
+              {attempts.length === 0 ? (
+                <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E2E8F0', bgcolor: '#F8FAFC' }}>
+                  <Typography color="text.secondary">Chưa có thí sinh nào tham gia làm bài thi này.</Typography>
+                </Paper>
+              ) : (
+                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, maxHeight: 320 }}>
+                  <Table size="small" stickyHeader>
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: '#F8FAFC' }}>
+                        <TableCell sx={{ fontWeight: 700 }}>Thí sinh</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Lần thi</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Trạng thái</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Thời gian nộp</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700 }}>Thao tác</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {attempts.map((att) => {
+                        const student = usersMap[att.user_id];
+                        const studentName = student?.full_name || student?.username || `@${att.user_id}`;
+                        const isSubmitted = att.status === 'submitted' || att.status === 'auto_submitted';
+                        return (
+                          <TableRow key={att.id} hover>
+                            <TableCell>
+                              <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F172A' }}>
+                                {studentName}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {student?.email ? `${student.email} • ` : ''}ID: {att.user_id}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip label={`Lần ${att.attempt_number || 1}`} size="small" variant="outlined" />
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={isSubmitted ? 'Đã nộp bài' : att.status === 'in_progress' ? 'Đang làm' : att.status}
+                                size="small"
+                                color={isSubmitted ? 'success' : 'warning'}
+                                sx={{ fontWeight: 700, fontSize: '0.75rem' }}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="caption" color="text.secondary">
+                                {att.submitted_at ? formatDT(att.submitted_at) : (att.started_at ? `Bắt đầu: ${formatDT(att.started_at)}` : '—')}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Tooltip title="Xoá lượt thi này để thí sinh có thể vào thi lại">
+                                <Button
+                                  variant="outlined"
+                                  color="warning"
+                                  size="small"
+                                  startIcon={<RestartAltIcon />}
+                                  onClick={() => handleDeleteAttempt(att.id, studentName)}
+                                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700, mr: 1 }}
+                                >
+                                  Cho phép thi lại
+                                </Button>
+                              </Tooltip>
+                              <Tooltip title="Reset toàn bộ lượt thi của thí sinh này">
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleResetAllAttempts(att.user_id, studentName)}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
             </>
           )}
         </TabPanel>

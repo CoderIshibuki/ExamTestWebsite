@@ -24,6 +24,7 @@ const ExamRoom: React.FC = () => {
   useProctorStreamBroadcaster(examId || '', cameraStream);
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [saveAnswerError, setSaveAnswerError] = useState<string | null>(null);
+  const [initError, setInitError] = useState<string | null>(null);
 
   const initExam = useCallback(async () => {
     try {
@@ -58,8 +59,10 @@ const ExamRoom: React.FC = () => {
       setAttemptId(attempt.id);
       setExpiresAt(new Date(attempt.expires_at));
       setStatus('in_progress');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to initialize exam:', err);
+      const detail = err?.response?.data?.detail;
+      setInitError(typeof detail === 'string' ? detail : 'Không thể tải đề thi hoặc bắt đầu bài làm. Vui lòng kiểm tra lại kết nối.');
       setStatus('error');
     }
   }, [examId, setStatus, setExamId, setQuestions, setAttemptId]);
@@ -127,17 +130,109 @@ const ExamRoom: React.FC = () => {
   }
 
   if (state.status === 'error') {
+    const isCompleted = initError?.toLowerCase().includes('maximum attempts') || initError?.includes('lượt làm bài') || initError?.includes('already');
+
     return (
-      <Box sx={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', bgcolor: 'background.default' }}>
-        <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 4, maxWidth: 400, border: '1px solid', borderColor: 'divider' }}>
-          <ErrorOutlined color="error" sx={{ fontSize: 60, mb: 2 }} />
-          <Typography variant="h5" color="error" gutterBottom>Đã xảy ra lỗi</Typography>
-          <Typography color="text.secondary" sx={{ mb: 4 }}>
-            Không thể tải hoặc nộp bài thi. Vui lòng kiểm tra lại kết nối.
-          </Typography>
-          <Button variant="contained" onClick={() => navigate(`/${user?.role}/exams`)}>
-            Quay lại danh sách
-          </Button>
+      <Box sx={{ display: 'flex', minHeight: '100vh', justifyContent: 'center', alignItems: 'center', bgcolor: '#F8FAFC', p: 3 }}>
+        <Paper
+          elevation={0}
+          sx={{
+            p: 5,
+            textAlign: 'center',
+            borderRadius: 4,
+            maxWidth: 480,
+            width: '100%',
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.06)',
+            bgcolor: '#FFFFFF',
+          }}
+        >
+          {isCompleted ? (
+            <>
+              <Box
+                sx={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: 3,
+                  bgcolor: '#EFF6FF',
+                  color: '#2563EB',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  mx: 'auto',
+                  mb: 2.5,
+                  border: '2px solid #DBEAFE',
+                }}
+              >
+                <Typography sx={{ fontSize: '2rem' }}>🎓</Typography>
+              </Box>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A', mb: 1 }}>
+                Bạn đã tham gia kỳ thi này rồi
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#64748B', mb: 4, lineHeight: 1.6 }}>
+                Bạn đã sử dụng hết số lượt làm bài cho phép cho đề thi này. Bạn có thể xem lại bảng điểm kết quả hoặc liên hệ giáo viên để được cấp thêm lượt thi lại.
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={() => navigate('/student/results')}
+                  sx={{
+                    bgcolor: '#2563EB',
+                    color: '#fff',
+                    fontWeight: 700,
+                    borderRadius: 2.5,
+                    py: 1.3,
+                    textTransform: 'none',
+                    '&:hover': { bgcolor: '#1D4ED8' },
+                  }}
+                >
+                  Xem kết quả thi của bạn
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="large"
+                  onClick={() => navigate(`/${user?.role || 'student'}/exams`)}
+                  sx={{
+                    borderColor: '#E2E8F0',
+                    color: '#475569',
+                    fontWeight: 600,
+                    borderRadius: 2.5,
+                    py: 1.2,
+                    textTransform: 'none',
+                    '&:hover': { bgcolor: '#F8FAFC' },
+                  }}
+                >
+                  Quay lại danh sách kỳ thi
+                </Button>
+              </Box>
+            </>
+          ) : (
+            <>
+              <ErrorOutlined color="error" sx={{ fontSize: 64, mb: 2 }} />
+              <Typography variant="h5" color="error" sx={{ fontWeight: 800, mb: 1 }}>
+                Không thể vào phòng thi
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 4, lineHeight: 1.6 }}>
+                {initError || 'Không thể tải hoặc nộp bài thi. Vui lòng kiểm tra lại kết nối.'}
+              </Typography>
+              <Button
+                variant="contained"
+                size="large"
+                onClick={() => navigate(`/${user?.role || 'student'}/exams`)}
+                sx={{
+                  bgcolor: '#2563EB',
+                  fontWeight: 700,
+                  borderRadius: 2.5,
+                  py: 1.2,
+                  px: 4,
+                  textTransform: 'none',
+                }}
+              >
+                Quay lại danh sách kỳ thi
+              </Button>
+            </>
+          )}
         </Paper>
       </Box>
     );
