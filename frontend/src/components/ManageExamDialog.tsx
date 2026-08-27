@@ -286,20 +286,20 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
   const formatDT = (iso: string) => new Date(iso).toLocaleString('vi-VN');
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle sx={{ fontWeight: 'bold' }}>
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
+      <DialogTitle sx={{ fontWeight: 800, color: '#0F172A', pb: 1 }}>
         Quản lý đề thi{examTitle ? `: ${examTitle}` : ''}
       </DialogTitle>
-      <DialogContent>
+      <DialogContent sx={{ minHeight: 450 }}>
         <Tabs value={tab} onChange={(_e, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tab label="Câu hỏi trong đề" />
-          <Tab label="Giám thị coi thi" />
-          <Tab label="Lịch thi" />
-          <Tab label={`Thí sinh & Lượt thi (${attempts.length})`} />
+          <Tab label="Câu hỏi trong đề" sx={{ fontWeight: 700, textTransform: 'none' }} />
+          <Tab label="Giám thị coi thi" sx={{ fontWeight: 700, textTransform: 'none' }} />
+          <Tab label="Lịch thi" sx={{ fontWeight: 700, textTransform: 'none' }} />
+          <Tab label={`Thí sinh & Lượt thi (${attempts.length})`} sx={{ fontWeight: 700, textTransform: 'none' }} />
         </Tabs>
 
-        {error && <Alert severity="error" sx={{ mt: 2 }} onClose={() => setError('')}>{error}</Alert>}
-        {successMsg && <Alert severity="success" sx={{ mt: 2 }} onClose={() => setSuccessMsg('')}>{successMsg}</Alert>}
+        {error && <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
+        {successMsg && <Alert severity="success" sx={{ mt: 2, borderRadius: 2 }} onClose={() => setSuccessMsg('')}>{successMsg}</Alert>}
 
         <TabPanel value={tab} index={0}>
           {loadingQuestions ? (
@@ -471,23 +471,23 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
           ) : (
             <>
-              <Alert severity="info" variant="outlined" sx={{ mb: 2 }}>
-                Danh sách thí sinh đã tham gia làm bài thi. Bạn có thể <b>Cho phép thi lại (Xoá lượt thi)</b> để thí sinh có thể vào làm bài lại từ đầu.
+              <Alert severity="info" variant="outlined" sx={{ mb: 2.5, borderRadius: 2 }}>
+                Danh sách thí sinh đã tham gia làm bài thi. Bạn có thể bấm <b>"Cho phép thi lại"</b> để xoá lượt thi cũ, giúp học sinh vào thi lại từ đầu.
               </Alert>
               {attempts.length === 0 ? (
-                <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E2E8F0', bgcolor: '#F8FAFC' }}>
-                  <Typography color="text.secondary">Chưa có thí sinh nào tham gia làm bài thi này.</Typography>
+                <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#F8FAFC' }}>
+                  <Typography color="text.secondary" sx={{ fontWeight: 600 }}>Chưa có thí sinh nào tham gia làm bài thi này.</Typography>
                 </Paper>
               ) : (
-                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, maxHeight: 320 }}>
-                  <Table size="small" stickyHeader>
+                <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #E2E8F0', borderRadius: 3, maxHeight: 360 }}>
+                  <Table size="medium" stickyHeader>
                     <TableHead>
-                      <TableRow sx={{ bgcolor: '#F8FAFC' }}>
-                        <TableCell sx={{ fontWeight: 700 }}>Thí sinh</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Lần thi</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Trạng thái</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Thời gian nộp</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 700 }}>Thao tác</TableCell>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 700, bgcolor: '#F8FAFC', width: '32%' }}>Thí sinh</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 700, bgcolor: '#F8FAFC', width: '12%' }}>Lần thi</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 700, bgcolor: '#F8FAFC', width: '16%' }}>Trạng thái</TableCell>
+                        <TableCell sx={{ fontWeight: 700, bgcolor: '#F8FAFC', width: '20%' }}>Thời gian</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700, bgcolor: '#F8FAFC', width: '20%' }}>Thao tác</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -496,53 +496,56 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
                         const studentName = student?.full_name || student?.username || `@${att.user_id}`;
                         const isSubmitted = att.status === 'submitted' || att.status === 'auto_submitted';
                         return (
-                          <TableRow key={att.id} hover>
-                            <TableCell>
+                          <TableRow key={att.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                            <TableCell sx={{ width: '32%' }}>
                               <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F172A' }}>
                                 {studentName}
                               </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {student?.email ? `${student.email} • ` : ''}ID: {att.user_id}
+                              <Typography variant="caption" sx={{ color: '#64748B' }}>
+                                {student?.email ? `${student.email} • ` : ''}@{student?.username || att.user_id}
                               </Typography>
                             </TableCell>
-                            <TableCell>
-                              <Chip label={`Lần ${att.attempt_number || 1}`} size="small" variant="outlined" />
+                            <TableCell align="center" sx={{ width: '12%' }}>
+                              <Chip label={`Lần ${att.attempt_number || 1}`} size="small" variant="outlined" sx={{ fontWeight: 600 }} />
                             </TableCell>
-                            <TableCell>
+                            <TableCell align="center" sx={{ width: '16%' }}>
                               <Chip
                                 label={isSubmitted ? 'Đã nộp bài' : att.status === 'in_progress' ? 'Đang làm' : att.status}
                                 size="small"
                                 color={isSubmitted ? 'success' : 'warning'}
-                                sx={{ fontWeight: 700, fontSize: '0.75rem' }}
+                                sx={{ fontWeight: 700, fontSize: '0.75rem', px: 0.5 }}
                               />
                             </TableCell>
-                            <TableCell>
-                              <Typography variant="caption" color="text.secondary">
+                            <TableCell sx={{ width: '20%' }}>
+                              <Typography variant="caption" sx={{ color: '#475569', display: 'block', fontWeight: 500 }}>
                                 {att.submitted_at ? formatDT(att.submitted_at) : (att.started_at ? `Bắt đầu: ${formatDT(att.started_at)}` : '—')}
                               </Typography>
                             </TableCell>
-                            <TableCell align="right">
-                              <Tooltip title="Xoá lượt thi này để thí sinh có thể vào thi lại">
-                                <Button
-                                  variant="outlined"
-                                  color="warning"
-                                  size="small"
-                                  startIcon={<RestartAltIcon />}
-                                  onClick={() => handleDeleteAttempt(att.id, studentName)}
-                                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700, mr: 1 }}
-                                >
-                                  Cho phép thi lại
-                                </Button>
-                              </Tooltip>
-                              <Tooltip title="Reset toàn bộ lượt thi của thí sinh này">
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() => handleResetAllAttempts(att.user_id, studentName)}
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
+                            <TableCell align="right" sx={{ width: '20%' }}>
+                              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, justifyContent: 'flex-end' }}>
+                                <Tooltip title="Xoá lượt thi này để thí sinh vào làm bài lại">
+                                  <Button
+                                    variant="outlined"
+                                    color="warning"
+                                    size="small"
+                                    startIcon={<RestartAltIcon />}
+                                    onClick={() => handleDeleteAttempt(att.id, studentName)}
+                                    sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700, whiteSpace: 'nowrap' }}
+                                  >
+                                    Cho phép thi lại
+                                  </Button>
+                                </Tooltip>
+                                <Tooltip title="Xoá toàn bộ lượt thi của thí sinh này">
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() => handleResetAllAttempts(att.user_id, studentName)}
+                                    sx={{ border: '1px solid #FEE2E2', borderRadius: 2, p: 0.7 }}
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
                             </TableCell>
                           </TableRow>
                         );
@@ -556,7 +559,7 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
         </TabPanel>
       </DialogContent>
       <DialogActions sx={{ p: 3, pt: 1 }}>
-        <Button onClick={onClose} variant="contained" sx={{ borderRadius: 2, textTransform: 'none' }}>Đóng</Button>
+        <Button onClick={onClose} variant="contained" sx={{ borderRadius: 2, textTransform: 'none', px: 3, fontWeight: 700 }}>Đóng</Button>
       </DialogActions>
     </Dialog>
   );

@@ -124,8 +124,16 @@ async def update_category(category_id: str, update_data: dict):
 async def delete_category(category_id: str):
     if not ObjectId.is_valid(category_id):
         return False
+    # Xoá danh mục
     result = await db_instance.db.categories.delete_one({"_id": ObjectId(category_id)})
-    return result.deleted_count == 1
+    if result.deleted_count == 1:
+        # Cập nhật các câu hỏi thuộc danh mục này thành unassigned (không xoá câu hỏi của người dùng)
+        await db_instance.db.questions.update_many(
+            {"category_id": ObjectId(category_id)},
+            {"$unset": {"category_id": ""}}
+        )
+        return True
+    return False
 
 # --- Exam Snapshots CRUD ---
 async def create_exam_snapshots(snapshots_data: list[dict]):

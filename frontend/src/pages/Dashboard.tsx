@@ -2,7 +2,7 @@ import { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Container, Typography, Box, Button, Card, CardContent, Grid, Avatar, AppBar, Toolbar, Chip, Skeleton, Divider } from '@mui/material';
-import { School, FactCheck, VerifiedUser, PlayArrow, Videocam, LockReset, Logout } from '@mui/icons-material';
+import { School, FactCheck, VerifiedUser, Videocam, LockReset, Logout, Home as HomeIcon } from '@mui/icons-material';
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Quản trị viên',
@@ -49,7 +49,24 @@ const Dashboard = () => {
             </Typography>
           </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Button
+              variant="outlined"
+              startIcon={<HomeIcon />}
+              onClick={() => navigate('/')}
+              sx={{
+                color: '#2563EB',
+                borderColor: '#BFDBFE',
+                bgcolor: '#EFF6FF',
+                textTransform: 'none',
+                borderRadius: 2.5,
+                fontWeight: 700,
+                px: 2,
+                '&:hover': { bgcolor: '#DBEAFE', borderColor: '#93C5FD' },
+              }}
+            >
+              Trang chủ
+            </Button>
             {user && (
               <Chip
                 avatar={<Avatar sx={{ bgcolor: '#2563EB', color: '#fff', fontSize: '0.8rem', fontWeight: 700 }}>{user.username.charAt(0).toUpperCase()}</Avatar>}
@@ -265,91 +282,46 @@ const Dashboard = () => {
 
               {user?.role === 'student' && (
                 <>
-                  <Grid size={{ xs: 12, sm: 6 }}>
+                  <Grid size={{ xs: 12 }}>
                     <Card
                       sx={{
-                        height: '100%',
                         borderRadius: 3.5,
-                        border: '1px solid #E2E8F0',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                        border: '1px solid #D1FAE5',
                         bgcolor: '#ffffff',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        transition: 'all 0.2s ease',
-                        '&:hover': { borderColor: '#2563EB', transform: 'translateY(-2px)' },
-                      }}
-                    >
-                      <CardContent sx={{ p: 3.5 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
-                          <Avatar sx={{ bgcolor: '#EFF6FF', color: '#2563EB', width: 44, height: 44 }}>
-                            <School />
-                          </Avatar>
-                          <Typography variant="h6" sx={{ fontWeight: 800, color: '#0F172A' }}>Danh sách kỳ thi</Typography>
-                        </Box>
-                        <Typography variant="body2" sx={{ color: '#64748B', mb: 3 }}>
-                          Xem các đề thi đang mở, kiểm tra thời lượng và bắt đầu làm bài.
-                        </Typography>
-                        <Button
-                          variant="contained"
-                          fullWidth
-                          startIcon={<PlayArrow />}
-                          onClick={() => navigate('/student/exams')}
-                          sx={{
-                            bgcolor: '#2563EB',
-                            '&:hover': { bgcolor: '#1D4ED8' },
-                            textTransform: 'none',
-                            borderRadius: 2,
-                            fontWeight: 700,
-                            py: 1,
-                          }}
-                        >
-                          Vào danh sách thi
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <Card
-                      sx={{
-                        height: '100%',
-                        borderRadius: 3.5,
-                        border: '1px solid #E2E8F0',
                         boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                        bgcolor: '#ffffff',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
                         transition: 'all 0.2s ease',
                         '&:hover': { borderColor: '#10B981', transform: 'translateY(-2px)' },
                       }}
                     >
-                      <CardContent sx={{ p: 3.5 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
-                          <Avatar sx={{ bgcolor: '#ECFDF5', color: '#10B981', width: 44, height: 44 }}>
-                            <FactCheck />
+                      <CardContent sx={{ p: 3.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexDirection: { xs: 'column', sm: 'row' }, gap: 2.5 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+                          <Avatar sx={{ bgcolor: '#ECFDF5', color: '#10B981', width: 54, height: 54 }}>
+                            <FactCheck sx={{ fontSize: 30 }} />
                           </Avatar>
-                          <Typography variant="h6" sx={{ fontWeight: 800, color: '#0F172A' }}>Kết quả học tập</Typography>
+                          <Box>
+                            <Typography variant="h6" sx={{ fontWeight: 800, color: '#064E3B' }}>
+                              Kết quả học tập & Lịch sử bài thi
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#059669', mt: 0.5 }}>
+                              Tra cứu điểm số, thời gian làm bài và xem lời giải chi tiết cho tất cả các kỳ thi bạn đã tham gia.
+                            </Typography>
+                          </Box>
                         </Box>
-                        <Typography variant="body2" sx={{ color: '#64748B', mb: 3 }}>
-                          Xem lại lịch sử làm bài, điểm số và bài giải chi tiết của bạn.
-                        </Typography>
                         <Button
-                          variant="outlined"
-                          fullWidth
+                          variant="contained"
                           onClick={() => navigate('/student/results')}
                           sx={{
-                            color: '#10B981',
-                            borderColor: '#A7F3D0',
-                            '&:hover': { borderColor: '#10B981', bgcolor: '#ECFDF5' },
+                            bgcolor: '#10B981',
+                            '&:hover': { bgcolor: '#059669' },
                             textTransform: 'none',
-                            borderRadius: 2,
+                            borderRadius: 2.5,
                             fontWeight: 700,
-                            py: 1,
+                            px: 3.5,
+                            py: 1.2,
+                            whiteSpace: 'nowrap',
                           }}
                         >
-                          Xem kết quả
+                          Xem kết quả bài thi
                         </Button>
                       </CardContent>
                     </Card>

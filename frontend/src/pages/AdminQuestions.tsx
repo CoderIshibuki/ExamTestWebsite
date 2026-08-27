@@ -145,14 +145,15 @@ const AdminQuestions = () => {
     {
       field: 'content',
       headerName: 'Nội dung câu hỏi',
-      flex: 1,
-      minWidth: 320,
+      flex: 3,
+      minWidth: 280,
       valueGetter: (_value, row) => row.content?.text || '',
     },
     {
       field: 'type',
-      headerName: 'Loại',
-      width: 190,
+      headerName: 'Loại câu hỏi',
+      flex: 1.4,
+      minWidth: 170,
       renderCell: (params) => (
         <Chip label={TYPE_LABELS[params.value] || params.value} size="small" color="primary" variant="outlined" />
       ),
@@ -160,7 +161,8 @@ const AdminQuestions = () => {
     {
       field: 'subject',
       headerName: 'Môn học',
-      width: 150,
+      flex: 1,
+      minWidth: 120,
       valueGetter: (_value, row) => row.metadata?.subject || '',
       renderCell: (params) => (
         <Box sx={{ bgcolor: '#e3f2fd', color: '#1976d2', px: 1.5, py: 0.5, borderRadius: 2, fontSize: '0.85rem', fontWeight: 600 }}>
@@ -171,7 +173,8 @@ const AdminQuestions = () => {
     {
       field: 'difficulty',
       headerName: 'Độ khó',
-      width: 130,
+      flex: 1,
+      minWidth: 110,
       valueGetter: (_value, row) => row.metadata?.difficulty || '',
       renderCell: (params) => {
         let color = '#757575';
@@ -190,6 +193,8 @@ const AdminQuestions = () => {
       field: 'actions',
       headerName: 'Hành động',
       width: 100,
+      align: 'center',
+      headerAlign: 'center',
       sortable: false,
       renderCell: (params) => (
         <Button

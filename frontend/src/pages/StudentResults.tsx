@@ -102,14 +102,30 @@ export default function StudentResults() {
             </Typography>
           </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Button
+              variant="outlined"
+              onClick={() => navigate('/')}
+              sx={{
+                color: '#2563EB',
+                borderColor: '#BFDBFE',
+                bgcolor: '#EFF6FF',
+                textTransform: 'none',
+                borderRadius: 2.5,
+                fontWeight: 700,
+                px: 2,
+                '&:hover': { bgcolor: '#DBEAFE', borderColor: '#93C5FD' },
+              }}
+            >
+              Trang chủ
+            </Button>
             <Button
               variant="text"
               startIcon={<ArrowBack />}
               onClick={() => navigate('/dashboard')}
               sx={{ color: '#64748B', textTransform: 'none', fontWeight: 600 }}
             >
-              Trang cá nhân
+              Bảng điều khiển
             </Button>
             <Button
               variant="outlined"

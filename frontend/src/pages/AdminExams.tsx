@@ -102,20 +102,50 @@ const AdminExams = () => {
   };
 
   const columns: GridColDef[] = [
-    { field: 'id', headerName: 'Exam ID', width: 220, flex: 1 },
-    { field: 'title', headerName: 'Tiêu đề', width: 260, flex: 2 },
-    { field: 'duration_minutes', headerName: 'Thời lượng (phút)', width: 150 },
+    {
+      field: 'title',
+      headerName: 'Tiêu đề đề thi',
+      flex: 2.8,
+      minWidth: 260,
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
+          <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F172A' }}>
+            {params.value}
+          </Typography>
+          <Typography variant="caption" sx={{ color: '#94A3B8', fontFamily: 'monospace', fontSize: '0.75rem' }}>
+            ID: {params.row.id}
+          </Typography>
+        </Box>
+      ),
+    },
+    {
+      field: 'duration_minutes',
+      headerName: 'Thời lượng',
+      flex: 1,
+      minWidth: 120,
+      align: 'center',
+      headerAlign: 'center',
+      renderCell: (params) => (
+        <Typography variant="body2" sx={{ fontWeight: 600, color: '#475569' }}>
+          {params.value} phút
+        </Typography>
+      ),
+    },
     {
       field: 'status',
       headerName: 'Trạng thái',
-      width: 130,
+      flex: 1,
+      minWidth: 130,
+      align: 'center',
+      headerAlign: 'center',
       renderCell: (params) => (
         <Box sx={{
           px: 2, py: 0.5,
           borderRadius: 4,
-          bgcolor: params.value === 'published' ? '#e8f5e9' : '#f5f5f5',
-          color: params.value === 'published' ? '#2e7d32' : '#757575',
-          fontWeight: 'bold',
+          bgcolor: params.value === 'published' ? '#ECFDF5' : '#F1F5F9',
+          color: params.value === 'published' ? '#059669' : '#64748B',
+          fontWeight: 700,
+          fontSize: '0.8rem',
           textTransform: 'capitalize'
         }}>
           {params.value || 'draft'}
@@ -125,17 +155,20 @@ const AdminExams = () => {
     {
       field: 'actions',
       headerName: 'Hành động',
-      width: 460,
+      flex: 2.2,
+      minWidth: 320,
+      align: 'right',
+      headerAlign: 'right',
       sortable: false,
       renderCell: (params) => (
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', height: '100%' }}>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
           <Button
             variant="contained"
             color="primary"
             size="small"
             startIcon={<SettingsIcon />}
             onClick={() => setManageDialog({ open: true, examId: params.row.id, title: params.row.title })}
-            sx={{ borderRadius: 2, textTransform: 'none' }}
+            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
           >
             Quản lý
           </Button>
@@ -146,7 +179,7 @@ const AdminExams = () => {
               size="small"
               startIcon={<PublishIcon />}
               onClick={() => handlePublish(params.row.id)}
-              sx={{ borderRadius: 2, textTransform: 'none' }}
+              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
             >
               Publish
             </Button>
@@ -157,7 +190,7 @@ const AdminExams = () => {
             size="small"
             startIcon={<VisibilityIcon />}
             onClick={() => navigate(`/proctor/exam/${params.row.id}`)}
-            sx={{ borderRadius: 2, textTransform: 'none' }}
+            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
           >
             Proctor
           </Button>
@@ -167,7 +200,7 @@ const AdminExams = () => {
             size="small"
             startIcon={<DeleteIcon />}
             onClick={() => handleDeleteClick(params.row.id)}
-            sx={{ borderRadius: 2, textTransform: 'none' }}
+            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
           >
             Xoá
           </Button>
