@@ -54,6 +54,17 @@ export const adminApi = {
   deleteQuestion: async (id: string) => {
     await apiClient.delete(`/v1/questions/${id}`);
   },
+  bulkDeleteQuestions: async (ids: string[]) => {
+    const response = await apiClient.post('/v1/questions/bulk-delete', { ids });
+    return response.data;
+  },
+  bulkAssignCategory: async (questionIds: string[], categoryId: string | null) => {
+    const response = await apiClient.post('/v1/questions/bulk-assign-category', {
+      question_ids: questionIds,
+      category_id: categoryId || null,
+    });
+    return response.data;
+  },
   importQuestionsBulk: async (questions: any[]) => {
     const response = await apiClient.post('/v1/questions/bulk', questions);
     return response.data;

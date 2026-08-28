@@ -90,6 +90,24 @@ async def delete_question(question_id: str):
     result = await db_instance.db.questions.delete_one({"_id": ObjectId(question_id)})
     return result.deleted_count == 1
 
+async def bulk_delete_questions(question_ids: list[str]) -> int:
+    valid_ids = [ObjectId(qid) for qid in question_ids if ObjectId.is_valid(qid)]
+    if not valid_ids:
+        return 0
+    result = await db_instance.db.questions.delete_many({"_id": {"$in": valid_ids}})
+    return result.deleted_count
+
+async def bulk_update_category(question_ids: list[str], category_id: str = None) -> int:
+    valid_ids = [ObjectId(qid) for qid in question_ids if ObjectId.is_valid(qid)]
+    if not valid_ids:
+        return 0
+    cat_obj = ObjectId(category_id) if category_id and ObjectId.is_valid(category_id) else None
+    result = await db_instance.db.questions.update_many(
+        {"_id": {"$in": valid_ids}},
+        {"$set": {"category_id": cat_obj, "updated_at": datetime.utcnow()}}
+    )
+    return result.modified_count
+
 # --- Categories CRUD ---
 async def create_category(category_data: dict):
     category_data["created_at"] = datetime.utcnow()

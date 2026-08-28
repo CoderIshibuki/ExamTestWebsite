@@ -1,12 +1,18 @@
-import { Box, Button, Typography, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, Snackbar, IconButton, Tooltip, Grid, Avatar } from '@mui/material';
-import { DataGrid, GridToolbar } from '@mui/x-data-grid';
-import type { GridColDef } from '@mui/x-data-grid';
+import {
+  Box, Button, Typography, Skeleton, Alert, Paper, Dialog,
+  DialogTitle, DialogContent, DialogActions, DialogContentText,
+  Snackbar, IconButton, Tooltip, Grid, Avatar, TextField,
+  MenuItem, InputAdornment, Chip
+} from '@mui/material';
+import { DataGrid } from '@mui/x-data-grid';
+import type { GridColDef, GridRowSelectionModel } from '@mui/x-data-grid';
 import { useState, useEffect, useMemo } from 'react';
 import { adminApi } from '../api/adminApi';
 import {
   Delete as DeleteIcon, Add as AddIcon,
   Edit as EditIcon, Quiz,
   CheckCircleOutlined, EditNote, LinearScale, CloudUpload,
+  Search as SearchIcon, Category as CategoryIcon, FolderOpen,
 } from '@mui/icons-material';
 import ManualQuestionDialog from '../components/ManualQuestionDialog';
 import ExcelImportDialog from '../components/ExcelImportDialog';
@@ -16,7 +22,7 @@ interface Question {
   id: string;
   content: { text: string };
   type: string;
-  metadata: { subject: string; difficulty: string };
+  metadata: { subject: string; difficulty: string; tags?: string[] };
   options?: any[];
   correct_answer?: any;
   category_id?: string;
@@ -40,19 +46,33 @@ const TYPE_COLORS: Record<string, string> = {
 
 const AdminQuestions = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
+  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
+  const [batchAssignOpen, setBatchAssignOpen] = useState(false);
+  const [targetCategory, setTargetCategory] = useState<string>('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<any | null>(null);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
+  // Search & Filters
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedType, setSelectedType] = useState('');
+
   const fetchQuestions = async () => {
     try {
       setLoading(true);
-      const data = await adminApi.getQuestions();
-      setQuestions(data || []);
+      const [qData, cData] = await Promise.all([
+        adminApi.getQuestions(),
+        adminApi.getCategories().catch(() => []),
+      ]);
+      setQuestions(qData || []);
+      setCategories(cData || []);
       setError('');
     } catch (err) {
       console.error('Failed to fetch questions', err);
@@ -73,6 +93,29 @@ const AdminQuestions = () => {
     const other = total - mc - essay;
     return { total, mc, essay, other };
   }, [questions]);
+
+  const categoriesMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    categories.forEach((c) => {
+      map[c.id] = c.name;
+    });
+    return map;
+  }, [categories]);
+
+  // Danh sách câu hỏi sau khi tìm kiếm và lọc
+  const filteredQuestions = useMemo(() => {
+    return questions.filter((q) => {
+      const term = searchTerm.toLowerCase().trim();
+      const textMatch =
+        !term ||
+        (q.content?.text || '').toLowerCase().includes(term) ||
+        (q.metadata?.subject || '').toLowerCase().includes(term) ||
+        (q.metadata?.tags || []).some((t: string) => t.toLowerCase().includes(term));
+      const catMatch = !selectedCategory || q.category_id === selectedCategory;
+      const typeMatch = !selectedType || q.type === selectedType;
+      return textMatch && catMatch && typeMatch;
+    });
+  }, [questions, searchTerm, selectedCategory, selectedType]);
 
   const handleOpenCreate = () => {
     setEditingQuestion(null);
@@ -107,6 +150,7 @@ const AdminQuestions = () => {
     try {
       await adminApi.deleteQuestion(deleteDialog.id);
       setQuestions((prev) => prev.filter((q: any) => (q.id || q._id) !== deleteDialog.id));
+      setSelectedIds((prev) => prev.filter((id) => id !== deleteDialog.id));
       setSnackbar({ open: true, message: 'Đã xoá câu hỏi.', severity: 'success' });
     } catch (err: any) {
       console.error('Failed to delete question', err);
@@ -116,12 +160,44 @@ const AdminQuestions = () => {
     }
   };
 
+  // Xóa hàng loạt câu hỏi đã chọn
+  const handleConfirmBatchDelete = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      await adminApi.bulkDeleteQuestions(selectedIds);
+      setQuestions((prev) => prev.filter((q: any) => !selectedIds.includes(q.id || q._id)));
+      setSelectedIds([]);
+      setSnackbar({ open: true, message: `Đã xóa thành công ${selectedIds.length} câu hỏi.`, severity: 'success' });
+    } catch (err: any) {
+      console.error('Failed to batch delete questions', err);
+      setSnackbar({ open: true, message: err.response?.data?.detail || 'Xóa hàng loạt thất bại.', severity: 'error' });
+    } finally {
+      setBatchDeleteOpen(false);
+    }
+  };
+
+  // Gán hàng loạt câu hỏi vào danh mục
+  const handleConfirmBatchAssign = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      await adminApi.bulkAssignCategory(selectedIds, targetCategory || null);
+      setSnackbar({ open: true, message: `Đã gán ${selectedIds.length} câu hỏi vào danh mục thành công.`, severity: 'success' });
+      setSelectedIds([]);
+      fetchQuestions();
+    } catch (err: any) {
+      console.error('Failed to batch assign category', err);
+      setSnackbar({ open: true, message: err.response?.data?.detail || 'Gán danh mục thất bại.', severity: 'error' });
+    } finally {
+      setBatchAssignOpen(false);
+    }
+  };
+
   const columns: GridColDef[] = [
     {
       field: 'content',
       headerName: 'NỘI DUNG CÂU HỎI',
-      flex: 3.5,
-      minWidth: 320,
+      flex: 3,
+      minWidth: 300,
       renderCell: (params) => (
         <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', width: '100%' }}>
           <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -133,8 +209,8 @@ const AdminQuestions = () => {
     {
       field: 'type',
       headerName: 'LOẠI CÂU HỎI',
-      flex: 1.5,
-      minWidth: 180,
+      flex: 1.4,
+      minWidth: 170,
       renderCell: (params) => {
         const color = TYPE_COLORS[params.value] || '#475569';
         return (
@@ -147,10 +223,33 @@ const AdminQuestions = () => {
       },
     },
     {
-      field: 'subject',
-      headerName: 'MÔN HỌC / DANH MỤC',
-      flex: 1.5,
+      field: 'category_id',
+      headerName: 'DANH MỤC',
+      flex: 1.4,
       minWidth: 160,
+      renderCell: (params) => {
+        const catName = categoriesMap[params.value] || 'Chưa phân loại';
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <Chip
+              label={catName}
+              size="small"
+              sx={{
+                bgcolor: params.value ? '#EFF6FF' : '#F1F5F9',
+                color: params.value ? '#1D4ED8' : '#64748B',
+                fontWeight: 600,
+                borderRadius: 1,
+              }}
+            />
+          </Box>
+        );
+      },
+    },
+    {
+      field: 'subject',
+      headerName: 'MÔN HỌC',
+      flex: 1.2,
+      minWidth: 130,
       renderCell: (params) => (
         <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
           <Typography variant="body2" sx={{ color: '#475569', fontWeight: 600 }}>
@@ -162,7 +261,7 @@ const AdminQuestions = () => {
     {
       field: 'actions',
       headerName: 'HÀNH ĐỘNG',
-      width: 140,
+      width: 130,
       align: 'center',
       headerAlign: 'center',
       sortable: false,
@@ -170,20 +269,20 @@ const AdminQuestions = () => {
         <Box sx={{ display: 'flex', gap: 1.2, alignItems: 'center', justifyContent: 'center', height: '100%' }}>
           <Tooltip title="Chỉnh sửa câu hỏi">
             <IconButton
-              size="medium"
+              size="small"
               onClick={() => handleEditClick(params.row)}
-              sx={{ bgcolor: '#EFF6FF', color: '#2563EB', borderRadius: 1.5, p: 1, '&:hover': { bgcolor: '#DBEAFE' } }}
+              sx={{ bgcolor: '#EFF6FF', color: '#2563EB', borderRadius: 1.2, p: 0.8, '&:hover': { bgcolor: '#DBEAFE' } }}
             >
-              <EditIcon sx={{ fontSize: 18 }} />
+              <EditIcon sx={{ fontSize: 17 }} />
             </IconButton>
           </Tooltip>
           <Tooltip title="Xoá câu hỏi">
             <IconButton
-              size="medium"
+              size="small"
               onClick={() => handleDeleteClick(params.row.id || params.row._id)}
-              sx={{ bgcolor: '#FEF2F2', color: '#EF4444', borderRadius: 1.5, p: 1, '&:hover': { bgcolor: '#FEE2E2' } }}
+              sx={{ bgcolor: '#FEF2F2', color: '#EF4444', borderRadius: 1.2, p: 0.8, '&:hover': { bgcolor: '#FEE2E2' } }}
             >
-              <DeleteIcon sx={{ fontSize: 18 }} />
+              <DeleteIcon sx={{ fontSize: 17 }} />
             </IconButton>
           </Tooltip>
         </Box>
@@ -193,13 +292,14 @@ const AdminQuestions = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Header Bar */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A', mb: 0.5 }}>
             Ngân hàng Câu hỏi
           </Typography>
           <Typography variant="body2" sx={{ color: '#64748B' }}>
-            Kho lưu trữ câu hỏi trắc nghiệm, tự luận, đúng/sai và nối cột. Hỗ trợ nhập/xuất file Excel mẫu.
+            Kho lưu trữ câu hỏi trắc nghiệm, tự luận, đúng/sai và nối cột. Hỗ trợ tìm kiếm, lọc theo danh mục và thao tác hàng loạt.
           </Typography>
         </Box>
 
@@ -225,6 +325,7 @@ const AdminQuestions = () => {
         </Box>
       </Box>
 
+      {/* KPI Stats Strip */}
       <Grid container spacing={2.5}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Box sx={{ p: 2, borderRadius: 1.5, bgcolor: '#FFFFFF', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -272,8 +373,120 @@ const AdminQuestions = () => {
         </Grid>
       </Grid>
 
+      {/* Bộ lọc & Thanh tìm kiếm */}
+      <Paper elevation={0} sx={{ p: 2, bgcolor: '#FFFFFF', borderRadius: 1.5, border: '1px solid #E2E8F0', display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+        <TextField
+          size="small"
+          placeholder="Tìm kiếm theo nội dung câu hỏi, môn học, thẻ tags..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: '#64748B', fontSize: 19 }} />
+                </InputAdornment>
+              ),
+            },
+          }}
+          sx={{ flex: 1, minWidth: 260, '& .MuiOutlinedInput-root': { borderRadius: 1.2 } }}
+        />
+
+        <TextField
+          select
+          size="small"
+          label="Lọc theo Danh mục"
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          sx={{ minWidth: 200, '& .MuiOutlinedInput-root': { borderRadius: 1.2 } }}
+        >
+          <MenuItem value=""><em>Tất cả danh mục ({questions.length})</em></MenuItem>
+          {categories.map((c) => (
+            <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
+          ))}
+        </TextField>
+
+        <TextField
+          select
+          size="small"
+          label="Lọc theo Thể loại"
+          value={selectedType}
+          onChange={(e) => setSelectedType(e.target.value)}
+          sx={{ minWidth: 190, '& .MuiOutlinedInput-root': { borderRadius: 1.2 } }}
+        >
+          <MenuItem value=""><em>Tất cả thể loại</em></MenuItem>
+          {Object.entries(TYPE_LABELS).map(([k, v]) => (
+            <MenuItem key={k} value={k}>{v}</MenuItem>
+          ))}
+        </TextField>
+
+        {(searchTerm || selectedCategory || selectedType) && (
+          <Button
+            size="small"
+            onClick={() => { setSearchTerm(''); setSelectedCategory(''); setSelectedType(''); }}
+            sx={{ textTransform: 'none', fontWeight: 600, color: '#64748B' }}
+          >
+            Đặt lại
+          </Button>
+        )}
+      </Paper>
+
+      {/* Thanh Thao Tác Hàng Loạt Khi Chọn Nhiều Câu Hỏi */}
+      {selectedIds.length > 0 && (
+        <Paper
+          elevation={0}
+          sx={{
+            p: 1.5,
+            px: 2.5,
+            bgcolor: '#EFF6FF',
+            borderRadius: 1.5,
+            border: '1px solid #BFDBFE',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 1.5,
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Chip
+              label={`Đã chọn ${selectedIds.length} câu hỏi`}
+              color="primary"
+              size="small"
+              sx={{ fontWeight: 800, bgcolor: '#2563EB' }}
+            />
+            <Typography variant="body2" sx={{ color: '#1E40AF', fontWeight: 600 }}>
+              Thao tác nhanh cho các câu hỏi đã chọn:
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: 'flex', gap: 1.2 }}>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<CategoryIcon sx={{ fontSize: 16 }} />}
+              onClick={() => setBatchAssignOpen(true)}
+              sx={{ bgcolor: '#2563EB', '&:hover': { bgcolor: '#1D4ED8' }, borderRadius: 1.2, textTransform: 'none', fontWeight: 700 }}
+            >
+              Gán vào danh mục
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              color="error"
+              startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
+              onClick={() => setBatchDeleteOpen(true)}
+              sx={{ bgcolor: '#FFFFFF', borderRadius: 1.2, textTransform: 'none', fontWeight: 700 }}
+            >
+              Xóa {selectedIds.length} câu hỏi
+            </Button>
+          </Box>
+        </Paper>
+      )}
+
       {error && <Alert severity="error" sx={{ borderRadius: 1.5 }}>{error}</Alert>}
 
+      {/* DataGrid Bảng Câu Hỏi */}
       <Paper
         elevation={0}
         sx={{
@@ -292,14 +505,21 @@ const AdminQuestions = () => {
           </Box>
         ) : (
           <DataGrid
-            rows={questions}
+            rows={filteredQuestions}
             columns={columns}
             rowHeight={60}
             getRowId={(row) => row.id || row._id}
-            slots={{ toolbar: GridToolbar }}
-            slotProps={{ toolbar: { showQuickFilter: true, quickFilterProps: { debounceMs: 500 } } }}
+            checkboxSelection
+            onRowSelectionModelChange={(newSelection: GridRowSelectionModel) => {
+              if (Array.isArray(newSelection)) {
+                setSelectedIds(newSelection.map(String));
+              } else if (newSelection && typeof newSelection === 'object' && 'ids' in newSelection) {
+                setSelectedIds(Array.from((newSelection as any).ids).map(String));
+              }
+            }}
+            rowSelectionModel={{ type: 'include', ids: new Set(selectedIds) } as any}
             initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
-            pageSizeOptions={[10, 25, 50]}
+            pageSizeOptions={[10, 25, 50, 100]}
             disableRowSelectionOnClick
             sx={{
               border: 'none',
@@ -311,6 +531,7 @@ const AdminQuestions = () => {
         )}
       </Paper>
 
+      {/* Dialog Tạo/Sửa câu hỏi */}
       <ManualQuestionDialog
         open={createOpen}
         onClose={() => { setCreateOpen(false); setEditingQuestion(null); }}
@@ -318,6 +539,7 @@ const AdminQuestions = () => {
         initialQuestion={editingQuestion}
       />
 
+      {/* Dialog Xóa 1 câu hỏi */}
       <Dialog
         open={deleteDialog.open}
         onClose={() => setDeleteDialog({ open: false, id: null })}
@@ -339,6 +561,70 @@ const AdminQuestions = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Dialog Xóa Hàng Loạt Câu Hỏi */}
+      <Dialog
+        open={batchDeleteOpen}
+        onClose={() => setBatchDeleteOpen(false)}
+        slotProps={{ paper: { sx: { borderRadius: 1.5, p: 1 } } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: 'error.main' }}>
+          Xác nhận xoá hàng loạt ({selectedIds.length} câu hỏi)
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Hành động này sẽ xóa vĩnh viễn <strong>{selectedIds.length} câu hỏi</strong> đã chọn khỏi ngân hàng. Bạn có chắc chắn muốn tiếp tục?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setBatchDeleteOpen(false)} sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 600 }}>
+            Huỷ
+          </Button>
+          <Button onClick={handleConfirmBatchDelete} color="error" variant="contained" sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 700 }}>
+            Xác nhận xóa {selectedIds.length} câu hỏi
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog Gán Hàng Loạt Vào Danh Mục */}
+      <Dialog
+        open={batchAssignOpen}
+        onClose={() => setBatchAssignOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{ paper: { sx: { borderRadius: 1.5, p: 1 } } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <FolderOpen sx={{ color: '#2563EB' }} /> Gán vào Danh mục
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1 }}>
+          <DialogContentText sx={{ mb: 2 }}>
+            Chọn danh mục bạn muốn gán cho <strong>{selectedIds.length} câu hỏi</strong> đã chọn:
+          </DialogContentText>
+          <TextField
+            select
+            fullWidth
+            label="Chọn Danh mục đích"
+            value={targetCategory}
+            onChange={(e) => setTargetCategory(e.target.value)}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.2 } }}
+          >
+            <MenuItem value=""><em>-- Bỏ khỏi danh mục (Chưa phân loại) --</em></MenuItem>
+            {categories.map((c) => (
+              <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
+            ))}
+          </TextField>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setBatchAssignOpen(false)} sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 600 }}>
+            Hủy
+          </Button>
+          <Button onClick={handleConfirmBatchAssign} variant="contained" sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 700, bgcolor: '#2563EB' }}>
+            Áp dụng
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog Import Excel */}
       <ExcelImportDialog
         open={importDialogOpen}
         onClose={() => setImportDialogOpen(false)}

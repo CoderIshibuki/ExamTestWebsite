@@ -122,3 +122,28 @@ async def delete_question(
     await cache.invalidate_pattern("questions:list:*")
     await cache.invalidate(f"question:{id}")
     return None
+
+class BulkDeleteRequest(schemas.BaseModel):
+    ids: List[str]
+
+class BulkAssignCategoryRequest(schemas.BaseModel):
+    question_ids: List[str]
+    category_id: Optional[str] = None
+
+@router.post("/bulk-delete", status_code=status.HTTP_200_OK)
+async def bulk_delete_questions(
+    req: BulkDeleteRequest,
+    current_user: dict = Depends(require_permission("question:delete"))
+):
+    deleted_count = await crud.bulk_delete_questions(req.ids)
+    await cache.invalidate_pattern("questions:list:*")
+    return {"deleted_count": deleted_count}
+
+@router.post("/bulk-assign-category", status_code=status.HTTP_200_OK)
+async def bulk_assign_category(
+    req: BulkAssignCategoryRequest,
+    current_user: dict = Depends(require_permission("question:update"))
+):
+    updated_count = await crud.bulk_update_category(req.question_ids, req.category_id)
+    await cache.invalidate_pattern("questions:list:*")
+    return {"updated_count": updated_count}
