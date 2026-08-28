@@ -11,6 +11,7 @@ export interface Exam {
   status?: string;
   created_at?: string;
   has_password?: boolean;
+  enable_proctoring?: boolean;
 }
 
 export async function getPublishedExams(): Promise<Exam[]> {

@@ -43,6 +43,7 @@ const ExamRoom: React.FC = () => {
   const [passwordError, setPasswordError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [enableProctoring, setEnableProctoring] = useState<boolean>(true);
   const pendingExamHasPassword = useRef(false);
 
   const handleProctorAction = useCallback((data: any) => {
@@ -109,8 +110,10 @@ const ExamRoom: React.FC = () => {
       setStatus('joining');
       setExamId(examId || '');
 
-      // Lấy thông tin đề thi để kiểm tra có yêu cầu mật khẩu không
+      // Lấy thông tin đề thi để kiểm tra có yêu cầu mật khẩu không và kiểm tra bật proctoring không
       const examInfo = await examApi.getExamById(examId || '');
+      setEnableProctoring(examInfo.enable_proctoring !== false);
+
       if (examInfo.has_password && !password) {
         pendingExamHasPassword.current = true;
         setPasswordDialogOpen(true);
@@ -647,27 +650,29 @@ const ExamRoom: React.FC = () => {
         </Grid>
       </Container>
 
-      {/* Floating PIP Camera */}
-      <Box sx={{ position: 'fixed', bottom: 70, right: 20, zIndex: 1150, width: 160 }}>
-        {cameraError ? (
-          <Paper sx={{ p: 1.5, bgcolor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 2.5, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
-            <Typography variant="caption" color="error.main" sx={{ fontWeight: 600 }}>{cameraError}</Typography>
-          </Paper>
-        ) : (
-          <Paper sx={{ p: 0.6, borderRadius: 2.5, overflow: 'hidden', border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', bgcolor: '#FFFFFF' }}>
-            <video
-              ref={videoRef}
-              muted
-              playsInline
-              aria-label="Camera giám sát thi (chỉ hiển thị cho bạn, không lưu hình ảnh)"
-              style={{ width: '100%', borderRadius: 8, display: 'block', transform: 'scaleX(-1)', opacity: cameraReady ? 1 : 0.3 }}
-            />
-            <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', color: '#64748B', fontWeight: 600, mt: 0.5, fontSize: '0.7rem' }}>
-              {cameraReady ? '● AI Giám sát ON' : 'Đang mở camera...'}
-            </Typography>
-          </Paper>
-        )}
-      </Box>
+      {/* Floating PIP Camera (chỉ hiển thị khi đề thi bật chống gian lận) */}
+      {enableProctoring && (
+        <Box sx={{ position: 'fixed', bottom: 70, right: 20, zIndex: 1150, width: 160 }}>
+          {cameraError ? (
+            <Paper sx={{ p: 1.5, bgcolor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 2.5, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+              <Typography variant="caption" color="error.main" sx={{ fontWeight: 600 }}>{cameraError}</Typography>
+            </Paper>
+          ) : (
+            <Paper sx={{ p: 0.6, borderRadius: 2.5, overflow: 'hidden', border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', bgcolor: '#FFFFFF' }}>
+              <video
+                ref={videoRef}
+                muted
+                playsInline
+                aria-label="Camera giám sát thi (chỉ hiển thị cho bạn, không lưu hình ảnh)"
+                style={{ width: '100%', borderRadius: 8, display: 'block', transform: 'scaleX(-1)', opacity: cameraReady ? 1 : 0.3 }}
+              />
+              <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', color: '#64748B', fontWeight: 600, mt: 0.5, fontSize: '0.7rem' }}>
+                {cameraReady ? '● AI Giám sát ON' : 'Đang mở camera...'}
+              </Typography>
+            </Paper>
+          )}
+        </Box>
+      )}
 
       {/* Bottom Status Pill */}
       <Paper
@@ -684,7 +689,15 @@ const ExamRoom: React.FC = () => {
           bgcolor: '#FFFFFF',
         }}
       >
-        <ProctoringStatus isActive={isActive} violationCount={violationCount} />
+        {enableProctoring ? (
+          <ProctoringStatus isActive={isActive} violationCount={violationCount} />
+        ) : (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, color: '#059669' }}>
+              🛡️ Đề thi tự do • Chế độ làm bài không yêu cầu camera giám sát
+            </Typography>
+          </Box>
+        )}
       </Paper>
 
       {/* Hộp thoại xác nhận nộp bài kèm cảnh báo câu chưa làm */}

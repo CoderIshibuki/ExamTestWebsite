@@ -11,6 +11,7 @@ export interface ExamCreate {
   show_result_after_submit?: boolean;
   show_answers_after_submit?: boolean;
   is_public?: boolean;
+  enable_proctoring?: boolean;
   access_password?: string;
 }
 

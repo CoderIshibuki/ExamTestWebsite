@@ -14,6 +14,7 @@ class ExamBase(BaseModel):
     show_result_after_submit: bool = True
     show_answers_after_submit: bool = True
     is_public: bool = True
+    enable_proctoring: bool = True
     access_password: Optional[str] = None
 
 class ExamCreate(ExamBase):
@@ -31,6 +32,7 @@ class ExamUpdate(BaseModel):
     show_answers_after_submit: Optional[bool] = None
     status: Optional[str] = None
     is_public: Optional[bool] = None
+    enable_proctoring: Optional[bool] = None
     access_password: Optional[str] = None
 
 class ExamResponse(ExamBase):

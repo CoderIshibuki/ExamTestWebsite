@@ -21,6 +21,7 @@ class Exam(Base):
     status = Column(String(20), default="draft")
     owner_id = Column(UUID(as_uuid=True), nullable=False)
     is_public = Column(Boolean, default=False)
+    enable_proctoring = Column(Boolean, default=True)
     access_password = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

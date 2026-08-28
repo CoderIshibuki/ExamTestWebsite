@@ -25,6 +25,7 @@ interface Exam {
   passing_score?: number;
   max_attempts?: number;
   is_public?: boolean;
+  enable_proctoring?: boolean;
   show_result_after_submit?: boolean;
   show_answers_after_submit?: boolean;
 }
@@ -37,6 +38,7 @@ interface ExamFormValues {
   max_attempts: number;
   show_result_after_submit: boolean;
   show_answers_after_submit: boolean;
+  enable_proctoring: boolean;
   access_password: string;
 }
 
@@ -60,6 +62,7 @@ const AdminExams = () => {
       max_attempts: 1,
       show_result_after_submit: true,
       show_answers_after_submit: true,
+      enable_proctoring: true,
       access_password: '',
     },
   });
@@ -92,6 +95,7 @@ const AdminExams = () => {
       max_attempts: 1,
       show_result_after_submit: true,
       show_answers_after_submit: true,
+      enable_proctoring: true,
       access_password: '',
     });
     setCreateOpen(true);
@@ -107,6 +111,7 @@ const AdminExams = () => {
       max_attempts: exam.max_attempts ?? 1,
       show_result_after_submit: exam.show_result_after_submit !== false,
       show_answers_after_submit: exam.show_answers_after_submit !== false,
+      enable_proctoring: exam.enable_proctoring !== false,
       access_password: '',  // Never pre-fill password from server for security
     });
     setCreateOpen(true);
@@ -562,6 +567,17 @@ const AdminExams = () => {
                     autoComplete="new-password"
                     helperText="Nếu đặt mật khẩu, thí sinh phải nhập đúng mới bắt đầu được thi."
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                  />
+                )}
+              />
+
+              <Controller
+                name="enable_proctoring"
+                control={control}
+                render={({ field }) => (
+                  <FormControlLabel
+                    control={<Switch checked={field.value} onChange={(e) => field.onChange(e.target.checked)} color="primary" />}
+                    label={<Typography variant="body2" sx={{ fontWeight: 600, color: '#0F172A' }}>Kích hoạt Giám thị AI & Chống gian lận (Camera, phát hiện khuôn mặt, rời tab)</Typography>}
                   />
                 )}
               />
