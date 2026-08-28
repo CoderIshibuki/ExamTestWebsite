@@ -32,6 +32,10 @@ export const adminApi = {
   deleteUser: async (id: string) => {
     await apiClient.delete(`/v1/auth/users/${id}`);
   },
+  importUsersBulk: async (users: any[]) => {
+    const response = await apiClient.post('/v1/auth/users/bulk', users);
+    return response.data;
+  },
 
   // ===== Questions (question_service) =====
   getQuestions: async () => {

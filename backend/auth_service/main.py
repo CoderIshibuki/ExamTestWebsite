@@ -240,6 +240,44 @@ async def update_user(
     await db.refresh(user)
     return user
 
+@app.post("/users/bulk", response_model=dict)
+async def create_users_bulk(
+    users_data: list[schemas.UserCreate],
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    created = []
+    skipped = []
+
+    for u in users_data:
+        q = select(models.User).where((models.User.username == u.username) | (models.User.email == u.email))
+        existing = (await db.execute(q)).scalars().first()
+        if existing:
+            skipped.append(f"{u.username} (đã tồn tại)")
+            continue
+        hashed_password = auth.get_password_hash(u.password or "Student@123")
+        db_u = models.User(
+            username=u.username,
+            email=u.email,
+            full_name=u.full_name or u.username,
+            role=u.role or "student",
+            hashed_password=hashed_password,
+            requires_password_change=True,
+        )
+        db.add(db_u)
+        created.append(u.username)
+
+    await db.commit()
+    return {
+        "created_count": len(created),
+        "skipped_count": len(skipped),
+        "created": created,
+        "skipped": skipped
+    }
+
 @app.delete("/users/{user_id}")
 async def delete_user(
     user_id: str, 

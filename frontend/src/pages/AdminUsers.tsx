@@ -6,8 +6,9 @@ import { useForm, Controller } from 'react-hook-form';
 import { adminApi } from '../api/adminApi';
 import { 
   PersonAdd as PersonAddIcon, Delete as DeleteIcon, Edit as EditIcon, 
-  People, School, AdminPanelSettings 
+  People, School, AdminPanelSettings, CloudUpload,
 } from '@mui/icons-material';
+import ExcelUserImportDialog from '../components/ExcelUserImportDialog';
 
 interface User {
   id: string;
@@ -48,6 +49,7 @@ const AdminUsers = () => {
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
   const [tempPasswordDialog, setTempPasswordDialog] = useState<{ open: boolean; username: string; password: string }>({ open: false, username: '', password: '' });
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const { control, handleSubmit, reset } = useForm<CreateFormValues>({
     defaultValues: { username: '', email: '', full_name: '', password: '', role: 'student' },
@@ -253,22 +255,43 @@ const AdminUsers = () => {
           </Typography>
         </Box>
 
-        <Button
-          variant="contained"
-          startIcon={<PersonAddIcon sx={{ fontSize: 16 }} />}
-          onClick={() => setOpen(true)}
-          sx={{
-            bgcolor: '#2563EB',
-            '&:hover': { bgcolor: '#1D4ED8' },
-            borderRadius: 1.2,
-            textTransform: 'none',
-            fontWeight: 700,
-            px: 2.5,
-            py: 0.9,
-          }}
-        >
-          Thêm người dùng mới
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+          <Button
+            variant="outlined"
+            startIcon={<CloudUpload sx={{ fontSize: 16 }} />}
+            onClick={() => setImportDialogOpen(true)}
+            sx={{
+              borderColor: '#CBD5E1',
+              color: '#334155',
+              bgcolor: '#FFFFFF',
+              '&:hover': { bgcolor: '#F8FAFC', borderColor: '#94A3B8' },
+              borderRadius: 1.2,
+              textTransform: 'none',
+              fontWeight: 700,
+              px: 2,
+              py: 0.9,
+            }}
+          >
+            Nhập từ Excel
+          </Button>
+
+          <Button
+            variant="contained"
+            startIcon={<PersonAddIcon sx={{ fontSize: 16 }} />}
+            onClick={() => setOpen(true)}
+            sx={{
+              bgcolor: '#2563EB',
+              '&:hover': { bgcolor: '#1D4ED8' },
+              borderRadius: 1.2,
+              textTransform: 'none',
+              fontWeight: 700,
+              px: 2.5,
+              py: 0.9,
+            }}
+          >
+            Thêm người dùng mới
+          </Button>
+        </Box>
       </Box>
 
       {/* KPI Stats Strip */}
@@ -562,6 +585,18 @@ const AdminUsers = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Dialog Import học sinh từ file Excel */}
+      <ExcelUserImportDialog
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
+        onImportSuccess={() => {
+          fetchUsers();
+        }}
+        onImportApi={async (payloads) => {
+          return await adminApi.importUsersBulk(payloads);
+        }}
+      />
 
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar((s) => ({ ...s, open: false }))}>
         <Alert severity={snackbar.severity} sx={{ width: '100%' }}>{snackbar.message}</Alert>
