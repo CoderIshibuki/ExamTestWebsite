@@ -75,12 +75,7 @@ export function transformExcelRowsToQuestions(rows: any[]): TransformResult {
       row['subject'] || row['mon_hoc'] || row['chu_de'] || row['danh_muc'] || 'Chung'
     ).trim();
 
-    let difficulty = String(
-      row['difficulty'] || row['do_kho'] || row['muc_do'] || 'medium'
-    ).trim().toLowerCase();
-    if (difficulty.includes('de') || difficulty === 'easy') difficulty = 'easy';
-    else if (difficulty.includes('kho') || difficulty === 'hard') difficulty = 'hard';
-    else difficulty = 'medium';
+    const difficulty = 'medium';
 
     const tags = String(row['tags'] || row['the'] || row['tag'] || '').split(',').map((t) => t.trim()).filter(Boolean);
 
@@ -171,7 +166,6 @@ export function downloadSampleQuestionExcel() {
       text: 'Thủ đô của nước Cộng hòa Xã hội Chủ nghĩa Việt Nam là thành phố nào?',
       type: 'multiple_choice',
       subject: 'Địa lý',
-      difficulty: 'easy',
       option_1: 'Hà Nội',
       option_2: 'Đà Nẵng',
       option_3: 'TP. Hồ Chí Minh',
@@ -185,7 +179,6 @@ export function downloadSampleQuestionExcel() {
       text: 'Những thành phố nào sau đây là thành phố trực thuộc Trung ương của Việt Nam?',
       type: 'multiple_select',
       subject: 'Địa lý',
-      difficulty: 'medium',
       option_1: 'Hà Nội',
       option_2: 'Đà Lạt',
       option_3: 'Cần Thơ',
@@ -199,7 +192,6 @@ export function downloadSampleQuestionExcel() {
       text: 'Mặt trời luôn mọc ở hướng Đông và lặn ở hướng Tây?',
       type: 'true_false',
       subject: 'Khoa học',
-      difficulty: 'easy',
       option_1: '',
       option_2: '',
       option_3: '',
@@ -213,7 +205,6 @@ export function downloadSampleQuestionExcel() {
       text: 'Giao thức nào được sử dụng để truyền tải văn bản siêu văn bản an toàn trên mạng Internet?',
       type: 'multiple_choice',
       subject: 'Tin học',
-      difficulty: 'medium',
       option_1: 'HTTP',
       option_2: 'FTP',
       option_3: 'HTTPS',
@@ -231,7 +222,6 @@ export function downloadSampleQuestionExcel() {
     { wch: 45 }, // text
     { wch: 18 }, // type
     { wch: 15 }, // subject
-    { wch: 12 }, // difficulty
     { wch: 25 }, // option_1
     { wch: 25 }, // option_2
     { wch: 25 }, // option_3

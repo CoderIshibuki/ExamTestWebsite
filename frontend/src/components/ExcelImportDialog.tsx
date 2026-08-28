@@ -180,9 +180,9 @@ export const ExcelImportDialog: React.FC<ExcelImportDialogProps> = ({
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700, color: '#2563EB', fontSize: '0.8rem' }}>subject / difficulty</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: '#2563EB', fontSize: '0.8rem' }}>subject / mon_hoc</TableCell>
                   <TableCell><Chip label="Tùy chọn" size="small" sx={{ height: 20, fontSize: '0.7rem' }} /></TableCell>
-                  <TableCell sx={{ fontSize: '0.8rem', color: '#475569' }}>Môn học (<i>Toán, Lý...</i>) và Độ khó (<code>easy</code>, <code>medium</code>, <code>hard</code>)</TableCell>
+                  <TableCell sx={{ fontSize: '0.8rem', color: '#475569' }}>Tên môn học hoặc chủ đề của câu hỏi (VD: <i>Toán học</i>, <i>Địa lý</i>, <i>Tiếng Anh</i>)</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
