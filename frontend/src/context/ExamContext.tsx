@@ -13,6 +13,12 @@ export interface MatchingColumns {
   right: QuestionOption[];
 }
 
+export interface QuestionMedia {
+  image?: string;
+  video?: string;
+  audio?: string;
+}
+
 export interface Question {
   id: string;
   content: string;
@@ -22,6 +28,8 @@ export interface Question {
   matching?: MatchingColumns;
   /** Gợi ý cho câu tự luận: cho phép chụp ảnh bài làm tay hay chỉ nhập text. */
   essayMode?: 'text' | 'photo' | 'both';
+  /** Hình ảnh, video, audio đính kèm vào đề bài. */
+  media?: QuestionMedia;
 }
 
 /**

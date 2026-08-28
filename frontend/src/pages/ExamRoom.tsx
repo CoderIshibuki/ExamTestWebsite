@@ -138,6 +138,11 @@ const ExamRoom: React.FC = () => {
               }
             : undefined,
           essayMode: q.type === 'essay' ? 'both' : undefined,
+          media: {
+            image: q.content?.image,
+            video: (q.content as any)?.video,
+            audio: (q.content as any)?.audio,
+          },
         };
       });
 

@@ -6,6 +6,8 @@ from utils.validators import PyObjectId
 class QuestionContent(BaseModel):
     text: str
     image: Optional[str] = None
+    video: Optional[str] = None
+    audio: Optional[str] = None
     latex: Optional[str] = None
 
 class Option(BaseModel):

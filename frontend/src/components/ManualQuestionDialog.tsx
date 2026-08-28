@@ -4,7 +4,7 @@ import {
   Button, TextField, MenuItem, Box, IconButton, Typography,
   FormControlLabel, Checkbox, RadioGroup, Radio, Alert
 } from '@mui/material';
-import { Delete as DeleteIcon, Add as AddIcon, EditNote as EditIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, Add as AddIcon, EditNote as EditIcon, PermMedia, Image as ImageIcon, VideoLibrary, Audiotrack } from '@mui/icons-material';
 import { adminApi } from '../api/adminApi';
 
 interface ManualQuestionDialogProps {
@@ -32,6 +32,10 @@ export default function ManualQuestionDialog({ open, onClose, onSave, initialQue
   const [categoryId, setCategoryId] = useState('');
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const difficulty = 'medium';
+  const [imageUrl, setImageUrl] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [audioUrl, setAudioUrl] = useState('');
+  const [showMediaSection, setShowMediaSection] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -53,6 +57,10 @@ export default function ManualQuestionDialog({ open, onClose, onSave, initialQue
 
       if (initialQuestion) {
         setText(initialQuestion.content?.text || '');
+        setImageUrl(initialQuestion.content?.image || '');
+        setVideoUrl(initialQuestion.content?.video || '');
+        setAudioUrl(initialQuestion.content?.audio || '');
+        setShowMediaSection(Boolean(initialQuestion.content?.image || initialQuestion.content?.video || initialQuestion.content?.audio));
         setSubject(initialQuestion.metadata?.subject || '');
         setCategoryId(initialQuestion.category_id || '');
         const qType = initialQuestion.type || 'multiple_choice';
@@ -96,6 +104,10 @@ export default function ManualQuestionDialog({ open, onClose, onSave, initialQue
 
   const resetForm = () => {
     setText('');
+    setImageUrl('');
+    setVideoUrl('');
+    setAudioUrl('');
+    setShowMediaSection(false);
     setSubject('');
     setCategoryId('');
     setType('multiple_choice');
@@ -171,7 +183,12 @@ export default function ManualQuestionDialog({ open, onClose, onSave, initialQue
     }
 
     const payload = {
-      content: { text },
+      content: {
+        text,
+        image: imageUrl.trim() || undefined,
+        video: videoUrl.trim() || undefined,
+        audio: audioUrl.trim() || undefined,
+      },
       type,
       options: payloadOptions,
       correct_answer: correctAnswer,
@@ -225,6 +242,82 @@ export default function ManualQuestionDialog({ open, onClose, onSave, initialQue
             <MenuItem value=""><em>-- Không thuộc danh mục nào --</em></MenuItem>
             {categories.map((c) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
           </TextField>
+
+          {/* Media Attachments Section (Image, Video, Audio) */}
+          <Box sx={{ border: '1px solid #E2E8F0', borderRadius: 1.5, p: 2, bgcolor: '#F8FAFC' }}>
+            <Box
+              onClick={() => setShowMediaSection(!showMediaSection)}
+              sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <PermMedia sx={{ color: '#2563EB', fontSize: 20 }} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0F172A' }}>
+                  Đính kèm Media (Hình ảnh, Video, Audio) — Tùy chọn
+                </Typography>
+              </Box>
+              <Typography variant="caption" sx={{ color: '#2563EB', fontWeight: 700 }}>
+                {showMediaSection ? 'Ẩn bớt ▲' : (imageUrl || videoUrl || audioUrl ? 'Đang có đính kèm (Mở) ▼' : 'Thêm đính kèm ▼')}
+              </Typography>
+            </Box>
+
+            {showMediaSection && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2, pt: 2, borderTop: '1px solid #E2E8F0' }}>
+                <TextField
+                  label="URL Hình ảnh (hoặc link ảnh trực tiếp .png, .jpg, .webp)"
+                  variant="outlined"
+                  size="small"
+                  fullWidth
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://example.com/image.png"
+                  slotProps={{
+                    input: {
+                      startAdornment: <ImageIcon sx={{ fontSize: 18, color: '#64748B', mr: 1 }} />,
+                    },
+                  }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.2 } }}
+                />
+
+                {imageUrl && (
+                  <Box sx={{ p: 1, border: '1px dashed #CBD5E1', borderRadius: 1, textAlign: 'center', bgcolor: '#FFFFFF' }}>
+                    <img src={imageUrl} alt="Xem trước ảnh" style={{ maxHeight: 160, maxWidth: '100%', objectFit: 'contain' }} onError={() => {}} />
+                  </Box>
+                )}
+
+                <TextField
+                  label="URL Video (Link MP4 hoặc link YouTube)"
+                  variant="outlined"
+                  size="small"
+                  fullWidth
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  placeholder="https://youtube.com/watch?v=... hoặc https://example.com/video.mp4"
+                  slotProps={{
+                    input: {
+                      startAdornment: <VideoLibrary sx={{ fontSize: 18, color: '#64748B', mr: 1 }} />,
+                    },
+                  }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.2 } }}
+                />
+
+                <TextField
+                  label="URL File Audio (Link nghe hiểu .mp3, .wav)"
+                  variant="outlined"
+                  size="small"
+                  fullWidth
+                  value={audioUrl}
+                  onChange={(e) => setAudioUrl(e.target.value)}
+                  placeholder="https://example.com/audio.mp3"
+                  slotProps={{
+                    input: {
+                      startAdornment: <Audiotrack sx={{ fontSize: 18, color: '#64748B', mr: 1 }} />,
+                    },
+                  }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.2 } }}
+                />
+              </Box>
+            )}
+          </Box>
 
           <Typography variant="subtitle1" sx={{ mt: 0.5, fontWeight: 700, color: '#0F172A' }}>Cấu hình đáp án</Typography>
 
