@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import List, Optional
 from datetime import datetime, timezone
 import crud, schemas
 from database import get_db
@@ -225,11 +225,6 @@ async def update_exam(
     if current_user["role"] != "admin" and not is_owner and not is_collaborator:
         raise HTTPException(status_code=403, detail="You don't have permission")
         
-    if exam.status == "published":
-        dump = exam_update.model_dump(exclude_unset=True)
-        if any(k in dump for k in ["duration_minutes", "passing_score"]):
-            raise HTTPException(status_code=400, detail="Cannot modify duration or passing score of a published exam")
-        
     updated = await crud.update_exam(db, exam_id, exam_update)
     await cache.invalidate_pattern("exams:list:*")
     await cache.invalidate(f"exam:{exam_id}")
@@ -329,6 +324,27 @@ async def publish_exam(
     await cache.invalidate(f"exam:{exam_id}")
     return updated
 
+@router.post("/{exam_id}/unpublish", response_model=schemas.ExamResponse)
+async def unpublish_exam(
+    exam_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_permission("exam:publish"))
+):
+    exam = await crud.get_exam_by_id(db, exam_id)
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+        
+    is_owner = str(exam.owner_id) == current_user["id"]
+    is_collaborator = any(str(c.user_id) == current_user["id"] for c in exam.collaborators)
+    if current_user["role"] != "admin" and not is_owner and not is_collaborator:
+        raise HTTPException(status_code=403, detail="You don't have permission")
+        
+    update_data = schemas.ExamUpdate(status="draft")
+    updated = await crud.update_exam(db, exam_id, update_data)
+    await cache.invalidate_pattern("exams:list:*")
+    await cache.invalidate(f"exam:{exam_id}")
+    return updated
+
 @router.get("/{exam_id}/snapshots")
 async def get_exam_snapshots(
     exam_id: str,
@@ -343,6 +359,7 @@ async def get_exam_snapshots(
 @router.post("/{exam_id}/start", response_model=schemas.ExamAttemptResponse)
 async def start_exam(
     exam_id: str,
+    payload: Optional[schemas.ExamStartRequest] = None,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_permission("attempt:create"))
 ):
@@ -358,8 +375,6 @@ async def start_exam(
         raise HTTPException(status_code=403, detail="You are not on the roster for this private exam")
 
     # Nếu đề thi có đặt lịch (exam_schedules), chỉ cho phép bắt đầu làm bài trong khung giờ đó.
-    # Trước đây endpoint POST /schedule chỉ lưu lịch vào DB nhưng không có nơi nào kiểm tra lại,
-    # khiến tính năng "lịch thi" hoàn toàn không có tác dụng — học sinh vào thi được bất cứ lúc nào.
     if exam.schedules:
         now = datetime.now(timezone.utc)
         in_window = any(s.start_time <= now <= s.end_time for s in exam.schedules)
@@ -370,21 +385,32 @@ async def start_exam(
                 detail += f" Kỳ thi tiếp theo mở lúc {upcoming.isoformat()}."
             raise HTTPException(status_code=403, detail=detail)
 
-    # Khoá advisory theo (exam_id, user_id) trong suốt transaction này — tránh race
-    # condition: nếu học sinh bấm "Vào thi" 2 lần liên tiếp (double-click) hoặc mở 2 tab
-    # cùng lúc, 2 request song song đều có thể pass qua check "attempt_count >= max_attempts"
-    # (cả 2 cùng thấy count=0) TRƯỚC KHI request nào commit attempt mới — tạo ra nhiều attempt
-    # hơn giới hạn max_attempts cho phép. Dùng hashtext() của chính Postgres (không phải
-    # hash() của Python) vì hash() bị random hoá theo từng process (PYTHONHASHSEED) —
-    # cùng 1 khoá có thể ra giá trị khác nhau giữa các worker uvicorn, làm khoá vô nghĩa.
-    # pg_advisory_xact_lock tự nhả khoá khi transaction kết thúc (commit/rollback).
+    # Khoá advisory theo (exam_id, user_id) trong suốt transaction này
     from sqlalchemy import text
     lock_key = f"{exam_id}:{current_user['id']}"
     await db.execute(text("SELECT pg_advisory_xact_lock(hashtext(:key)::bigint)"), {"key": lock_key})
 
+    # Kiểm tra thí sinh có bị giám thị cấm thi / đình chỉ không
+    try:
+        is_banned = await cache.get(f"exam:banned:{exam_id}:{current_user['id']}")
+        if is_banned:
+            raise HTTPException(status_code=403, detail="Thí sinh đã bị đình chỉ / cấm thi đối với bài thi này do vi phạm kỷ luật phòng thi.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error checking ban cache: {e}")
+
     active_attempt = await crud.get_active_exam_attempt(db, exam_id, current_user["id"])
     if active_attempt:
+        if getattr(active_attempt, 'status', None) == 'terminated':
+            raise HTTPException(status_code=403, detail="Lượt thi này đã bị giám thị đình chỉ/huỷ bỏ do vi phạm quy chế.")
         return active_attempt
+
+    # Kiểm tra mật khẩu truy cập đề thi nếu có đặt mật khẩu
+    if exam.access_password and exam.access_password.strip():
+        provided_pw = (payload.password if payload else None)
+        if not provided_pw or provided_pw.strip() != exam.access_password.strip():
+            raise HTTPException(status_code=403, detail="Mật khẩu truy cập đề thi không chính xác.")
         
     attempt_count = await crud.get_exam_attempt_count(db, exam_id, current_user["id"])
     if exam.max_attempts and attempt_count >= exam.max_attempts:
@@ -520,8 +546,30 @@ async def reset_student_attempts(
     current_user: dict = Depends(require_permission("exam:delete"))
 ):
     deleted_count = await crud.delete_user_exam_attempts(db, exam_id, user_id)
+    # Also clear ban key from cache if proctor allows reset
+    try:
+        await cache.invalidate(f"exam:banned:{exam_id}:{user_id}", f"exam:penalty:{exam_id}:{user_id}")
+    except Exception:
+        pass
     return {
         "message": f"Đã xoá {deleted_count} lượt thi của thí sinh. Thí sinh có thể vào thi lại.",
         "deleted_count": deleted_count
     }
+
+@router.post("/{exam_id}/students/{user_id}/terminate")
+async def terminate_student(
+    exam_id: str,
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    # Set ban cache
+    try:
+        await cache.set(f"exam:banned:{exam_id}:{user_id}", "1", ttl=86400 * 7)
+    except Exception as e:
+        print(f"Error setting ban cache: {e}")
+    # Terminate active attempts in DB
+    terminated_count = await crud.terminate_user_exam_attempts(db, exam_id, user_id)
+    return {"message": "Đã đình chỉ thí sinh thành công.", "terminated_count": terminated_count}
+
 

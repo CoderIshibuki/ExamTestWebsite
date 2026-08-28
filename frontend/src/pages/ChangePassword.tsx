@@ -2,14 +2,16 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
-    Box,
-    Button,
-    Container,
-    Paper,
-    TextField,
-    Typography,
-    Alert,
+  Box,
+  Button,
+  Container,
+  Paper,
+  TextField,
+  Typography,
+  Alert,
+  Avatar,
 } from '@mui/material';
+import { LockReset } from '@mui/icons-material';
 import { API_URL } from '../api/authInterceptors';
 
 export default function ChangePassword() {
@@ -35,10 +37,6 @@ export default function ChangePassword() {
 
     setLoading(true);
     try {
-      // Dùng chung API_URL với các trang xác thực khác (trước đây hardcode
-      // '/api/v1/auth/change-password' bằng axios trần, bỏ qua cơ chế tự động
-      // refresh token dùng chung — nếu access token vừa hết hạn đúng lúc này,
-      // request sẽ lỗi 401 mà không được thử refresh lại như các API khác).
       const token = localStorage.getItem('access_token');
       await axios.post(
         `${API_URL}/auth/change-password`,
@@ -57,57 +55,82 @@ export default function ChangePassword() {
   };
 
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Container maxWidth="xs">
-        <Paper sx={{ p: 4, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-          <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold', textAlign: 'center', color: 'primary.main' }}>
-            Yêu cầu đổi mật khẩu
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 3, textAlign: 'center', color: 'text.secondary' }}>
-            Vì lý do bảo mật, bạn cần đổi mật khẩu mặc định trước khi tiếp tục sử dụng hệ thống.
-          </Typography>
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#F8FAFC', p: 3 }}>
+      <Container maxWidth="sm">
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 3, sm: 5 },
+            borderRadius: 1.5,
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 4px 20px -2px rgba(0,0,0,0.06)',
+            bgcolor: '#FFFFFF',
+          }}
+        >
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
+            <Avatar sx={{ width: 52, height: 52, bgcolor: '#EFF6FF', color: '#2563EB', mb: 1.5, borderRadius: 1.2 }}>
+              <LockReset sx={{ fontSize: 28 }} />
+            </Avatar>
+            <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A', textAlign: 'center' }}>
+              Yêu cầu đổi mật khẩu
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#64748B', textAlign: 'center', mt: 0.5, maxWidth: 440 }}>
+              Vì lý do an toàn, bạn cần cập nhật mật khẩu mới trước khi tiếp tục truy cập vào hệ thống.
+            </Typography>
+          </Box>
 
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 1.5 }}>{error}</Alert>}
 
           <form onSubmit={handleSubmit}>
-            <TextField
-              fullWidth
-              label="Mật khẩu hiện tại"
-              type="password"
-              margin="normal"
-              required
-              value={oldPassword}
-              onChange={(e) => setOldPassword(e.target.value)}
-            />
-            <TextField
-              fullWidth
-              label="Mật khẩu mới"
-              type="password"
-              margin="normal"
-              required
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              helperText="Ít nhất 8 ký tự"
-            />
-            <TextField
-              fullWidth
-              label="Xác nhận mật khẩu mới"
-              type="password"
-              margin="normal"
-              required
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              size="large"
-              disabled={loading}
-              sx={{ mt: 3, borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-            >
-              {loading ? 'Đang xử lý...' : 'Đổi mật khẩu'}
-            </Button>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+              <TextField
+                fullWidth
+                label="Mật khẩu hiện tại"
+                type="password"
+                required
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+              />
+              <TextField
+                fullWidth
+                label="Mật khẩu mới"
+                type="password"
+                required
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                helperText="Mật khẩu có độ dài tối thiểu 8 ký tự"
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+              />
+              <TextField
+                fullWidth
+                label="Xác nhận mật khẩu mới"
+                type="password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+              />
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                size="large"
+                disabled={loading}
+                sx={{
+                  mt: 1,
+                  py: 1.3,
+                  bgcolor: '#2563EB',
+                  '&:hover': { bgcolor: '#1D4ED8' },
+                  borderRadius: 1.2,
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                }}
+              >
+                {loading ? 'Đang cập nhật...' : 'Cập nhật mật khẩu'}
+              </Button>
+            </Box>
           </form>
         </Paper>
       </Container>

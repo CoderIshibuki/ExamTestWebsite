@@ -1,11 +1,11 @@
-import React, { useEffect, useCallback, useState, useContext, useMemo } from 'react';
+import React, { useEffect, useCallback, useState, useContext, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Button, CircularProgress, Paper, Grid, Container,
   Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogContentText,
-  DialogActions,
+  DialogActions, TextField, InputAdornment, IconButton as MuiIconButton,
 } from '@mui/material';
-import { ErrorOutlined, WarningAmber as WarningIcon, Block as BlockIcon } from '@mui/icons-material';
+import { ErrorOutlined, WarningAmber as WarningIcon, Block as BlockIcon, Visibility, VisibilityOff, LockOutlined } from '@mui/icons-material';
 import { useTimer } from '../hooks/useTimer';
 import { useProctoring } from '../hooks/useProctoring';
 import { useProctorStreamBroadcaster } from '../hooks/useProctorStreamBroadcaster';
@@ -34,16 +34,35 @@ const ExamRoom: React.FC = () => {
   const [isBanned, setIsBanned] = useState(false);
   const [bannedReason, setBannedReason] = useState('');
   const [disciplinaryAlert, setDisciplinaryAlert] = useState<{ message: string; severity: 'warning' | 'error' | 'info' } | null>(null);
+  const deductRef = useRef<((sec: number) => void) | null>(null);
+  const processedActionsRef = useRef<Set<string>>(new Set());
+
+  // Mật khẩu truy cập đề thi
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
+  const pendingExamHasPassword = useRef(false);
 
   const handleProctorAction = useCallback((data: any) => {
     if (!data) return;
+    if (data.action_id && processedActionsRef.current.has(data.action_id)) {
+      return;
+    }
+    if (data.action_id) {
+      processedActionsRef.current.add(data.action_id);
+    }
+
     if (data.action === 'terminate') {
       setIsBanned(true);
       setBannedReason(data.reason || 'Vi phạm quy chế phòng thi nghiêm trọng.');
       setStatus('error');
     } else if (data.action === 'time_penalty') {
       const minutes = Number(data.penalty_minutes) || 5;
-      setExpiresAt((prev) => (prev ? new Date(prev.getTime() - minutes * 60000) : null));
+      if (deductRef.current) {
+        deductRef.current(minutes * 60);
+      }
       setDisciplinaryAlert({
         message: `⚠️ GIÁM THỊ PHẠT: Bạn vừa bị trừ ${minutes} phút thời gian làm bài! Lý do: ${data.reason || 'Vi phạm quy chế'}`,
         severity: 'warning',
@@ -85,14 +104,24 @@ const ExamRoom: React.FC = () => {
     }
   }, [state.status]);
 
-  const initExam = useCallback(async () => {
+  const initExam = useCallback(async (password?: string) => {
     try {
       setStatus('joining');
       setExamId(examId || '');
-      
+
+      // Lấy thông tin đề thi để kiểm tra có yêu cầu mật khẩu không
+      const examInfo = await examApi.getExamById(examId || '');
+      if (examInfo.has_password && !password) {
+        pendingExamHasPassword.current = true;
+        setPasswordDialogOpen(true);
+        setStatus('idle');
+        setIsJoining(false);
+        return;
+      }
+
       const [rawQuestions, attempt] = await Promise.all([
         examApi.getExamQuestions(examId || ''),
-        examApi.startExam(examId || '')
+        examApi.startExam(examId || '', password)
       ]);
 
       const questions: Question[] = rawQuestions.map((q) => {
@@ -112,14 +141,26 @@ const ExamRoom: React.FC = () => {
         };
       });
 
+      setPasswordDialogOpen(false);
+      setPasswordInput('');
+      setPasswordError('');
+      setIsJoining(false);
       setQuestions(questions);
       setAttemptId(attempt.id);
       setExpiresAt(new Date(attempt.expires_at));
       setStatus('in_progress');
     } catch (err: any) {
       console.error('Failed to initialize exam:', err);
+      setIsJoining(false);
       const detail = err?.response?.data?.detail;
-      setInitError(typeof detail === 'string' ? detail : 'Không thể tải đề thi hoặc bắt đầu bài làm. Vui lòng kiểm tra lại kết nối.');
+      const detailStr = typeof detail === 'string' ? detail : '';
+      // Mật khẩu sai — hiển thị lỗi trong dialog, không đóng
+      if (err?.response?.status === 403 && (detailStr.includes('Mật khẩu') || detailStr.includes('password'))) {
+        setPasswordError(detailStr || 'Mật khẩu không chính xác. Vui lòng thử lại.');
+        setStatus('idle');
+        return;
+      }
+      setInitError(detailStr || 'Không thể tải đề thi hoặc bắt đầu bài làm. Vui lòng kiểm tra lại kết nối.');
       setStatus('error');
     }
   }, [examId, setStatus, setExamId, setQuestions, setAttemptId]);
@@ -150,7 +191,8 @@ const ExamRoom: React.FC = () => {
     return diff > 0 ? diff : 0;
   }, [expiresAt]);
 
-  const { timeLeft, formattedTime, isWarning } = useTimer(initialSecondsLeft, submitExam);
+  const { timeLeft, formattedTime, isWarning, deductSeconds } = useTimer(initialSecondsLeft, submitExam);
+  deductRef.current = deductSeconds;
 
   const handleAnswerSelect = async (answer: AnswerValue) => {
     const currentQ = state.questions[state.currentQuestionIndex];
@@ -259,9 +301,10 @@ const ExamRoom: React.FC = () => {
 
   if (state.status === 'error') {
     const isCompleted = initError?.toLowerCase().includes('maximum attempts') || initError?.includes('lượt làm bài') || initError?.includes('already');
+    const isBannedError = isBanned || initError?.includes('đình chỉ') || initError?.includes('cấm thi') || initError?.includes('kỷ luật');
 
     return (
-      <Box sx={{ display: 'flex', minHeight: '100vh', justifyContent: 'center', alignItems: 'center', bgcolor: '#F8FAFC', p: 3 }}>
+      <Box sx={{ display: 'flex', minHeight: '100vh', justifyContent: 'center', alignItems: 'center', bgcolor: isBannedError ? '#1c1917' : '#F8FAFC', p: 3 }}>
         <Paper
           elevation={0}
           sx={{
@@ -270,12 +313,62 @@ const ExamRoom: React.FC = () => {
             borderRadius: 1.5,
             maxWidth: 480,
             width: '100%',
-            border: '1px solid #E2E8F0',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.06)',
-            bgcolor: '#FFFFFF',
+            border: isBannedError ? '1px solid #7f1d1d' : '1px solid #E2E8F0',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+            bgcolor: isBannedError ? '#0c0a09' : '#FFFFFF',
+            color: isBannedError ? '#fff' : 'inherit',
           }}
         >
-          {isCompleted ? (
+          {isBannedError ? (
+            <>
+              <Box
+                sx={{
+                  width: 68,
+                  height: 68,
+                  borderRadius: 2,
+                  bgcolor: '#450a0a',
+                  color: '#ef4444',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  mx: 'auto',
+                  mb: 2.5,
+                  border: '1px solid #7f1d1d',
+                }}
+              >
+                <BlockIcon sx={{ fontSize: 36 }} />
+              </Box>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: '#f87171', mb: 1 }}>
+                BẠN ĐÃ BỊ ĐÌNH CHỈ THI
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#d6d3d1', mb: 3, lineHeight: 1.6 }}>
+                Bạn đã bị giám thị truất quyền làm bài và đình chỉ thi đối với bài thi này do vi phạm kỷ luật phòng thi.
+              </Typography>
+              <Box sx={{ p: 2, bgcolor: '#1c1917', borderRadius: 1.2, mb: 4, border: '1px solid #292524', textAlign: 'left' }}>
+                <Typography variant="caption" sx={{ color: '#a8a29e', display: 'block', mb: 0.5, textTransform: 'uppercase', fontWeight: 700 }}>
+                  Thông báo từ giám thị:
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#fca5a5', fontWeight: 700 }}>
+                  {bannedReason || initError || 'Vi phạm quy chế phòng thi nghiêm trọng.'}
+                </Typography>
+              </Box>
+              <Button
+                variant="contained"
+                color="error"
+                size="large"
+                fullWidth
+                onClick={() => navigate(`/${user?.role || 'student'}/exams`)}
+                sx={{
+                  fontWeight: 800,
+                  borderRadius: 1.2,
+                  py: 1.3,
+                  textTransform: 'none',
+                }}
+              >
+                Rời khỏi phòng thi
+              </Button>
+            </>
+          ) : isCompleted ? (
             <>
               <Box
                 sx={{
@@ -656,6 +749,61 @@ const ExamRoom: React.FC = () => {
           {saveAnswerError}
         </Alert>
       </Snackbar>
+      {/* Hộp thoại nhập mật khẩu truy cập đề thi */}
+      <Dialog
+        open={passwordDialogOpen}
+        onClose={() => {}}  // Không cho đóng bằng click ngoài
+        maxWidth="xs"
+        fullWidth
+        slotProps={{ paper: { sx: { borderRadius: 2, p: 1 } } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <LockOutlined sx={{ color: '#2563EB' }} /> Đề thi có bảo mật
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2, color: '#475569', fontSize: 14 }}>
+            Đề thi này yêu cầu mật khẩu truy cập. Vui lòng nhập mật khẩu do giáo viên/giám thị cung cấp để bắt đầu thi.
+          </DialogContentText>
+          <TextField
+            autoFocus
+            fullWidth
+            label="Mật khẩu truy cập"
+            type={showPassword ? 'text' : 'password'}
+            value={passwordInput}
+            onChange={(e) => { setPasswordInput(e.target.value); setPasswordError(''); }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && passwordInput.trim() && !isJoining) { setIsJoining(true); initExam(passwordInput.trim()); } }}
+            error={!!passwordError}
+            helperText={passwordError || ' '}
+            variant="outlined"
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <MuiIconButton onClick={() => setShowPassword((v) => !v)} edge="end" size="small">
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </MuiIconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => navigate(-1)} sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 600, color: '#64748B' }}>
+            Quay lại
+          </Button>
+          <Button
+            variant="contained"
+            disabled={!passwordInput.trim() || isJoining}
+            onClick={() => { setIsJoining(true); initExam(passwordInput.trim()); }}
+            sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 700, bgcolor: '#2563EB', '&:hover': { bgcolor: '#1D4ED8' } }}
+          >
+            {isJoining ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : 'Bắt đầu thi'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
     </Box>
   );
 };

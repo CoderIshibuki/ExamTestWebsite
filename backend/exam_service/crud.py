@@ -304,3 +304,17 @@ async def delete_user_exam_attempts(db: AsyncSession, exam_id: str, user_id: str
     await db.commit()
     return result.rowcount
 
+async def terminate_user_exam_attempts(db: AsyncSession, exam_id: str, user_id: str) -> int:
+    result = await db.execute(
+        update(models.ExamAttempt)
+        .where(
+            models.ExamAttempt.exam_id == UUID(exam_id),
+            models.ExamAttempt.user_id == user_id,
+            models.ExamAttempt.status == "in_progress"
+        )
+        .values(status="terminated", submitted_at=datetime.now(timezone.utc))
+    )
+    await db.commit()
+    return result.rowcount
+
+

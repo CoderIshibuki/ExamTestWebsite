@@ -118,6 +118,19 @@ export default function AdminCategories() {
         </Button>
       </Box>
 
+      {/* KPI Stats Strip */}
+      <Box sx={{ display: 'flex', gap: 2 }}>
+        <Paper elevation={0} sx={{ p: 2, px: 3, borderRadius: 1.5, bgcolor: '#FFFFFF', border: '1px solid #E2E8F0', display: 'inline-flex', alignItems: 'center', gap: 1.5 }}>
+          <Avatar sx={{ bgcolor: '#EFF6FF', color: '#2563EB', width: 38, height: 38, borderRadius: 1 }}>
+            <Folder sx={{ fontSize: 20 }} />
+          </Avatar>
+          <Box>
+            <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 700 }}>TỔNG SỐ DANH MỤC</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{categories.length}</Typography>
+          </Box>
+        </Paper>
+      </Box>
+
       {error && <Alert severity="error" sx={{ borderRadius: 1.5 }}>{error}</Alert>}
 
       {loading ? (
@@ -136,63 +149,66 @@ export default function AdminCategories() {
         </Paper>
       ) : (
         <Grid container spacing={2.5}>
-          {categories.map((cat) => (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={cat.id}>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2.5,
-                  borderRadius: 1.5,
-                  border: '1px solid #E2E8F0',
-                  bgcolor: '#FFFFFF',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  height: '100%',
-                  minHeight: 140,
-                  transition: 'all 0.15s ease',
-                  '&:hover': { borderColor: '#2563EB', boxShadow: '0 4px 12px -2px rgba(37,99,235,0.1)' },
-                }}
-              >
-                <Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                      <Avatar sx={{ bgcolor: '#EFF6FF', color: '#2563EB', width: 36, height: 36, borderRadius: 1 }}>
-                        <CategoryIcon sx={{ fontSize: 18 }} />
-                      </Avatar>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0F172A' }}>
-                        {cat.name}
-                      </Typography>
+          {categories.map((cat, idx) => {
+            const catId = String(cat.id || (cat as any)._id || `cat-${idx}`);
+            return (
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={catId}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2.5,
+                    borderRadius: 1.5,
+                    border: '1px solid #E2E8F0',
+                    bgcolor: '#FFFFFF',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    height: '100%',
+                    minHeight: 140,
+                    transition: 'all 0.15s ease',
+                    '&:hover': { borderColor: '#2563EB', boxShadow: '0 4px 12px -2px rgba(37,99,235,0.1)' },
+                  }}
+                >
+                  <Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                        <Avatar sx={{ bgcolor: '#EFF6FF', color: '#2563EB', width: 36, height: 36, borderRadius: 1 }}>
+                          <CategoryIcon sx={{ fontSize: 18 }} />
+                        </Avatar>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0F172A' }}>
+                          {cat.name}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ display: 'flex', gap: 0.8 }}>
+                        <Tooltip title="Chỉnh sửa">
+                          <IconButton size="small" onClick={() => openEdit({ ...cat, id: catId })} sx={{ color: '#2563EB', p: 0.8, bgcolor: '#EFF6FF', borderRadius: 1.5, '&:hover': { bgcolor: '#DBEAFE' } }}>
+                            <EditIcon sx={{ fontSize: 17 }} />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Xoá danh mục">
+                          <IconButton size="small" color="error" onClick={() => setDeleteDialog({ open: true, id: catId })} sx={{ p: 0.8, bgcolor: '#FEF2F2', borderRadius: 1.5, '&:hover': { bgcolor: '#FEE2E2' } }}>
+                            <DeleteIcon sx={{ fontSize: 17 }} />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
                     </Box>
 
-                    <Box sx={{ display: 'flex', gap: 0.5 }}>
-                      <Tooltip title="Chỉnh sửa">
-                        <IconButton size="small" onClick={() => openEdit(cat)} sx={{ color: '#2563EB', p: 0.6, bgcolor: '#EFF6FF', borderRadius: 1, '&:hover': { bgcolor: '#DBEAFE' } }}>
-                          <EditIcon sx={{ fontSize: 15 }} />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Xoá danh mục">
-                        <IconButton size="small" color="error" onClick={() => setDeleteDialog({ open: true, id: cat.id })} sx={{ p: 0.6, bgcolor: '#FEF2F2', borderRadius: 1, '&:hover': { bgcolor: '#FEE2E2' } }}>
-                          <DeleteIcon sx={{ fontSize: 15 }} />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
+                    <Typography variant="body2" sx={{ color: '#64748B', mt: 1, lineHeight: 1.4 }}>
+                      {cat.description || 'Chủ đề câu hỏi trong hệ thống kiểm tra.'}
+                    </Typography>
                   </Box>
 
-                  <Typography variant="body2" sx={{ color: '#64748B', mt: 1, lineHeight: 1.4 }}>
-                    {cat.description || 'Chủ đề câu hỏi trong hệ thống kiểm tra.'}
-                  </Typography>
-                </Box>
-
-                <Box sx={{ pt: 2, mt: 1, borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography variant="caption" sx={{ color: '#94A3B8', fontFamily: 'monospace' }}>
-                    ID: #{cat.id.slice(0, 8)}
-                  </Typography>
-                </Box>
-              </Paper>
-            </Grid>
-          ))}
+                  <Box sx={{ pt: 2, mt: 1, borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="caption" sx={{ color: '#94A3B8', fontFamily: 'monospace' }}>
+                      ID: #{catId.length > 8 ? catId.slice(0, 8) : catId}
+                    </Typography>
+                  </Box>
+                </Paper>
+              </Grid>
+            );
+          })}
         </Grid>
       )}
 

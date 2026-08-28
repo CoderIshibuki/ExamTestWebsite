@@ -12,10 +12,9 @@ class ExamBase(BaseModel):
     shuffle_questions: bool = True
     shuffle_options: bool = True
     show_result_after_submit: bool = True
-    # Mặc định True: đề thi tạo qua UI công khai cho mọi học sinh vào thi ngay sau khi
-    # publish, không cần thêm bước gán roster thủ công (roster dành cho đề thi riêng tư,
-    # chỉ định đích danh từng thí sinh — chưa có UI quản lý trong dự án này).
+    show_answers_after_submit: bool = True
     is_public: bool = True
+    access_password: Optional[str] = None
 
 class ExamCreate(ExamBase):
     pass
@@ -29,17 +28,23 @@ class ExamUpdate(BaseModel):
     shuffle_questions: Optional[bool] = None
     shuffle_options: Optional[bool] = None
     show_result_after_submit: Optional[bool] = None
+    show_answers_after_submit: Optional[bool] = None
     status: Optional[str] = None
     is_public: Optional[bool] = None
+    access_password: Optional[str] = None
 
 class ExamResponse(ExamBase):
     id: UUID
     status: str
     owner_id: UUID
+    has_password: bool = False
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class ExamStartRequest(BaseModel):
+    password: Optional[str] = None
 
 class ExamQuestionBase(BaseModel):
     question_id: str

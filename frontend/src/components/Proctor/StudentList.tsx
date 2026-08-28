@@ -6,7 +6,7 @@ import { Box, Typography } from '@mui/material';
 interface StudentListProps {
   students: StudentSession[];
   examId?: string;
-  onRequestStream?: (userId: string) => void;
+  onRequestStream?: (userId: string, type?: 'camera' | 'screen' | 'both') => void;
   onStopStream?: (userId: string) => void;
   streams?: Record<string, MediaStream>;
 }

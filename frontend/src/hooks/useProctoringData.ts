@@ -30,56 +30,60 @@ export const useProctoringData = (examId: string) => {
       .catch((err) => console.error('Không tải được danh sách người dùng để hiện tên học sinh:', err));
   }, []);
 
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        setLoading(true);
-        // Fetch violations first
-        const violationsData = await proctoringApi.getViolations(examId);
-        setViolations(violationsData);
+  const [refreshing, setRefreshing] = useState(false);
 
-        // Calculate violation counts and risk scores per user
-        const violationCounts: Record<string, number> = {};
-        const riskScores: Record<string, number> = {};
-        const severityWeights: Record<string, number> = { critical: 10, high: 5, medium: 2, low: 1 };
+  const fetchInitialData = async (isManualRefresh = false) => {
+    try {
+      if (isManualRefresh) setRefreshing(true);
+      else setLoading(true);
+      // Fetch violations first
+      const violationsData = await proctoringApi.getViolations(examId);
+      setViolations(violationsData);
 
-        (violationsData || []).forEach((v) => {
-          violationCounts[v.user_id] = (violationCounts[v.user_id] || 0) + 1;
-          const w = severityWeights[v.severity] || 0;
-          riskScores[v.user_id] = (riskScores[v.user_id] || 0) + w;
-        });
+      // Calculate violation counts and risk scores per user
+      const violationCounts: Record<string, number> = {};
+      const riskScores: Record<string, number> = {};
+      const severityWeights: Record<string, number> = { critical: 10, high: 5, medium: 2, low: 1 };
 
-        // Fetch online students
-        const studentsRes = await apiClient.get(`/v1/realtime/exams/${examId}/students`);
-        const serverStudents = studentsRes.data.students || [];
-        const userIds = studentsRes.data.online_students || [];
+      (violationsData || []).forEach((v) => {
+        violationCounts[v.user_id] = (violationCounts[v.user_id] || 0) + 1;
+        const w = severityWeights[v.severity] || 0;
+        riskScores[v.user_id] = (riskScores[v.user_id] || 0) + w;
+      });
 
-        const mappedStudents: StudentSession[] = userIds.map((id: string) => {
-          const found = serverStudents.find((s: any) => s.user_id === id);
-          return {
-            user_id: id,
-            full_name: found?.full_name || userMap[id]?.full_name || 'Thí sinh',
-            username: found?.username || userMap[id]?.username || 'student',
-            ip: found?.ip || '127.0.0.1',
-            is_online: true,
-            risk_score: riskScores[id] || 0,
-            violations_count: violationCounts[id] || 0,
-          };
-        });
-        
-        setStudents(mappedStudents);
-      } catch (error: any) {
-        if (error.response && error.response.status === 403) {
-          setUnauthorized(true);
-        } else {
-          setError('Failed to establish connection to the proctoring server. Please refresh and try again.');
-        }
-        console.error('Error fetching proctoring data:', error);
-      } finally {
-        setLoading(false);
+      // Fetch online students
+      const studentsRes = await apiClient.get(`/v1/realtime/exams/${examId}/students`);
+      const serverStudents = studentsRes.data.students || [];
+      const userIds = studentsRes.data.online_students || [];
+
+      const mappedStudents: StudentSession[] = userIds.map((id: string) => {
+        const found = serverStudents.find((s: any) => s.user_id === id);
+        return {
+          user_id: id,
+          full_name: found?.full_name || userMap[id]?.full_name || 'Thí sinh',
+          username: found?.username || userMap[id]?.username || 'student',
+          ip: found?.ip || '127.0.0.1',
+          is_online: true,
+          risk_score: riskScores[id] || 0,
+          violations_count: violationCounts[id] || 0,
+        };
+      });
+      
+      setStudents(mappedStudents);
+    } catch (error: any) {
+      if (error.response && error.response.status === 403) {
+        setUnauthorized(true);
+      } else {
+        setError('Failed to establish connection to the proctoring server. Please refresh and try again.');
       }
-    };
+      console.error('Error fetching proctoring data:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
+  useEffect(() => {
     if (examId) {
       fetchInitialData();
     }
@@ -156,5 +160,16 @@ export const useProctoringData = (examId: string) => {
     }
   }, [events, userMap, students]);
 
-  return { students, violations, alerts, clearAlerts, loading, unauthorized, error, socket };
+  return {
+    students,
+    violations,
+    alerts,
+    clearAlerts,
+    loading,
+    refreshing,
+    refetch: () => fetchInitialData(true),
+    unauthorized,
+    error,
+    socket,
+  };
 };

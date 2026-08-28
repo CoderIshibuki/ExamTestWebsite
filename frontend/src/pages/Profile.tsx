@@ -361,7 +361,7 @@ export default function Profile() {
 
               {/* Tab 1: Đổi mật khẩu */}
               {tab === 1 && (
-                <Box component="form" onSubmit={handleChangePassword} sx={{ maxWidth: 460, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box component="form" onSubmit={handleChangePassword} sx={{ width: '100%', maxWidth: '100%', display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                   {pwMsg && (
                     <Alert severity={pwMsg.type} sx={{ borderRadius: 1.5 }}>
                       {pwMsg.text}
@@ -371,7 +371,6 @@ export default function Profile() {
                   <TextField
                     type="password"
                     label="Mật khẩu hiện tại"
-                    size="small"
                     required
                     fullWidth
                     value={oldPassword}
@@ -382,7 +381,6 @@ export default function Profile() {
                   <TextField
                     type="password"
                     label="Mật khẩu mới (tối thiểu 6 ký tự)"
-                    size="small"
                     required
                     fullWidth
                     value={newPassword}
@@ -393,7 +391,6 @@ export default function Profile() {
                   <TextField
                     type="password"
                     label="Xác nhận mật khẩu mới"
-                    size="small"
                     required
                     fullWidth
                     value={confirmPassword}
@@ -408,10 +405,11 @@ export default function Profile() {
                     sx={{
                       bgcolor: '#2563EB',
                       '&:hover': { bgcolor: '#1D4ED8' },
-                      borderRadius: 1.5,
+                      borderRadius: 1.2,
                       textTransform: 'none',
                       fontWeight: 700,
-                      py: 1,
+                      py: 1.2,
+                      px: 4,
                       mt: 1,
                       alignSelf: 'flex-start',
                     }}

@@ -9,7 +9,9 @@ export interface ExamCreate {
   shuffle_questions?: boolean;
   shuffle_options?: boolean;
   show_result_after_submit?: boolean;
+  show_answers_after_submit?: boolean;
   is_public?: boolean;
+  access_password?: string;
 }
 
 
@@ -60,7 +62,13 @@ export const adminApi = {
   // ===== Danh mục/chủ đề câu hỏi (question_service) =====
   getCategories: async () => {
     const response = await apiClient.get('/v1/categories', { params: { limit: 200 } });
-    return response.data?.items ?? [];
+    const rawItems = response.data?.items ?? (Array.isArray(response.data) ? response.data : []);
+    return rawItems.map((item: any) => ({
+      id: String(item.id || item._id || ''),
+      name: item.name || '',
+      description: item.description || '',
+      created_at: item.created_at || '',
+    }));
   },
   createCategory: async (data: { name: string; description?: string }) => {
     const response = await apiClient.post('/v1/categories', data);
@@ -93,6 +101,10 @@ export const adminApi = {
   },
   publishExam: async (id: string) => {
     const response = await apiClient.post(`/v1/exams/${id}/publish`);
+    return response.data;
+  },
+  unpublishExam: async (id: string) => {
+    const response = await apiClient.post(`/v1/exams/${id}/unpublish`);
     return response.data;
   },
   getExamQuestions: async (examId: string) => {

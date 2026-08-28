@@ -1,16 +1,15 @@
-import { Box, Button, Typography, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, Chip, Snackbar, IconButton, Tooltip, Grid, Avatar } from '@mui/material';
+import { Box, Button, Typography, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, Snackbar, IconButton, Tooltip, Grid, Avatar } from '@mui/material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import type { GridColDef } from '@mui/x-data-grid';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { adminApi } from '../api/adminApi';
-import * as xlsx from 'xlsx';
-import { transformExcelRowsToQuestions } from '../utils/excelQuestionTransform';
 import {
-  CloudUpload, Delete as DeleteIcon, Add as AddIcon,
-  Download as DownloadIcon, Edit as EditIcon, Quiz,
-  CheckCircleOutlined, EditNote, LinearScale,
+  Delete as DeleteIcon, Add as AddIcon,
+  Edit as EditIcon, Quiz,
+  CheckCircleOutlined, EditNote, LinearScale, CloudUpload,
 } from '@mui/icons-material';
 import ManualQuestionDialog from '../components/ManualQuestionDialog';
+import ExcelImportDialog from '../components/ExcelImportDialog';
 
 // Shape thật trả về từ question_service (QuestionModel)
 interface Question {
@@ -31,12 +30,12 @@ const TYPE_LABELS: Record<string, string> = {
   essay: 'Tự luận',
 };
 
-const TYPE_COLORS: Record<string, { bg: string; color: string; border: string }> = {
-  multiple_choice: { bg: '#EFF6FF', color: '#2563EB', border: '#BFDBFE' },
-  multiple_select: { bg: '#F5F3FF', color: '#7C3AED', border: '#DDD6FE' },
-  true_false: { bg: '#ECFDF5', color: '#059669', border: '#A7F3D0' },
-  matching: { bg: '#FFFBEB', color: '#D97706', border: '#FDE68A' },
-  essay: { bg: '#FDF2F8', color: '#DB2777', border: '#FBCFE8' },
+const TYPE_COLORS: Record<string, string> = {
+  multiple_choice: '#2563EB',
+  multiple_select: '#7C3AED',
+  true_false: '#059669',
+  matching: '#D97706',
+  essay: '#E11D48',
 };
 
 const AdminQuestions = () => {
@@ -47,7 +46,7 @@ const AdminQuestions = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<any | null>(null);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const fetchQuestions = async () => {
     try {
@@ -74,68 +73,6 @@ const AdminQuestions = () => {
     const other = total - mc - essay;
     return { total, mc, essay, other };
   }, [questions]);
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      try {
-        setLoading(true);
-        const arrayBuffer = event.target?.result;
-        if (!arrayBuffer) return;
-
-        const workbook = xlsx.read(arrayBuffer, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const rows = xlsx.utils.sheet_to_json(worksheet);
-
-        const { payloads, errors } = transformExcelRowsToQuestions(rows as any[]);
-
-        if (payloads.length === 0) {
-          setError(`Không có dòng nào hợp lệ để import.${errors.length ? ' Chi tiết: ' + errors.slice(0, 3).join(' ') : ''}`);
-          setLoading(false);
-          return;
-        }
-
-        await adminApi.importQuestionsBulk(payloads);
-        await fetchQuestions();
-
-        if (errors.length > 0) {
-          setSnackbar({ open: true, message: `Đã import ${payloads.length} câu hỏi, bỏ qua ${errors.length} dòng lỗi.`, severity: 'error' });
-          console.warn('Các dòng Excel bị bỏ qua khi import:', errors);
-        } else {
-          setSnackbar({ open: true, message: `Đã import thành công ${payloads.length} câu hỏi từ Excel.`, severity: 'success' });
-        }
-      } catch (err) {
-        console.error('Failed to import questions', err);
-        setError('Import thất bại. Kiểm tra lại định dạng file (dùng nút "Xuất Excel" để lấy file mẫu).');
-        setLoading(false);
-      }
-    };
-    reader.readAsArrayBuffer(file);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleExport = async () => {
-    try {
-      const blob = await adminApi.exportQuestions();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `ngan_hang_cau_hoi_${new Date().toISOString().slice(0, 10)}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (err: any) {
-      console.error('Failed to export questions', err);
-      setSnackbar({ open: true, message: err.response?.data?.detail || 'Xuất Excel thất bại.', severity: 'error' });
-    }
-  };
 
   const handleOpenCreate = () => {
     setEditingQuestion(null);
@@ -185,11 +122,12 @@ const AdminQuestions = () => {
       headerName: 'NỘI DUNG CÂU HỎI',
       flex: 3.5,
       minWidth: 320,
-      valueGetter: (_value, row) => row.content?.text || '',
       renderCell: (params) => (
-        <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {params.value}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', width: '100%' }}>
+          <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {params.row.content?.text || ''}
+          </Typography>
+        </Box>
       ),
     },
     {
@@ -198,10 +136,12 @@ const AdminQuestions = () => {
       flex: 1.5,
       minWidth: 180,
       renderCell: (params) => {
-        const theme = TYPE_COLORS[params.value] || { bg: '#F1F5F9', color: '#475569', border: '#E2E8F0' };
+        const color = TYPE_COLORS[params.value] || '#475569';
         return (
-          <Box sx={{ bgcolor: theme.bg, color: theme.color, border: `1px solid ${theme.border}`, px: 1.2, py: 0.4, borderRadius: 1, fontSize: '0.75rem', fontWeight: 700 }}>
-            {TYPE_LABELS[params.value] || params.value}
+          <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <Typography variant="body2" sx={{ color: color, fontWeight: 700, fontSize: '0.85rem' }}>
+              {TYPE_LABELS[params.value] || params.value}
+            </Typography>
           </Box>
         );
       },
@@ -211,40 +151,39 @@ const AdminQuestions = () => {
       headerName: 'MÔN HỌC / DANH MỤC',
       flex: 1.5,
       minWidth: 160,
-      valueGetter: (_value, row) => row.metadata?.subject || '',
       renderCell: (params) => (
-        <Chip
-          label={params.value || 'Chung'}
-          size="small"
-          sx={{ bgcolor: '#F8FAFC', color: '#475569', border: '1px solid #E2E8F0', fontWeight: 600, fontSize: '0.75rem', borderRadius: 1 }}
-        />
+        <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+          <Typography variant="body2" sx={{ color: '#475569', fontWeight: 600 }}>
+            {params.row.metadata?.subject || 'Chung'}
+          </Typography>
+        </Box>
       ),
     },
     {
       field: 'actions',
       headerName: 'HÀNH ĐỘNG',
-      width: 110,
+      width: 140,
       align: 'center',
       headerAlign: 'center',
       sortable: false,
       renderCell: (params) => (
-        <Box sx={{ display: 'flex', gap: 0.8, alignItems: 'center', justifyContent: 'center' }}>
+        <Box sx={{ display: 'flex', gap: 1.2, alignItems: 'center', justifyContent: 'center', height: '100%' }}>
           <Tooltip title="Chỉnh sửa câu hỏi">
             <IconButton
-              size="small"
+              size="medium"
               onClick={() => handleEditClick(params.row)}
-              sx={{ bgcolor: '#EFF6FF', color: '#2563EB', borderRadius: 1, p: 0.7, '&:hover': { bgcolor: '#DBEAFE' } }}
+              sx={{ bgcolor: '#EFF6FF', color: '#2563EB', borderRadius: 1.5, p: 1, '&:hover': { bgcolor: '#DBEAFE' } }}
             >
-              <EditIcon sx={{ fontSize: 16 }} />
+              <EditIcon sx={{ fontSize: 18 }} />
             </IconButton>
           </Tooltip>
           <Tooltip title="Xoá câu hỏi">
             <IconButton
-              size="small"
+              size="medium"
               onClick={() => handleDeleteClick(params.row.id || params.row._id)}
-              sx={{ bgcolor: '#FEF2F2', color: '#EF4444', borderRadius: 1, p: 0.7, '&:hover': { bgcolor: '#FEE2E2' } }}
+              sx={{ bgcolor: '#FEF2F2', color: '#EF4444', borderRadius: 1.5, p: 1, '&:hover': { bgcolor: '#FEE2E2' } }}
             >
-              <DeleteIcon sx={{ fontSize: 16 }} />
+              <DeleteIcon sx={{ fontSize: 18 }} />
             </IconButton>
           </Tooltip>
         </Box>
@@ -265,27 +204,11 @@ const AdminQuestions = () => {
         </Box>
 
         <Box sx={{ display: 'flex', gap: 1.2, flexWrap: 'wrap' }}>
-          <input
-            type="file"
-            accept=".xlsx, .xls"
-            style={{ display: 'none' }}
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-          />
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<DownloadIcon sx={{ fontSize: 16 }} />}
-            onClick={handleExport}
-            sx={{ borderRadius: 1.2, textTransform: 'none', fontWeight: 600, borderColor: '#CBD5E1', color: '#334155' }}
-          >
-            Xuất Excel
-          </Button>
           <Button
             variant="outlined"
             size="small"
             startIcon={<CloudUpload sx={{ fontSize: 16 }} />}
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => setImportDialogOpen(true)}
             sx={{ borderRadius: 1.2, textTransform: 'none', fontWeight: 600, borderColor: '#CBD5E1', color: '#334155' }}
           >
             Nhập từ Excel
@@ -371,6 +294,7 @@ const AdminQuestions = () => {
           <DataGrid
             rows={questions}
             columns={columns}
+            rowHeight={60}
             getRowId={(row) => row.id || row._id}
             slots={{ toolbar: GridToolbar }}
             slotProps={{ toolbar: { showQuickFilter: true, quickFilterProps: { debounceMs: 500 } } }}
@@ -379,6 +303,7 @@ const AdminQuestions = () => {
             disableRowSelectionOnClick
             sx={{
               border: 'none',
+              '& .MuiDataGrid-cell': { display: 'flex', alignItems: 'center' },
               '& .MuiDataGrid-cell:focus': { outline: 'none' },
               '& .MuiDataGrid-columnHeaders': { bgcolor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontWeight: 800, fontSize: '0.8rem', color: '#475569' },
             }}
@@ -413,6 +338,17 @@ const AdminQuestions = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ExcelImportDialog
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
+        onImportApi={adminApi.importQuestionsBulk}
+        onImportSuccess={(count) => {
+          setImportDialogOpen(false);
+          fetchQuestions();
+          setSnackbar({ open: true, message: `Đã nhập thành công ${count} câu hỏi từ Excel vào ngân hàng.`, severity: 'success' });
+        }}
+      />
 
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar((s) => ({ ...s, open: false }))}>
         <Alert severity={snackbar.severity} sx={{ width: '100%', borderRadius: 1.5 }}>{snackbar.message}</Alert>

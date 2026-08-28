@@ -13,6 +13,7 @@ import type { ExamQuestionDetail } from '../api/examApi';
 const ResultSummary: React.FC = () => {
   const { attemptId } = useParams<{ attemptId: string }>();
   const navigate = useNavigate();
+  const [exam, setExam] = useState<any | null>(null);
   const [result, setResult] = useState<ExamResult | null>(null);
   const [passingScore, setPassingScore] = useState<number>(50);
   const [questionsMap, setQuestionsMap] = useState<Record<string, ExamQuestionDetail>>({});
@@ -27,20 +28,18 @@ const ResultSummary: React.FC = () => {
         .getExamResult(attemptId)
         .then(async (res) => {
           setResult(res);
-          // Lấy đúng ngưỡng đạt thật của đề thi thay vì mặc định 50% —
-          // mỗi đề có thể có passing_score khác nhau (VD: 60%, 70%,...).
           try {
-            const [exam, questions] = await Promise.all([
+            const [examData, questions] = await Promise.all([
               getExamById(res.exam_id),
               getExamQuestions(res.exam_id),
             ]);
-            setPassingScore(exam.passing_score ?? 50);
+            setExam(examData);
+            setPassingScore(examData.passing_score ?? 50);
             const map: Record<string, ExamQuestionDetail> = {};
             questions.forEach((q) => { map[q.question_id] = q; });
             setQuestionsMap(map);
           } catch {
-            // Không lấy được passing_score/nội dung câu hỏi thật thì vẫn hiển thị điểm số tổng,
-            // chỉ là không có phần "chi tiết từng câu".
+            // Fallback
           }
         })
         .catch(() => setError('Không thể tải kết quả. Vui lòng thử lại sau.'))
@@ -90,9 +89,6 @@ const ResultSummary: React.FC = () => {
     );
   }
 
-  // Chuyển đáp án thô (id đáp án, hoặc JSON string với câu chọn-nhiều/nối cột) thành
-  // text dễ đọc bằng cách tra cứu lại options thật của câu hỏi — trước đây hiện thẳng
-  // chuỗi thô kiểu ["opt_1","opt_3"] hoặc [["L_1","R_2"]], không ai đọc hiểu được.
   const formatUserAnswer = (qr: { question_id: string; user_answer: string }): string => {
     const q = questionsMap[qr.question_id];
     if (!qr.user_answer) return '(không trả lời)';
@@ -122,7 +118,6 @@ const ResultSummary: React.FC = () => {
       }
     }
 
-    // essay: text thô hoặc ảnh base64 (ảnh thì hiện ghi chú thay vì in cả chuỗi base64 dài)
     if (qr.user_answer.startsWith('data:image')) return '(đã nộp ảnh chụp bài làm)';
     return qr.user_answer;
   };
@@ -132,6 +127,8 @@ const ResultSummary: React.FC = () => {
     return q?.type === 'essay' && qr.user_answer?.startsWith('data:image');
   };
 
+  const showResult = exam ? exam.show_result_after_submit !== false : true;
+  const showAnswers = exam ? exam.show_answers_after_submit !== false : true;
   const passed = result.percentage >= passingScore;
 
   return (
@@ -142,66 +139,103 @@ const ResultSummary: React.FC = () => {
             sx={{
               p: { xs: 3, md: 5 },
               textAlign: 'center',
-              borderRadius: 4,
+              borderRadius: 1.5,
               bgcolor: '#FFFFFF',
               border: '1px solid #E2E8F0',
               boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
             }}
           >
-            <Box sx={{ mb: 2 }}>
-              {passed ? (
-                <EmojiEvents sx={{ fontSize: 72, color: '#F59E0B' }} aria-hidden="true" />
-              ) : (
-                <CancelOutlined sx={{ fontSize: 72, color: '#EF4444' }} aria-hidden="true" />
-              )}
-            </Box>
-            <Typography variant="h4" gutterBottom color={passed ? '#10B981' : '#EF4444'} sx={{ fontWeight: 800 }}>
-              {passed ? 'Chúc mừng bạn đã hoàn thành xuất sắc!' : 'Rất tiếc, bạn chưa đạt yêu cầu!'}
-            </Typography>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, color: '#0F172A' }}>
-              Điểm số: <Box component="span" sx={{ color: '#2563EB', fontSize: '1.4rem' }}>{result.score} / {result.total_possible}</Box>
-            </Typography>
-            <Typography variant="body2" sx={{ color: '#64748B', mb: 3 }}>
-              Tỷ lệ chính xác: <span style={{ fontWeight: 700, color: '#0F172A' }}>{result.percentage}%</span> (Ngưỡng đạt: {passingScore}%)
-            </Typography>
+            {!showResult ? (
+              <Box sx={{ py: 3 }}>
+                <Box sx={{ mb: 2 }}>
+                  <CheckCircleOutlined sx={{ fontSize: 72, color: '#10B981' }} aria-hidden="true" />
+                </Box>
+                <Typography variant="h4" gutterBottom sx={{ fontWeight: 800, color: '#0F172A' }}>
+                  Bài thi đã được ghi nhận thành công!
+                </Typography>
+                <Typography variant="body1" sx={{ color: '#64748B', maxWidth: 520, mx: 'auto', mb: 4, lineHeight: 1.6 }}>
+                  Cảm ơn bạn đã hoàn thành bài thi. Đề thi này được thiết lập bảo mật điểm số, kết quả sẽ được giáo viên / quản trị viên công bố sau khi kết thúc đợt thi.
+                </Typography>
+              </Box>
+            ) : (
+              <>
+                <Box sx={{ mb: 2 }}>
+                  {passed ? (
+                    <EmojiEvents sx={{ fontSize: 72, color: '#F59E0B' }} aria-hidden="true" />
+                  ) : (
+                    <CancelOutlined sx={{ fontSize: 72, color: '#EF4444' }} aria-hidden="true" />
+                  )}
+                </Box>
+                <Typography variant="h4" gutterBottom color={passed ? '#10B981' : '#EF4444'} sx={{ fontWeight: 800 }}>
+                  {passed ? 'Chúc mừng bạn đã hoàn thành xuất sắc!' : 'Rất tiếc, bạn chưa đạt yêu cầu!'}
+                </Typography>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, color: '#0F172A' }}>
+                  Điểm số: <Box component="span" sx={{ color: '#2563EB', fontSize: '1.4rem' }}>{result.score} / {result.total_possible}</Box>
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#64748B', mb: 3 }}>
+                  Tỷ lệ chính xác: <span style={{ fontWeight: 700, color: '#0F172A' }}>{result.percentage}%</span> (Ngưỡng đạt: {passingScore}%)
+                </Typography>
 
-            {result.has_pending_manual_grading && (
-              <Alert severity="info" sx={{ mb: 3, textAlign: 'left', borderRadius: 2.5, bgcolor: '#EFF6FF', border: '1px solid #DBEAFE', color: '#1E40AF' }}>
-                Bài thi có câu tự luận đang chờ giáo viên chấm điểm — điểm số ở trên là điểm tạm tính, có thể thay đổi sau khi giáo viên chấm xong.
-              </Alert>
+                {result.has_pending_manual_grading && (
+                  <Alert severity="info" sx={{ mb: 3, textAlign: 'left', borderRadius: 1.5, bgcolor: '#EFF6FF', border: '1px solid #DBEAFE', color: '#1E40AF' }}>
+                    Bài thi có câu tự luận đang chờ giáo viên chấm điểm — điểm số ở trên là điểm tạm tính, có thể thay đổi sau khi giáo viên chấm xong.
+                  </Alert>
+                )}
+
+                {/* Bento Grid Stats */}
+                {(() => {
+                  const pendingCount = result.question_results?.filter((q: any) => q.needs_manual_grading).length || 0;
+                  return (
+                    <Box sx={{
+                      display: 'grid',
+                      gridTemplateColumns: pendingCount > 0 ? { xs: '1fr', sm: '1fr 1fr 1fr' } : { xs: '1fr', sm: '1fr 1fr' },
+                      gap: 2,
+                      my: 3,
+                    }}>
+                      <Box sx={{ p: 2, bgcolor: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: 1.5 }}>
+                        <Typography variant="h4" sx={{ color: '#059669', fontWeight: 800, mb: 0.5 }}>
+                          {result.correct_count}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#065F46', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                          <CheckCircleOutlined fontSize="small" /> Câu trả lời đúng
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ p: 2, bgcolor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 1.5 }}>
+                        <Typography variant="h4" sx={{ color: '#DC2626', fontWeight: 800, mb: 0.5 }}>
+                          {result.incorrect_count}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#991B1B', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                          <CancelOutlined fontSize="small" /> Câu trả lời sai
+                        </Typography>
+                      </Box>
+
+                      {pendingCount > 0 && (
+                        <Box sx={{ p: 2, bgcolor: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 1.5 }}>
+                          <Typography variant="h4" sx={{ color: '#D97706', fontWeight: 800, mb: 0.5 }}>
+                            {pendingCount}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: '#92400E', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                            <HourglassEmpty fontSize="small" /> Tự luận chờ chấm
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  );
+                })()}
+              </>
             )}
 
-            {/* Bento Grid Stats */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, my: 3 }}>
-              <Box sx={{ p: 2.5, bgcolor: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: 3 }}>
-                <Typography variant="h4" sx={{ color: '#059669', fontWeight: 800, mb: 0.5 }}>
-                  {result.correct_count}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#065F46', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.8 }}>
-                  <CheckCircleOutlined fontSize="small" /> Câu trả lời đúng
-                </Typography>
-              </Box>
-
-              <Box sx={{ p: 2.5, bgcolor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 3 }}>
-                <Typography variant="h4" sx={{ color: '#DC2626', fontWeight: 800, mb: 0.5 }}>
-                  {result.incorrect_count}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#991B1B', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.8 }}>
-                  <CancelOutlined fontSize="small" /> Câu trả lời sai
-                </Typography>
-              </Box>
-            </Box>
-
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap', mt: 4 }}>
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap', mt: 3 }}>
               <Button
                 variant="outlined"
                 onClick={() => navigate('/student/results')}
                 sx={{
-                  py: 1.2,
+                  py: 1.1,
                   px: 3,
-                  fontSize: '0.95rem',
+                  fontSize: '0.92rem',
                   fontWeight: 600,
-                  borderRadius: 2.5,
+                  borderRadius: 1.2,
                   textTransform: 'none',
                   borderColor: '#CBD5E1',
                   color: '#475569',
@@ -215,11 +249,11 @@ const ResultSummary: React.FC = () => {
                 startIcon={<Home />}
                 aria-label="Trở về bảng điều khiển"
                 sx={{
-                  py: 1.2,
+                  py: 1.1,
                   px: 3.5,
-                  fontSize: '0.95rem',
+                  fontSize: '0.92rem',
                   fontWeight: 700,
-                  borderRadius: 2.5,
+                  borderRadius: 1.2,
                   textTransform: 'none',
                   bgcolor: '#2563EB',
                   '&:hover': { bgcolor: '#1D4ED8' },
@@ -233,9 +267,9 @@ const ResultSummary: React.FC = () => {
         </Fade>
 
         {/* Chi tiết từng câu */}
-        {result.question_results && result.question_results.length > 0 && Object.keys(questionsMap).length > 0 && (
+        {showResult && showAnswers && result.question_results && result.question_results.length > 0 && Object.keys(questionsMap).length > 0 && (
           <Fade in={true} timeout={800}>
-            <Paper sx={{ mt: 3.5, p: { xs: 2.5, md: 4 }, borderRadius: 4, border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', bgcolor: '#FFFFFF' }}>
+            <Paper sx={{ mt: 3.5, p: { xs: 2.5, md: 4 }, borderRadius: 1.5, border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', bgcolor: '#FFFFFF' }}>
               <Typography variant="h6" sx={{ fontWeight: 800, mb: 2.5, textAlign: 'left', color: '#0F172A' }}>
                 Chi tiết đáp án từng câu hỏi
               </Typography>

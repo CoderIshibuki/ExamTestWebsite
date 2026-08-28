@@ -14,6 +14,7 @@ export function useProctorStreamBroadcaster(
 ) {
   const socketRef = useRef<Socket | null>(null);
   const peersRef = useRef<Record<string, RTCPeerConnection>>({});
+  const screenStreamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     if (!examId) return;
@@ -34,12 +35,35 @@ export function useProctorStreamBroadcaster(
     });
     socketRef.current = socket;
 
-    const handleStreamRequested = async (data: { proctor_sid: string }) => {
-      if (!stream) return;
+    const handleStreamRequested = async (data: { proctor_sid: string; stream_type?: string }) => {
+      let activeStream: MediaStream | null = stream;
+      const reqType = data.stream_type || 'camera';
+
+      if (reqType === 'screen' || reqType === 'both') {
+        try {
+          if (!screenStreamRef.current || !screenStreamRef.current.active) {
+            screenStreamRef.current = await navigator.mediaDevices.getDisplayMedia({
+              video: { frameRate: 15 },
+              audio: false,
+            });
+          }
+          if (reqType === 'screen') {
+            activeStream = screenStreamRef.current;
+          }
+        } catch (e) {
+          console.warn('Screen share cancelled or not allowed, falling back to camera', e);
+          activeStream = stream;
+        }
+      }
+
+      if (!activeStream) return;
       const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
       peersRef.current[data.proctor_sid] = pc;
 
-      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+      activeStream.getTracks().forEach((track) => pc.addTrack(track, activeStream!));
+      if (reqType === 'both' && stream && activeStream !== stream) {
+        stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+      }
 
       pc.onicecandidate = (event) => {
         if (event.candidate) {

@@ -94,6 +94,21 @@ async def process_grading(submission_id: str, exam_id: str, user_id: str, answer
         # 2. Chấm điểm
         engine = GradingEngine(questions)
         result = engine.grade(answers)
+
+        # 2b. Áp dụng trừ điểm kỷ luật nếu giám thị có phạt
+        try:
+            import redis.asyncio as aioredis
+            redis_client = aioredis.from_url(os.environ.get("REDIS_URL", "redis://redis_cache:6379/0"))
+            penalty_raw = await redis_client.get(f"exam:penalty:{exam_id}:{user_id}")
+            penalty_percent = int(penalty_raw) if penalty_raw else 0
+            await redis_client.close()
+            if penalty_percent > 0:
+                logger.info(f"Applying proctor penalty of {penalty_percent}% for user {user_id} on exam {exam_id}")
+                multiplier = max(0.0, (100.0 - penalty_percent) / 100.0)
+                result["score"] = round(result["score"] * multiplier, 2)
+                result["percentage"] = round((result["score"] / result["total_possible"] * 100.0) if result["total_possible"] > 0 else 0, 2)
+        except Exception as e:
+            logger.error(f"Failed to check/apply proctor score penalty: {e}")
         
         # 3. Lưu kết quả vào database
         attempt_id = metadata_info.get("attempt_id") if metadata_info else None

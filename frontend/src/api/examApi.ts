@@ -10,6 +10,7 @@ export interface Exam {
   passing_score?: number;
   status?: string;
   created_at?: string;
+  has_password?: boolean;
 }
 
 export async function getPublishedExams(): Promise<Exam[]> {
@@ -52,8 +53,8 @@ export interface ExamAttempt {
   expires_at: string;
 }
 
-export async function startExam(examId: string): Promise<ExamAttempt> {
-  const response = await apiClient.post(`/v1/exams/${examId}/start`);
+export async function startExam(examId: string, password?: string): Promise<ExamAttempt> {
+  const response = await apiClient.post(`/v1/exams/${examId}/start`, password ? { password } : {});
   return response.data;
 }
 

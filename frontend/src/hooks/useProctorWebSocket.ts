@@ -113,8 +113,8 @@ export function useProctorStreamViewer(socket: Socket | null) {
   }, [socket]);
 
   const requestStream = useCallback(
-    (examId: string, userId: string) => {
-      socket?.emit('webrtc_request_stream', { exam_id: examId, user_id: userId });
+    (examId: string, userId: string, streamType: 'camera' | 'screen' | 'both' = 'camera') => {
+      socket?.emit('webrtc_request_stream', { exam_id: examId, user_id: userId, stream_type: streamType });
     },
     [socket],
   );

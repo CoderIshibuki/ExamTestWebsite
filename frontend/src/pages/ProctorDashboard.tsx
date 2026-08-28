@@ -12,11 +12,12 @@ import AlertBanner from '../components/Proctor/AlertBanner';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VideocamOffIcon from '@mui/icons-material/VideocamOff';
 import SearchIcon from '@mui/icons-material/Search';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 const ProctorDashboard = () => {
   const { examId } = useParams<{ examId: string }>();
   const navigate = useNavigate();
-  const { students, violations, alerts, clearAlerts, loading, unauthorized, error, socket } = useProctoringData(examId || '');
+  const { students, violations, alerts, clearAlerts, loading, refreshing, refetch, unauthorized, error, socket } = useProctoringData(examId || '');
   const { streams, requestStream, stopStream } = useProctorStreamViewer(socket);
 
   const [filter, setFilter] = useState<'all' | 'violation' | 'high_risk' | 'online'>('all');
@@ -89,14 +90,36 @@ const ProctorDashboard = () => {
           </Box>
         </Box>
 
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={() => navigate('/admin/exams')}
-          sx={{ color: '#94a3b8', borderColor: '#334155', borderRadius: 1, textTransform: 'none', fontWeight: 600, '&:hover': { borderColor: '#64748b', color: '#fff' } }}
-        >
-          Rời phòng giám sát
-        </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<RefreshIcon sx={{ animation: refreshing ? 'spin 1s linear infinite' : 'none', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } }} />}
+            onClick={() => refetch()}
+            disabled={refreshing}
+            sx={{
+              bgcolor: '#0284c7',
+              '&:hover': { bgcolor: '#0369a1' },
+              borderRadius: 1,
+              textTransform: 'none',
+              fontWeight: 700,
+              fontSize: '0.78rem',
+              px: 1.8,
+              py: 0.6,
+            }}
+          >
+            {refreshing ? 'Đang làm mới...' : 'Làm mới (Refresh)'}
+          </Button>
+
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => navigate('/admin/exams')}
+            sx={{ color: '#94a3b8', borderColor: '#334155', borderRadius: 1, textTransform: 'none', fontWeight: 600, '&:hover': { borderColor: '#64748b', color: '#fff' } }}
+          >
+            Rời phòng giám sát
+          </Button>
+        </Box>
       </Box>
       
       <Grid container sx={{ flexGrow: 1, overflow: 'hidden' }}>
@@ -171,7 +194,7 @@ const ProctorDashboard = () => {
             <StudentList
               students={filteredStudents}
               examId={examId}
-              onRequestStream={(userId) => requestStream(examId || '', userId)}
+              onRequestStream={(userId, type) => requestStream(examId || '', userId, type)}
               onStopStream={stopStream}
               streams={streams}
             />

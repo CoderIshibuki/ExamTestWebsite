@@ -138,21 +138,20 @@ const AdminUsers = () => {
 
   const columns: GridColDef[] = [
     {
-      field: 'user_info',
+      field: 'username',
       headerName: 'NGƯỜI DÙNG',
       flex: 2.5,
       minWidth: 240,
-      valueGetter: (_v, row) => row.full_name || row.username,
       renderCell: (params) => (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, height: '100%' }}>
           <Avatar sx={{ width: 34, height: 34, bgcolor: params.row.role === 'admin' ? '#4F46E5' : params.row.role === 'teacher' ? '#059669' : '#2563EB', fontSize: '0.85rem', fontWeight: 800, borderRadius: 1 }}>
             {(params.row.username || 'U').charAt(0).toUpperCase()}
           </Avatar>
-          <Box sx={{ minWidth: 0 }}>
+          <Box sx={{ minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>
               {params.row.full_name || params.row.username}
             </Typography>
-            <Typography variant="caption" sx={{ color: '#64748B', fontFamily: 'monospace' }}>
+            <Typography variant="caption" sx={{ color: '#64748B', fontFamily: 'monospace', lineHeight: 1.2 }}>
               @{params.row.username}
             </Typography>
           </Box>
@@ -165,9 +164,11 @@ const AdminUsers = () => {
       flex: 2,
       minWidth: 220,
       renderCell: (params) => (
-        <Typography variant="body2" sx={{ color: '#475569', fontWeight: 500 }}>
-          {params.value}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+          <Typography variant="body2" sx={{ color: '#475569', fontWeight: 500 }}>
+            {params.value}
+          </Typography>
+        </Box>
       ),
     },
     {
@@ -178,24 +179,14 @@ const AdminUsers = () => {
       renderCell: (params) => {
         const isAdm = params.value === 'admin';
         const isTch = params.value === 'teacher';
+        const isProctor = params.value === 'proctor';
+        const color = isAdm ? '#4F46E5' : isTch ? '#059669' : isProctor ? '#D97706' : '#2563EB';
         return (
-          <Box
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 0.6,
-              px: 1.2,
-              py: 0.4,
-              borderRadius: 1,
-              bgcolor: isAdm ? '#EEF2FF' : isTch ? '#ECFDF5' : '#EFF6FF',
-              color: isAdm ? '#4338CA' : isTch ? '#047857' : '#1D4ED8',
-              border: `1px solid ${isAdm ? '#C7D2FE' : isTch ? '#A7F3D0' : '#BFDBFE'}`,
-              fontWeight: 700,
-              fontSize: '0.75rem',
-            }}
-          >
-            {isAdm ? <AdminPanelSettings sx={{ fontSize: 14 }} /> : isTch ? <School sx={{ fontSize: 14 }} /> : <People sx={{ fontSize: 14 }} />}
-            {ROLE_LABELS[params.value] || params.value}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, height: '100%' }}>
+            {isAdm ? <AdminPanelSettings sx={{ fontSize: 16, color }} /> : isTch ? <School sx={{ fontSize: 16, color }} /> : <People sx={{ fontSize: 16, color }} />}
+            <Typography variant="body2" sx={{ color, fontWeight: 700, fontSize: '0.85rem' }}>
+              {ROLE_LABELS[params.value] || params.value}
+            </Typography>
           </Box>
         );
       },
@@ -206,40 +197,42 @@ const AdminUsers = () => {
       flex: 1,
       minWidth: 130,
       renderCell: (params) => (
-        <Chip
-          label={params.value ? 'Hoạt động' : 'Tạm khoá'}
-          size="small"
-          color={params.value ? 'success' : 'default'}
-          variant="outlined"
-          sx={{ borderRadius: 1, fontWeight: 700, fontSize: '0.72rem' }}
-        />
+        <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+          <Chip
+            label={params.value ? 'Hoạt động' : 'Tạm khoá'}
+            size="small"
+            color={params.value ? 'success' : 'default'}
+            variant="outlined"
+            sx={{ borderRadius: 1, fontWeight: 700, fontSize: '0.72rem' }}
+          />
+        </Box>
       ),
     },
     {
       field: 'actions',
       headerName: 'HÀNH ĐỘNG',
-      width: 110,
+      width: 140,
       align: 'center',
       headerAlign: 'center',
       sortable: false,
       renderCell: (params) => (
-        <Box sx={{ display: 'flex', gap: 0.8, alignItems: 'center', justifyContent: 'center' }}>
+        <Box sx={{ display: 'flex', gap: 1.2, alignItems: 'center', justifyContent: 'center', height: '100%' }}>
           <Tooltip title="Chỉnh sửa vai trò / trạng thái">
             <IconButton
-              size="small"
+              size="medium"
               onClick={() => handleEditClick(params.row)}
-              sx={{ bgcolor: '#EFF6FF', color: '#2563EB', borderRadius: 1, p: 0.7, '&:hover': { bgcolor: '#DBEAFE' } }}
+              sx={{ bgcolor: '#EFF6FF', color: '#2563EB', borderRadius: 1.5, p: 1, '&:hover': { bgcolor: '#DBEAFE' } }}
             >
-              <EditIcon sx={{ fontSize: 16 }} />
+              <EditIcon sx={{ fontSize: 18 }} />
             </IconButton>
           </Tooltip>
           <Tooltip title="Xoá tài khoản">
             <IconButton
-              size="small"
+              size="medium"
               onClick={() => handleDeleteClick(params.row.id)}
-              sx={{ bgcolor: '#FEF2F2', color: '#EF4444', borderRadius: 1, p: 0.7, '&:hover': { bgcolor: '#FEE2E2' } }}
+              sx={{ bgcolor: '#FEF2F2', color: '#EF4444', borderRadius: 1.5, p: 1, '&:hover': { bgcolor: '#FEE2E2' } }}
             >
-              <DeleteIcon sx={{ fontSize: 16 }} />
+              <DeleteIcon sx={{ fontSize: 18 }} />
             </IconButton>
           </Tooltip>
         </Box>
@@ -350,6 +343,7 @@ const AdminUsers = () => {
           <DataGrid
             rows={users}
             columns={columns}
+            rowHeight={64}
             slots={{ toolbar: GridToolbar }}
             slotProps={{ toolbar: { showQuickFilter: true, quickFilterProps: { debounceMs: 500 } } }}
             initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
@@ -357,6 +351,7 @@ const AdminUsers = () => {
             disableRowSelectionOnClick
             sx={{
               border: 'none',
+              '& .MuiDataGrid-cell': { display: 'flex', alignItems: 'center' },
               '& .MuiDataGrid-cell:focus': { outline: 'none' },
               '& .MuiDataGrid-columnHeaders': { bgcolor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontWeight: 800, fontSize: '0.8rem', color: '#475569' },
             }}

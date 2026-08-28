@@ -3,12 +3,16 @@ import {
   Box, Typography, Paper, Skeleton, Alert, Card, CardContent,
   TextField, Button, Chip, Snackbar, Avatar,
 } from '@mui/material';
-import { RateReview, AssignmentTurnedIn, EditNote } from '@mui/icons-material';
+import { RateReview, AssignmentTurnedIn, School, Quiz } from '@mui/icons-material';
 import { gradingApi } from '../api/gradingApi';
 import type { PendingManualGradeItem } from '../api/gradingApi';
+import { adminApi } from '../api/adminApi';
 
 export default function ManualGrading() {
   const [items, setItems] = useState<PendingManualGradeItem[]>([]);
+  const [usersMap, setUsersMap] = useState<Record<string, any>>({});
+  const [examsMap, setExamsMap] = useState<Record<string, any>>({});
+  const [questionsMap, setQuestionsMap] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [scores, setScores] = useState<Record<string, string>>({});
@@ -19,8 +23,26 @@ export default function ManualGrading() {
   const fetchPending = async () => {
     try {
       setLoading(true);
-      const data = await gradingApi.getPendingManualGrading();
+      const [data, users, exams, questions] = await Promise.all([
+        gradingApi.getPendingManualGrading().catch(() => []),
+        adminApi.getUsers().catch(() => []),
+        adminApi.getExams().catch(() => []),
+        adminApi.getQuestions().catch(() => []),
+      ]);
       setItems(data || []);
+
+      const uMap: Record<string, any> = {};
+      (users || []).forEach((u: any) => { uMap[String(u.id)] = u; });
+      setUsersMap(uMap);
+
+      const eMap: Record<string, any> = {};
+      (exams || []).forEach((e: any) => { eMap[String(e.id)] = e; });
+      setExamsMap(eMap);
+
+      const qMap: Record<string, any> = {};
+      (questions || []).forEach((q: any) => { qMap[String(q.id || q._id)] = q; });
+      setQuestionsMap(qMap);
+
       setError('');
     } catch (err) {
       console.error('Failed to fetch pending manual grading', err);
@@ -101,6 +123,13 @@ export default function ManualGrading() {
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           {items.map((item) => {
             const k = key(item);
+            const student = usersMap[item.user_id];
+            const exam = examsMap[item.exam_id];
+            const question = questionsMap[item.question_id];
+            const displayName = student?.full_name || student?.username || `Thí sinh #${item.user_id?.slice(0, 8)}`;
+            const username = student?.username || '';
+            const email = student?.email || '';
+
             return (
               <Card
                 key={k}
@@ -113,34 +142,61 @@ export default function ManualGrading() {
                 }}
               >
                 <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, pb: 1.5, borderBottom: '1px solid #F1F5F9' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Avatar sx={{ width: 32, height: 32, bgcolor: '#EFF6FF', color: '#2563EB', borderRadius: 1 }}>
-                        <EditNote sx={{ fontSize: 18 }} />
+                  {/* Header: Student Info & Exam Badge */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2.5, pb: 2, borderBottom: '1px solid #F1F5F9' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Avatar sx={{ width: 42, height: 42, bgcolor: '#2563EB', color: '#fff', fontWeight: 800, fontSize: '1rem', borderRadius: 1.5 }}>
+                        {displayName.charAt(0).toUpperCase()}
                       </Avatar>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0F172A' }}>
-                        Bài làm thí sinh (Mã #{item.user_id?.slice(0, 8)})
-                      </Typography>
+                      <Box>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>
+                          {displayName}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#64748B', display: 'block' }}>
+                          {email ? `${email} • ` : ''}@{username || item.user_id?.slice(0, 8)}
+                        </Typography>
+                      </Box>
                     </Box>
 
-                    <Chip
-                      label={`Thang điểm: 0 - ${item.point_possible} điểm`}
-                      size="small"
-                      sx={{ bgcolor: '#EFF6FF', color: '#2563EB', fontWeight: 700, borderRadius: 1 }}
-                    />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                      <Chip
+                        icon={<School sx={{ fontSize: '15px !important' }} />}
+                        label={exam?.title || `Đề thi #${item.exam_id?.slice(0, 8)}`}
+                        size="small"
+                        sx={{ bgcolor: '#F8FAFC', color: '#334155', border: '1px solid #E2E8F0', fontWeight: 700, borderRadius: 1 }}
+                      />
+                      <Chip
+                        label={`Thang điểm: 0 - ${item.point_possible} đ`}
+                        size="small"
+                        sx={{ bgcolor: '#EFF6FF', color: '#2563EB', fontWeight: 700, borderRadius: 1 }}
+                      />
+                    </Box>
+                  </Box>
+
+                  {/* Question Prompt */}
+                  <Box sx={{ mb: 2.5, p: 2, bgcolor: '#F8FAFC', borderRadius: 1.2, border: '1px solid #E2E8F0' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8, color: '#2563EB' }}>
+                      <Quiz sx={{ fontSize: 18 }} />
+                      <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        Đề bài / Câu hỏi tự luận:
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" sx={{ color: '#0F172A', fontWeight: 600, whiteSpace: 'pre-wrap' }}>
+                      {question?.content?.text || '(Nội dung câu hỏi)'}
+                    </Typography>
                   </Box>
 
                   {/* Student Answer Box */}
                   <Box sx={{ mb: 3 }}>
                     <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 700, textTransform: 'uppercase', display: 'block', mb: 1 }}>
-                      Câu trả lời của thí sinh:
+                      Bài làm của thí sinh:
                     </Typography>
                     {isImageAnswer(item.user_answer) ? (
-                      <Box sx={{ p: 2, bgcolor: '#F8FAFC', borderRadius: 1.2, border: '1px solid #E2E8F0', display: 'inline-block', maxWidth: '100%' }}>
+                      <Box sx={{ p: 2, bgcolor: '#FFFFFF', borderRadius: 1.2, border: '1px solid #E2E8F0', display: 'inline-block', maxWidth: '100%' }}>
                         <img
                           src={item.user_answer as string}
-                          alt="Bài làm tự luận của học sinh"
-                          style={{ maxWidth: '100%', maxHeight: 400, borderRadius: 6, display: 'block' }}
+                          alt="Ảnh chụp bài làm của thí sinh"
+                          style={{ maxWidth: '100%', maxHeight: 450, borderRadius: 6, display: 'block' }}
                         />
                       </Box>
                     ) : (
@@ -148,13 +204,13 @@ export default function ManualGrading() {
                         elevation={0}
                         sx={{
                           p: 2.5,
-                          bgcolor: '#F8FAFC',
-                          border: '1px solid #E2E8F0',
+                          bgcolor: '#FFFFFF',
+                          border: '1px solid #CBD5E1',
                           borderRadius: 1.2,
                           color: '#0F172A',
                           fontFamily: 'inherit',
                           whiteSpace: 'pre-wrap',
-                          fontSize: '0.9rem',
+                          fontSize: '0.92rem',
                           lineHeight: 1.6,
                         }}
                       >

@@ -17,11 +17,17 @@ class Exam(Base):
     shuffle_questions = Column(Boolean, default=True)
     shuffle_options = Column(Boolean, default=True)
     show_result_after_submit = Column(Boolean, default=True)
+    show_answers_after_submit = Column(Boolean, default=True)
     status = Column(String(20), default="draft")
     owner_id = Column(UUID(as_uuid=True), nullable=False)
     is_public = Column(Boolean, default=False)
+    access_password = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    @property
+    def has_password(self) -> bool:
+        return bool(self.access_password and self.access_password.strip())
 
     questions = relationship("ExamQuestion", back_populates="exam", cascade="all, delete-orphan")
     schedules = relationship("ExamSchedule", back_populates="exam", cascade="all, delete-orphan")

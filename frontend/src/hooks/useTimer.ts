@@ -41,11 +41,24 @@ export const useTimer = (durationSeconds: number, onExpire: () => void) => {
     return `${m}:${s}`;
   }, []);
 
+  const deductSeconds = useCallback((seconds: number) => {
+    setTimeLeft((prev) => {
+      const next = Math.max(0, prev - seconds);
+      if (next <= 0) {
+        setIsRunning(false);
+        onExpire();
+        return 0;
+      }
+      return next;
+    });
+  }, [onExpire]);
+
   return {
     timeLeft,
     isRunning,
     isWarning,
     isExpired,
-    formattedTime: formatTime(timeLeft)
+    formattedTime: formatTime(timeLeft),
+    deductSeconds,
   };
 };

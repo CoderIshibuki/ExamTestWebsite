@@ -1,19 +1,18 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box, Card, CardContent, Typography, Button, Grid, Skeleton,
   Chip, Paper, TextField, InputAdornment, Table, TableBody,
   TableCell, TableContainer, TableHead, TableRow, ToggleButton,
-  ToggleButtonGroup, MenuItem, Alert,
+  ToggleButtonGroup, MenuItem,
 } from '@mui/material';
 import {
   PlayArrow, AccessTime, Autorenew, ErrorOutlined, Search,
-  ViewList, ViewModule, VerifiedUser, School, Casino,
+  ViewList, ViewModule,
   HelpOutlined,
 } from '@mui/icons-material';
 import { examApi } from '../api/examApi';
 import type { Exam } from '../api/examApi';
 import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
 
 const ExamList: React.FC = () => {
   const [exams, setExams] = useState<Exam[]>([]);
@@ -23,7 +22,6 @@ const ExamList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -55,56 +53,8 @@ const ExamList: React.FC = () => {
     return true;
   });
 
-  const handleRandomExam = () => {
-    if (filteredExams.length === 0) return;
-    const randomIndex = Math.floor(Math.random() * filteredExams.length);
-    const chosen = filteredExams[randomIndex];
-    navigate(`/student/exam/${chosen.id}`);
-  };
-
   return (
     <Box>
-      {/* Banner for Admin / Teacher */}
-      {user?.role === 'admin' && (
-        <Alert
-          severity="info"
-          icon={<VerifiedUser />}
-          action={
-            <Button
-              color="inherit"
-              size="small"
-              onClick={() => navigate('/admin/dashboard')}
-              sx={{ fontWeight: 700, textTransform: 'none', borderRadius: 1 }}
-            >
-              Vào trang Admin
-            </Button>
-          }
-          sx={{ mb: 3, borderRadius: 1.5, bgcolor: '#EEF2FF', color: '#312E81', borderColor: '#C7D2FE', '& .MuiAlert-icon': { color: '#4F46E5' } }}
-        >
-          Bạn đang đăng nhập với vai trò <b>Quản trị viên</b>. Bạn có thể vào bảng quản trị để soạn đề, duyệt câu hỏi và quản lý hệ thống.
-        </Alert>
-      )}
-
-      {user?.role === 'teacher' && (
-        <Alert
-          severity="success"
-          icon={<School />}
-          action={
-            <Button
-              color="inherit"
-              size="small"
-              onClick={() => navigate('/admin/exams')}
-              sx={{ fontWeight: 700, textTransform: 'none', borderRadius: 1 }}
-            >
-              Vào Cổng Giảng dạy
-            </Button>
-          }
-          sx={{ mb: 3, borderRadius: 1.5, bgcolor: '#ECFDF5', color: '#064E3B', borderColor: '#A7F3D0', '& .MuiAlert-icon': { color: '#10B981' } }}
-        >
-          Bạn đang đăng nhập với vai trò <b>Giáo viên</b>. Bạn có thể vào Cổng Giảng dạy để quản lý bài thi, giám sát và chấm bài tự luận.
-        </Alert>
-      )}
-
       {/* Main Header */}
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
         <Box>
@@ -375,25 +325,6 @@ const ExamList: React.FC = () => {
                   <MenuItem value="30to60">Từ 30 - 60 phút</MenuItem>
                   <MenuItem value="over60">Trên 60 phút</MenuItem>
                 </TextField>
-
-                <Button
-                  variant="outlined"
-                  startIcon={<Casino />}
-                  onClick={handleRandomExam}
-                  disabled={filteredExams.length === 0}
-                  fullWidth
-                  sx={{
-                    borderRadius: 1.5,
-                    textTransform: 'none',
-                    fontWeight: 700,
-                    borderColor: '#CBD5E1',
-                    color: '#334155',
-                    py: 1,
-                    '&:hover': { bgcolor: '#F8FAFC', borderColor: '#94A3B8' },
-                  }}
-                >
-                  Chọn ngẫu nhiên 1 đề
-                </Button>
               </Box>
             </Paper>
 

@@ -20,8 +20,11 @@ def register_message_handlers(sio):
             await sio.emit('error', {'code': 400, 'message': 'exam_id is required'}, room=sid)
             return
 
-        # Join Socket.IO room
+        # Join Socket.IO rooms
         await sio.enter_room(sid, exam_id)
+        await sio.enter_room(sid, f"exam:{exam_id}")
+        await sio.enter_room(sid, f"user:{user_id}")
+        await sio.enter_room(sid, f"exam:{exam_id}:user:{user_id}")
         
         client_ip = session.get('client_ip', '127.0.0.1')
         username = session.get('username', '')
@@ -216,7 +219,7 @@ def register_message_handlers(sio):
     # ===== WebRTC signaling (livestream camera học sinh cho giám thị xem trực tiếp) =====
     @sio.event
     async def webrtc_request_stream(sid, data):
-        """Giám thị yêu cầu 1 học sinh cụ thể bắt đầu chia sẻ camera."""
+        """Giám thị yêu cầu 1 học sinh cụ thể bắt đầu chia sẻ camera hoặc màn hình làm bài."""
         session = await sio.get_session(sid)
         role = session.get('role') if session else None
         if role not in ('admin', 'teacher', 'proctor'):
@@ -224,13 +227,14 @@ def register_message_handlers(sio):
             return
         target_user_id = data.get('user_id')
         exam_id = data.get('exam_id')
+        stream_type = data.get('stream_type', 'camera')
         if not target_user_id or not exam_id:
             return
         client = await redis_client.get_client()
         student_sid = await client.get(f"exam:room:{exam_id}:sid:{target_user_id}")
         if student_sid:
             sid_str = student_sid.decode('utf-8') if isinstance(student_sid, bytes) else student_sid
-            await sio.emit('webrtc_stream_requested', {'proctor_sid': sid}, room=sid_str)
+            await sio.emit('webrtc_stream_requested', {'proctor_sid': sid, 'stream_type': stream_type}, room=sid_str)
 
     @sio.event
     async def webrtc_offer(sid, data):

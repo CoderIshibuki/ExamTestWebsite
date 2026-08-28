@@ -126,13 +126,16 @@ class GradingEngine:
         total_earned = sum(qr["point_earned"] for qr in question_results)
         total_possible = sum(qr["point_possible"] for qr in question_results)
         percentage = (total_earned / total_possible * 100) if total_possible > 0 else 0
+        pending_count = sum(1 for qr in question_results if qr["needs_manual_grading"])
+        incorrect_count = max(0, len(question_results) - correct_count - pending_count)
 
         return {
             "score": total_earned,
             "total_possible": total_possible,
             "percentage": percentage,
             "correct_count": correct_count,
-            "incorrect_count": len(question_results) - correct_count,
+            "pending_count": pending_count,
+            "incorrect_count": incorrect_count,
             "question_results": question_results,
-            "has_pending_manual_grading": any(qr["needs_manual_grading"] for qr in question_results),
+            "has_pending_manual_grading": pending_count > 0,
         }

@@ -1,6 +1,7 @@
 import {
   Box, Button, Typography, Skeleton, Alert, Paper, Dialog, DialogTitle, DialogContent,
   DialogActions, DialogContentText, TextField, Snackbar, Chip, Tooltip, IconButton, Grid, Avatar,
+  FormControlLabel, Switch,
 } from '@mui/material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import type { GridColDef } from '@mui/x-data-grid';
@@ -10,7 +11,7 @@ import { adminApi } from '../api/adminApi';
 import {
   Visibility as VisibilityIcon, Delete as DeleteIcon, Add as AddIcon,
   Publish as PublishIcon, Settings as SettingsIcon, CheckCircle, Cancel,
-  AccessTime, Assignment, Public, Description,
+  AccessTime, Assignment, Public, Description, Edit as EditIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import ManageExamDialog from '../components/ManageExamDialog';
@@ -24,6 +25,8 @@ interface Exam {
   passing_score?: number;
   max_attempts?: number;
   is_public?: boolean;
+  show_result_after_submit?: boolean;
+  show_answers_after_submit?: boolean;
 }
 
 interface ExamFormValues {
@@ -32,6 +35,9 @@ interface ExamFormValues {
   duration_minutes: number;
   passing_score: number;
   max_attempts: number;
+  show_result_after_submit: boolean;
+  show_answers_after_submit: boolean;
+  access_password: string;
 }
 
 const AdminExams = () => {
@@ -41,11 +47,21 @@ const AdminExams = () => {
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
   const [createOpen, setCreateOpen] = useState(false);
+  const [editExam, setEditExam] = useState<Exam | null>(null);
   const [manageDialog, setManageDialog] = useState<{ open: boolean; examId: string | null; title?: string }>({ open: false, examId: null });
   const navigate = useNavigate();
 
   const { control, handleSubmit, reset, formState: { errors } } = useForm<ExamFormValues>({
-    defaultValues: { title: '', description: '', duration_minutes: 60, passing_score: 50, max_attempts: 1 },
+    defaultValues: {
+      title: '',
+      description: '',
+      duration_minutes: 60,
+      passing_score: 50,
+      max_attempts: 1,
+      show_result_after_submit: true,
+      show_answers_after_submit: true,
+      access_password: '',
+    },
   });
 
   const fetchExams = async () => {
@@ -66,19 +82,56 @@ const AdminExams = () => {
     fetchExams();
   }, []);
 
-  const onCreateSubmit = async (data: ExamFormValues) => {
+  const handleOpenCreate = () => {
+    setEditExam(null);
+    reset({
+      title: '',
+      description: '',
+      duration_minutes: 60,
+      passing_score: 50,
+      max_attempts: 1,
+      show_result_after_submit: true,
+      show_answers_after_submit: true,
+      access_password: '',
+    });
+    setCreateOpen(true);
+  };
+
+  const handleOpenEdit = (exam: Exam) => {
+    setEditExam(exam);
+    reset({
+      title: exam.title || '',
+      description: exam.description || '',
+      duration_minutes: exam.duration_minutes || 60,
+      passing_score: exam.passing_score ?? 50,
+      max_attempts: exam.max_attempts ?? 1,
+      show_result_after_submit: exam.show_result_after_submit !== false,
+      show_answers_after_submit: exam.show_answers_after_submit !== false,
+      access_password: '',  // Never pre-fill password from server for security
+    });
+    setCreateOpen(true);
+  };
+
+  const onFormSubmit = async (data: ExamFormValues) => {
     try {
-      const newExam = await adminApi.createExam({ ...data, is_public: true });
-      setCreateOpen(false);
-      reset();
-      setSnackbar({ open: true, message: 'Đã tạo đề thi. Hãy thêm câu hỏi trước khi công bố.', severity: 'success' });
-      fetchExams();
-      if (newExam?.id) {
-        setManageDialog({ open: true, examId: newExam.id, title: data.title });
+      if (editExam) {
+        await adminApi.updateExam(editExam.id, data);
+        setCreateOpen(false);
+        setSnackbar({ open: true, message: 'Đã cập nhật thông tin đề thi thành công.', severity: 'success' });
+        fetchExams();
+      } else {
+        const newExam = await adminApi.createExam({ ...data, is_public: true });
+        setCreateOpen(false);
+        reset();
+        setSnackbar({ open: true, message: 'Đã tạo đề thi. Hãy thêm câu hỏi trước khi công bố.', severity: 'success' });
+        fetchExams();
+        if (newExam?.id) {
+          setManageDialog({ open: true, examId: newExam.id, title: data.title });
+        }
       }
     } catch (err: any) {
-      console.error('Failed to create exam', err);
-      setSnackbar({ open: true, message: err.response?.data?.detail || 'Tạo đề thi thất bại.', severity: 'error' });
+      console.error('Failed to save exam', err);
+      setSnackbar({ open: true, message: err.response?.data?.detail || 'Lưu thông tin đề thi thất bại.', severity: 'error' });
     }
   };
 
@@ -112,8 +165,20 @@ const AdminExams = () => {
     }
   };
 
+  const handleUnpublish = async (id: string) => {
+    try {
+      await adminApi.unpublishExam(id);
+      setSnackbar({ open: true, message: 'Đã chuyển đề thi về bản nháp.', severity: 'success' });
+      fetchExams();
+    } catch (err: any) {
+      console.error('Failed to unpublish exam', err);
+      const detail = err?.response?.data?.detail;
+      setSnackbar({ open: true, message: detail || 'Gỡ công bố đề thi thất bại.', severity: 'error' });
+    }
+  };
+
   const stats = useMemo(() => {
-    const published = exams.filter((e) => e.status === 'published' || e.is_public).length;
+    const published = exams.filter((e) => e.status === 'published').length;
     const drafts = exams.length - published;
     return { total: exams.length, published, drafts };
   }, [exams]);
@@ -165,13 +230,13 @@ const AdminExams = () => {
       flex: 1.2,
       minWidth: 140,
       renderCell: (params) => {
-        const isPub = params.value === 'published' || params.row.is_public;
+        const isPublished = params.row.status === 'published';
         return (
           <Chip
-            icon={isPub ? <CheckCircle sx={{ fontSize: '14px !important' }} /> : <Cancel sx={{ fontSize: '14px !important' }} />}
-            label={isPub ? 'Đã công bố' : 'Bản nháp'}
+            icon={isPublished ? <CheckCircle sx={{ fontSize: '14px !important' }} /> : <Cancel sx={{ fontSize: '14px !important' }} />}
+            label={isPublished ? 'Đã công bố' : 'Bản nháp'}
             size="small"
-            color={isPub ? 'success' : 'default'}
+            color={isPublished ? 'success' : 'default'}
             variant="outlined"
             sx={{ borderRadius: 1, fontWeight: 700, fontSize: '0.72rem' }}
           />
@@ -182,12 +247,12 @@ const AdminExams = () => {
       field: 'actions',
       headerName: 'THAO TÁC QUẢN TRỊ',
       flex: 2.8,
-      minWidth: 360,
+      minWidth: 380,
       align: 'right',
       headerAlign: 'right',
       sortable: false,
       renderCell: (params) => {
-        const isPub = params.row.status === 'published' || params.row.is_public;
+        const isPublished = params.row.status === 'published';
         return (
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
             <Button
@@ -208,16 +273,33 @@ const AdminExams = () => {
               Cấu trúc & Câu hỏi
             </Button>
 
-            {!isPub && (
+            {!isPublished ? (
               <Button
-                variant="outlined"
-                color="success"
+                variant="contained"
                 size="small"
                 startIcon={<PublishIcon sx={{ fontSize: 15 }} />}
                 onClick={() => handlePublish(params.row.id)}
-                sx={{ borderRadius: 1.2, textTransform: 'none', fontWeight: 700, fontSize: '0.78rem' }}
+                sx={{
+                  borderRadius: 1.2,
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  fontSize: '0.78rem',
+                  bgcolor: '#059669',
+                  '&:hover': { bgcolor: '#047857' },
+                  px: 1.5,
+                }}
               >
                 Công bố
+              </Button>
+            ) : (
+              <Button
+                variant="outlined"
+                color="warning"
+                size="small"
+                onClick={() => handleUnpublish(params.row.id)}
+                sx={{ borderRadius: 1.2, textTransform: 'none', fontWeight: 700, fontSize: '0.78rem', px: 1.2 }}
+              >
+                Gỡ công bố
               </Button>
             )}
 
@@ -231,6 +313,16 @@ const AdminExams = () => {
             >
               Giám sát
             </Button>
+
+            <Tooltip title="Chỉnh sửa thông tin đề thi">
+              <IconButton
+                size="small"
+                onClick={() => handleOpenEdit(params.row)}
+                sx={{ bgcolor: '#EFF6FF', color: '#2563EB', borderRadius: 1, p: 0.7, '&:hover': { bgcolor: '#DBEAFE' } }}
+              >
+                <EditIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Tooltip>
 
             <Tooltip title="Xoá đề thi">
               <IconButton
@@ -263,7 +355,7 @@ const AdminExams = () => {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => setCreateOpen(true)}
+          onClick={handleOpenCreate}
           sx={{
             bgcolor: '#2563EB',
             '&:hover': { bgcolor: '#1D4ED8' },
@@ -337,13 +429,15 @@ const AdminExams = () => {
           <DataGrid
             rows={exams}
             columns={columns}
+            rowHeight={68}
             slots={{ toolbar: GridToolbar }}
             slotProps={{ toolbar: { showQuickFilter: true, quickFilterProps: { debounceMs: 500 } } }}
             initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
-            pageSizeOptions={[5, 10, 25]}
+            pageSizeOptions={[10, 25, 50]}
             disableRowSelectionOnClick
             sx={{
               border: 'none',
+              '& .MuiDataGrid-cell': { display: 'flex', alignItems: 'center' },
               '& .MuiDataGrid-cell:focus': { outline: 'none' },
               '& .MuiDataGrid-columnHeaders': { bgcolor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontWeight: 800, fontSize: '0.8rem', color: '#475569' },
             }}
@@ -358,8 +452,10 @@ const AdminExams = () => {
         fullWidth
         slotProps={{ paper: { sx: { borderRadius: 1.5 } } }}
       >
-        <DialogTitle sx={{ fontWeight: 800, color: '#0F172A' }}>Soạn đề thi mới</DialogTitle>
-        <form onSubmit={handleSubmit(onCreateSubmit)}>
+        <DialogTitle sx={{ fontWeight: 800, color: '#0F172A' }}>
+          {editExam ? 'Chỉnh sửa thông tin đề thi' : 'Soạn đề thi mới'}
+        </DialogTitle>
+        <form onSubmit={handleSubmit(onFormSubmit)}>
           <DialogContent>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
               <Controller
@@ -452,6 +548,45 @@ const AdminExams = () => {
                   />
                 )}
               />
+
+              <Controller
+                name="access_password"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    type="password"
+                    label="Mật khẩu truy cập (để trống = không yêu cầu)"
+                    variant="outlined"
+                    fullWidth
+                    autoComplete="new-password"
+                    helperText="Nếu đặt mật khẩu, thí sinh phải nhập đúng mới bắt đầu được thi."
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                  />
+                )}
+              />
+
+              <Controller
+                name="show_result_after_submit"
+                control={control}
+                render={({ field }) => (
+                  <FormControlLabel
+                    control={<Switch checked={field.value} onChange={(e) => field.onChange(e.target.checked)} color="primary" />}
+                    label={<Typography variant="body2" sx={{ fontWeight: 600, color: '#0F172A' }}>Hiển thị điểm số & kết quả cho thí sinh ngay sau khi nộp</Typography>}
+                  />
+                )}
+              />
+
+              <Controller
+                name="show_answers_after_submit"
+                control={control}
+                render={({ field }) => (
+                  <FormControlLabel
+                    control={<Switch checked={field.value} onChange={(e) => field.onChange(e.target.checked)} color="primary" />}
+                    label={<Typography variant="body2" sx={{ fontWeight: 600, color: '#0F172A' }}>Cho phép xem lại chi tiết câu hỏi & đáp án sau khi nộp</Typography>}
+                  />
+                )}
+              />
             </Box>
           </DialogContent>
           <DialogActions sx={{ p: 2.5, pt: 0 }}>
@@ -463,7 +598,7 @@ const AdminExams = () => {
               variant="contained"
               sx={{ bgcolor: '#2563EB', '&:hover': { bgcolor: '#1D4ED8' }, borderRadius: 1.2, textTransform: 'none', fontWeight: 700, px: 3 }}
             >
-              Tạo đề thi
+              {editExam ? 'Lưu thay đổi' : 'Tạo đề thi'}
             </Button>
           </DialogActions>
         </form>
