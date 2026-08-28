@@ -40,6 +40,7 @@ const ROLE_LABELS: Record<string, string> = {
 const menuGroups = [
   {
     label: 'TỔNG QUAN',
+    teacherLabel: 'TỔNG QUAN GIẢNG DẠY',
     items: [
       { text: 'Bảng điều khiển', icon: <DashboardIcon fontSize="small" />, path: '/admin/dashboard', roles: ['admin'] },
       { text: 'Báo cáo & Phân tích', icon: <AssessmentIcon fontSize="small" />, path: '/admin/reports', roles: ['admin', 'teacher'] },
@@ -47,6 +48,7 @@ const menuGroups = [
   },
   {
     label: 'QUẢN LÝ THI CỬ',
+    teacherLabel: 'QUẢN LÝ ĐỀ THI & CHẤM ĐIỂM',
     items: [
       { text: 'Quản lý Đề thi', icon: <AssignmentIcon fontSize="small" />, path: '/admin/exams', roles: ['admin', 'teacher'] },
       { text: 'Ngân hàng Câu hỏi', icon: <ArticleIcon fontSize="small" />, path: '/admin/questions', roles: ['admin', 'teacher'] },
@@ -56,6 +58,7 @@ const menuGroups = [
   },
   {
     label: 'QUẢN TRỊ HỆ THỐNG',
+    teacherLabel: 'QUẢN TRỊ HỆ THỐNG',
     items: [
       { text: 'Quản lý Người dùng', icon: <PeopleIcon fontSize="small" />, path: '/admin/users', roles: ['admin'] },
     ],
@@ -67,8 +70,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const auth = useContext(AuthContext) as any;
   const user = auth?.user;
-  const displayName = user?.full_name || user?.username || 'Quản trị viên';
+  const displayName = user?.full_name || user?.username || 'Người dùng';
   const role = user?.role || 'admin';
+  const isTeacher = role === 'teacher';
 
   const handleLogout = () => {
     if (auth?.logout) auth.logout();
@@ -76,7 +80,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   };
 
   const currentItem = menuGroups.flatMap((g) => g.items).find((i) => i.path === location.pathname);
-  const currentTitle = currentItem?.text || 'Trang Quản lý';
+  const currentTitle = currentItem?.text || (isTeacher ? 'Cổng Giáo Viên' : 'Trang Quản lý');
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F8FAFC' }}>
@@ -109,7 +113,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               borderBottom: '1px solid #1E293B',
               cursor: 'pointer',
             }}
-            onClick={() => navigate('/admin/dashboard')}
+            onClick={() => navigate(isTeacher ? '/admin/exams' : '/admin/dashboard')}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
               <Box
@@ -117,23 +121,24 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                   width: 32,
                   height: 32,
                   borderRadius: 1.2,
-                  bgcolor: '#2563EB',
+                  bgcolor: isTeacher ? '#059669' : '#2563EB',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   color: '#fff',
                   fontWeight: 900,
                   fontSize: '1rem',
+                  boxShadow: isTeacher ? '0 2px 8px rgba(5, 150, 105, 0.4)' : '0 2px 8px rgba(37, 99, 235, 0.4)',
                 }}
               >
-                ✦
+                {isTeacher ? '🎓' : '✦'}
               </Box>
               <Box>
                 <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#F8FAFC', lineHeight: 1.1 }}>
-                  Exam<span style={{ color: '#38BDF8' }}>System</span>
+                  Exam<span style={{ color: isTeacher ? '#34D399' : '#38BDF8' }}>System</span>
                 </Typography>
-                <Typography sx={{ fontSize: '0.65rem', color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  {role === 'admin' ? 'Admin Portal' : 'Teacher Portal'}
+                <Typography sx={{ fontSize: '0.65rem', color: isTeacher ? '#6EE7B7' : '#94A3B8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  {isTeacher ? 'Teacher Portal • Giáo Viên' : 'Admin Portal • Quản Trị'}
                 </Typography>
               </Box>
             </Box>
@@ -171,11 +176,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     display: 'block',
                     fontSize: '0.66rem',
                     fontWeight: 700,
-                    color: '#64748B',
+                    color: isTeacher ? '#34D399' : '#64748B',
                     letterSpacing: 0.6,
                   }}
                 >
-                  {group.label}
+                  {isTeacher && group.teacherLabel ? group.teacherLabel : group.label}
                 </Typography>
                 <List dense disablePadding sx={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                   {items.map((item, iIdx) => {
@@ -189,10 +194,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                           py: 0.8,
                           borderRadius: 1.2,
                           color: selected ? '#FFFFFF' : '#94A3B8',
-                          bgcolor: selected ? '#2563EB !important' : 'transparent',
+                          bgcolor: selected ? (isTeacher ? '#059669 !important' : '#2563EB !important') : 'transparent',
                           fontWeight: selected ? 700 : 500,
                           '&:hover': {
-                            bgcolor: selected ? '#1D4ED8' : '#1E293B',
+                            bgcolor: selected ? (isTeacher ? '#047857' : '#1D4ED8') : '#1E293B',
                             color: '#FFFFFF',
                           },
                         }}
@@ -289,17 +294,17 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               {currentTitle}
             </Typography>
             <Chip
-              icon={<FiberManualRecord sx={{ fontSize: '9px !important', color: '#10B981 !important' }} />}
-              label="Hệ thống trực tuyến"
+              icon={<FiberManualRecord sx={{ fontSize: '9px !important', color: (isTeacher ? '#059669 !important' : '#10B981 !important') }} />}
+              label={isTeacher ? 'Cổng Giáo Viên • Trực tuyến' : 'Hệ thống trực tuyến'}
               size="small"
               sx={{
-                bgcolor: '#ECFDF5',
-                color: '#065F46',
+                bgcolor: isTeacher ? '#ECFDF5' : '#EFF6FF',
+                color: isTeacher ? '#065F46' : '#1E40AF',
                 fontWeight: 600,
                 fontSize: '0.7rem',
                 height: 22,
                 borderRadius: 1,
-                border: '1px solid #A7F3D0',
+                border: isTeacher ? '1px solid #A7F3D0' : '1px solid #BFDBFE',
               }}
             />
           </Box>
