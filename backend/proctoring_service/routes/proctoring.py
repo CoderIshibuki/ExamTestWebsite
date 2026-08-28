@@ -137,3 +137,105 @@ async def reset_risk_score(
     await verify_proctor_access(request.exam_id, current_user, db)
     return {"status": "reset"}
 
+@router.get("/violations/sessions")
+async def get_violation_sessions(
+    current_user: dict = Depends(require_permission("proctoring:read")),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Danh sách các bài thi có hình ảnh/nhật ký vi phạm, nhóm theo bài thi và thời gian.
+    """
+    sql = """
+        SELECT 
+            v.exam_id::text as exam_id,
+            COALESCE(e.title, 'Đề thi không xác định') as exam_title,
+            COALESCE(e.duration_minutes, 0) as duration_minutes,
+            MIN(v.timestamp) as first_violation_at,
+            MAX(v.timestamp) as last_violation_at,
+            COUNT(v.id) as total_violations,
+            COUNT(DISTINCT v.user_id) as total_students,
+            COUNT(CASE WHEN v.screenshot_url IS NOT NULL AND v.screenshot_url != '' THEN 1 END) as total_screenshots
+        FROM violations v
+        LEFT JOIN exams e ON v.exam_id = e.id
+        GROUP BY v.exam_id, e.title, e.duration_minutes
+        ORDER BY MAX(v.timestamp) DESC
+    """
+    result = await db.execute(text(sql))
+    rows = result.mappings().all()
+    return [dict(r) for r in rows]
+
+@router.get("/violations/sessions/{exam_id}")
+async def get_violation_session_details(
+    exam_id: str,
+    current_user: dict = Depends(require_permission("proctoring:read")),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Chi tiết các vi phạm và hình ảnh bằng chứng gian lận của 1 bài thi cụ thể.
+    """
+    sql = """
+        SELECT 
+            v.id::text as id,
+            v.exam_id::text as exam_id,
+            COALESCE(e.title, 'Đề thi không xác định') as exam_title,
+            v.user_id,
+            COALESCE(u.username, v.user_id) as username,
+            COALESCE(u.full_name, u.username, v.user_id) as full_name,
+            v.type,
+            v.severity,
+            v.timestamp,
+            v.details,
+            v.screenshot_url,
+            v.device_info,
+            v.risk_score_at_event
+        FROM violations v
+        LEFT JOIN exams e ON v.exam_id = e.id
+        LEFT JOIN users u ON v.user_id = u.id::text OR v.user_id = u.username
+        WHERE v.exam_id = :exam_id::uuid
+        ORDER BY v.timestamp DESC
+    """
+    result = await db.execute(text(sql), {"exam_id": exam_id})
+    rows = result.mappings().all()
+    return [dict(r) for r in rows]
+
+@router.delete("/violations/{violation_id}")
+async def delete_violation(
+    violation_id: str,
+    current_user: dict = Depends(require_permission("proctoring:read")),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Xóa 1 bản ghi vi phạm / hình ảnh vi phạm cụ thể.
+    """
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Chỉ Quản trị viên mới có quyền xoá bằng chứng vi phạm.")
+    
+    res = await db.execute(
+        text("DELETE FROM violations WHERE id = :vid::uuid RETURNING id"),
+        {"vid": violation_id}
+    )
+    deleted = res.fetchone()
+    await db.commit()
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Bản ghi vi phạm không tồn tại.")
+    return {"status": "deleted", "id": violation_id}
+
+@router.delete("/violations/sessions/{exam_id}")
+async def delete_violation_session(
+    exam_id: str,
+    current_user: dict = Depends(require_permission("proctoring:read")),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Xóa toàn bộ thư mục/dữ liệu vi phạm của cả bài thi.
+    """
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Chỉ Quản trị viên mới có quyền xoá toàn bộ mục vi phạm bài thi.")
+        
+    await db.execute(
+        text("DELETE FROM violations WHERE exam_id = :eid::uuid"),
+        {"eid": exam_id}
+    )
+    await db.commit()
+    return {"status": "session_deleted", "exam_id": exam_id}
+

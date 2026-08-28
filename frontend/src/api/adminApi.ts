@@ -179,6 +179,24 @@ export const adminApi = {
     return response.data;
   },
 
+  // ===== Bằng chứng gian lận & Hình ảnh sau thi (Proctoring Evidence Gallery) =====
+  getViolationSessions: async () => {
+    const response = await apiClient.get('/v1/proctoring/violations/sessions');
+    return response.data;
+  },
+  getViolationSessionDetails: async (examId: string) => {
+    const response = await apiClient.get(`/v1/proctoring/violations/sessions/${examId}`);
+    return response.data;
+  },
+  deleteViolation: async (violationId: string) => {
+    const response = await apiClient.delete(`/v1/proctoring/violations/${violationId}`);
+    return response.data;
+  },
+  deleteViolationSession: async (examId: string) => {
+    const response = await apiClient.delete(`/v1/proctoring/violations/sessions/${examId}`);
+    return response.data;
+  },
+
   getOverviewStats: async () => {
     const response = await apiClient.get('/v1/exams/stats/overview');
     return response.data;

@@ -29,6 +29,7 @@ const AdminCategories = lazy(() => import('./pages/AdminCategories'));
 const AdminExams = lazy(() => import('./pages/AdminExams'));
 const AdminReports = lazy(() => import('./pages/AdminReports'));
 const ManualGrading = lazy(() => import('./pages/ManualGrading'));
+const AdminViolations = lazy(() => import('./pages/AdminViolations'));
 const AdminLayout = lazy(() => import('./components/AdminLayout'));
 const StudentLayout = lazy(() => import('./components/StudentLayout'));
 
@@ -193,6 +194,20 @@ function App() {
             <StaffRoute>
               <AdminLayout>
                 <AdminReports />
+              </AdminLayout>
+            </StaffRoute>
+          } />
+          <Route path="/admin/violations" element={
+            <StaffRoute>
+              <AdminLayout>
+                <AdminViolations />
+              </AdminLayout>
+            </StaffRoute>
+          } />
+          <Route path="/teacher/violations" element={
+            <StaffRoute>
+              <AdminLayout>
+                <AdminViolations />
               </AdminLayout>
             </StaffRoute>
           } />
