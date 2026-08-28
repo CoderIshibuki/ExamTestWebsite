@@ -4,6 +4,45 @@ Tất cả các thay đổi, nâng cấp và bản vá bảo mật của dự á
 
 ---
 
+## [2.0.0] - 2026-08-28
+
+### 🌟 Tính Năng Mới & Nâng Cấp Đột Phá
+
+1. **Teacher Portal & Đồng bộ Nhận diện Giảng dạy:**
+   - Tạo không gian làm việc chuyên biệt dành cho Giáo viên với phong cách nhận diện Emerald Green (`#059669`).
+   - Phân quyền dữ liệu đề thi nghiêm ngặt: Giáo viên chỉ có quyền xem, chấm và quản lý các đề thi do mình tạo hoặc được phân công làm cộng tác viên/giám thị. Admin có toàn quyền điều hành hệ thống.
+
+2. **Quy trình Chấm bài Tự luận Gom nhóm theo Đề thi:**
+   - Tái thiết kế trang `ManualGrading.tsx` thành mô hình 2 bước tiện lợi: Chọn đề thi có bài tự luận cần chấm → Mở không gian chấm bài tập trung chi tiết cho từng học sinh.
+
+3. **Hỗ trợ Đa phương tiện Media (Hình ảnh, Video, Audio nghe hiểu):**
+   - Mở rộng model câu hỏi hỗ trợ `image`, `video` (YouTube embed / video MP4 trực tiếp) và `audio` (file nghe hiểu .mp3).
+   - Tích hợp công cụ nhập và xem trước media trong `ManualQuestionDialog.tsx`.
+   - Hiển thị trình phát đa phương tiện trực quan, tương thích mọi thiết bị trong `QuestionPanel.tsx` và `ExamRoom.tsx`.
+
+4. **Nhập Tài khoản Học sinh Hàng loạt từ File Excel:**
+   - Thêm tiện ích `excelUserTransform.ts` và hộp thoại `ExcelUserImportDialog.tsx` cho phép tải file mẫu chuẩn `.xlsx` và nhập hàng trăm tài khoản học sinh chỉ trong vài giây với xác thực định dạng và cờ yêu cầu đổi mật khẩu lần đầu.
+
+5. **Tối ưu hóa Ngân hàng Câu hỏi & Bỏ mức độ khó theo yêu cầu:**
+   - Lược bỏ cột `difficulty` khỏi mẫu nhập Excel và quy trình thêm câu hỏi.
+   - Bổ sung thanh tìm kiếm tức thì theo từ khóa, môn học, thẻ tags.
+   - Thêm bộ lọc dropdown theo danh mục và thể loại câu hỏi.
+   - Hỗ trợ chọn nhiều câu hỏi với checkbox để **Gán vào danh mục hàng loạt** hoặc **Xóa hàng loạt**.
+
+6. **Thư viện Quản lý Bằng chứng & Hình ảnh Vi phạm Sau thi (Evidence Gallery):**
+   - Thêm trang `AdminViolations.tsx` tổ chức hình ảnh vi phạm dạng thư mục theo cú pháp: `<Tên bài thi> — <Ngày thi> [<Giờ bắt đầu> - <Giờ kết thúc>]`.
+   - Xem chi tiết từng thí sinh vi phạm, loại vi phạm, mức độ rủi ro và mốc thời gian chính xác.
+   - Cho phép tải ảnh bằng chứng chất lượng cao về máy tính và xóa bản ghi/thư mục khi hoàn tất xử lý.
+
+7. **Công tắc Bật/Tắt Giám thị AI & Chống gian lận cho từng Đề thi:**
+   - Thêm tùy chọn `enable_proctoring` trong cấu hình đề thi. Khi tắt, thí sinh có thể làm bài tự do mà không yêu cầu camera hay ghi nhận cảnh báo vi phạm.
+
+8. **Cải tiến Giám sát Phòng thi & Thực thi Kỷ luật Vĩnh viễn:**
+   - Thêm nút làm mới tức thì (Instant Refresh) trên thanh công cụ giám thị.
+   - Cập nhật cơ chế cấm thi nghiêm ngặt: Thí sinh bị cấm thi sẽ bị xóa session và chặn truy cập phòng thi triệt để.
+
+---
+
 ## [1.4.0] - 2026-08-27
 
 ### 🚀 Nâng cấp Giao diện & Trải nghiệm Người dùng (UI/UX)

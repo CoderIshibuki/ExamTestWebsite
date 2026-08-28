@@ -9,20 +9,22 @@
 2. [Tài khoản & Đăng nhập](#2-tài-khoản--đăng-nhập)
 3. [Hướng dẫn dành cho Thí sinh (Học sinh / Student)](#3-hướng-dẫn-dành-cho-thí-sinh-học-sinh--student)
    - [3.1. Kiểm tra Thiết bị & Camera AI](#31-kiểm-tra-thiết-bị--camera-ai)
-   - [3.2. Tìm kiếm & Vào thi](#32-tìm-kiếm--vào-thi)
-   - [3.3. Thao tác trong Phòng thi (Zen Focus Mode)](#33-thao-tác-trong-phòng-thi-zen-focus-mode)
-   - [3.4. Cách làm từng dạng câu hỏi](#34-cách-làm-từng-dạng-câu-hỏi)
+   - [3.2. Vào thi & Nhập mật khẩu đề thi](#32-vào-thi--nhập-mật-khẩu-đề-thi)
+   - [3.3. Thao tác trong Phòng thi](#33-thao-tác-trong-phòng-thi)
+   - [3.4. Dạng câu hỏi có Đính kèm Media (Ảnh, Video, Audio nghe hiểu)](#34-dạng-câu-hỏi-có-đính-kèm-media)
    - [3.5. Nộp bài & Xem kết quả chi tiết](#35-nộp-bài--xem-kết-quả-chi-tiết)
-4. [Hướng dẫn dành cho Giáo viên (Teacher)](#4-hướng-dẫn-dành-cho-giáo-viên-teacher)
-   - [4.1. Quản lý Danh mục Môn học](#41-quản-lý-danh-mục-môn-học)
-   - [4.2. Xây dựng Ngân hàng Câu hỏi](#42-xây-dựng-ngân-hàng-câu-hỏi)
-   - [4.3. Tạo & Xuất bản Đề thi](#43-tạo--xuất-bản-đề-thi)
-   - [4.4. Chấm điểm Bài thi Tự luận (Manual Grading)](#44-chấm-điểm-bài-thi-tự-luận-manual-grading)
-   - [4.5. Giám sát Phòng thi Trực tiếp (Live Proctoring)](#45-giám-sát-phòng-thi-trực-tiếp-live-proctoring)
+4. [Hướng dẫn dành cho Giáo viên (Teacher Portal)](#4-hướng-dẫn-dành-cho-giáo-viên-teacher-portal)
+   - [4.1. Giao diện & Không gian làm việc riêng biệt](#41-giao-diện--không-gian-làm-việc-riêng-biệt)
+   - [4.2. Xây dựng Ngân hàng Câu hỏi & Đính kèm Media](#42-xây-dựng-ngân-hàng-câu-hỏi--đính-kèm-media)
+   - [4.3. Quản lý Danh mục, Tìm kiếm & Thao tác Hàng loạt](#43-quản-lý-danh-mục-tìm-kiếm--thao-tác-hàng-loạt)
+   - [4.4. Tạo & Cấu hình Đề thi (Bật/Tắt Giám thị AI, Mật khẩu, Lịch thi)](#44-tạo--cấu-hình-đề-thi)
+   - [4.5. Chấm bài Tự luận theo từng Đề thi (Manual Grading)](#45-chấm-bài-tự-luận-theo-từng-đề-thi)
+   - [4.6. Giám sát Phòng thi Trực tiếp (Live Proctoring & Kỷ luật Thí sinh)](#46-giám-sát-phòng-thi-trực-tiếp)
 5. [Hướng dẫn dành cho Quản trị viên (Admin)](#5-hướng-dẫn-dành-cho-quản-trị-viên-admin)
    - [5.1. Dashboard Thống kê Tổng quan](#51-dashboard-thống-kê-tổng-quan)
-   - [5.2. Quản lý Người dùng & Phân quyền](#52-quản-lý-người-dùng--phân-quyền)
-   - [5.3. Báo cáo & Thống kê Toàn hệ thống](#53-báo-cáo--thống-kê-toàn-hệ-thống)
+   - [5.2. Quản lý Người dùng & Nhập Học sinh Hàng loạt từ Excel](#52-quản-lý-người-dùng--nhập-học-sinh-hàng-loạt-từ-excel)
+   - [5.3. Thư viện Quản lý Bằng chứng & Hình ảnh Vi phạm Sau thi](#53-thư-viện-quản-lý-bằng-chứng--hình-ảnh-vi-phạm-sau-thi)
+   - [5.4. Báo cáo & Phân tích](#54-báo-cáo--phân-tích)
 6. [Cơ chế Giám sát AI & Chống Gian Lận](#6-cơ-chế-giám-sát-ai--chống-gian-lận)
 7. [Khắc phục Sự cố Thường gặp (FAQ)](#7-khắc-phục-sự-cố-thường-gặp-faq)
 
@@ -32,212 +34,136 @@
 
 Hệ thống phân cấp 3 vai trò người dùng chính:
 
-| Vai trò | Quyền hạn chính |
+| Vai trò | Giao diện & Quyền hạn chính |
 | :--- | :--- |
-| **Học sinh (Student)** | • Xem danh sách đề thi được mở.<br>• Kiểm tra camera trước khi thi.<br>• Làm bài thi có giám sát AI.<br>• Xem điểm số, tỷ lệ đúng/sai và lời giải chi tiết.<br>• Xem lịch sử thi và biểu đồ kết quả cá nhân. |
-| **Giáo viên (Teacher)** | • Quản lý danh mục & môn học.<br>• Tạo và quản lý ngân hàng câu hỏi đa dạng thể loại.<br>• Tạo đề thi, đặt thời gian làm bài, cấu hình ngưỡng đạt và xuất bản (Publish).<br>• Giám sát trực tiếp thí sinh qua webcam trong phòng thi.<br>• Chấm điểm các câu hỏi tự luận của thí sinh. |
-| **Quản trị viên (Admin)** | • Toàn quyền của Giáo viên.<br>• Quản lý danh sách tài khoản: kích hoạt, khoá, thay đổi phân quyền (Student / Teacher / Admin).<br>• Xem biểu đồ báo cáo toàn trường/tổ chức, thống kê tỷ lệ hoàn thành, điểm trung bình. |
+| **Học sinh (Student)** | • Xem danh sách đề thi được mở.<br>• Kiểm tra camera trước khi thi.<br>• Làm bài thi có/không có giám sát AI tùy cấu hình đề.<br>• Hỗ trợ làm bài trắc nghiệm, tự luận, nối cột, nghe audio, xem video clip.<br>• Xem điểm số, tỷ lệ đúng/sai và lời giải chi tiết sau khi nộp. |
+| **Giáo viên (Teacher)** | • **Teacher Portal** chuyên dụng với nhận diện Emerald Green.<br>• Chỉ quản lý các đề thi do mình tạo hoặc được phân công coi thi/chấm bài.<br>• Tạo và quản lý ngân hàng câu hỏi (đính kèm ảnh, video YouTube, file nghe .mp3).<br>• Tìm kiếm, lọc theo danh mục, gán danh mục & xóa câu hỏi hàng loạt.<br>• Chấm bài tự luận gom nhóm theo đề thi.<br>• Giám sát webcam trực tiếp, xử lý kỷ luật (cảnh báo, trừ giờ, trừ điểm, cấm thi). |
+| **Quản trị viên (Admin)** | • Toàn quyền quản lý mọi đề thi, câu hỏi, báo cáo trong hệ thống.<br>• Quản lý tài khoản: Thêm mới, đổi vai trò, kích hoạt/khóa tài khoản.<br>• **Nhập hàng loạt tài khoản học sinh từ file Excel (.xlsx)**.<br>• **Thư viện Quản lý Hình ảnh & Bằng chứng Gian lận Sau thi** (xem ảnh, tải về máy, xóa theo đợt thi). |
 
 ---
 
 ## 2. Tài khoản & Đăng nhập
 
 ### 2.1. Đăng nhập
-1. Truy cập trang chủ hệ thống tại `http://localhost/` hoặc domain triển khai.
-2. Nhấn nút **Đăng nhập** ở góc trên bên phải.
-3. Nhập **Tên đăng nhập (hoặc Email)** và **Mật khẩu**.
-4. Hệ thống sẽ tự động chuyển hướng về trang tương ứng với vai trò của bạn (Dashboard Học sinh, Portal Giảng dạy hoặc Admin Center).
+1. Truy cập trang chủ hệ thống tại `http://localhost/` (hoặc cổng cấu hình).
+2. Nhập **Tên đăng nhập (hoặc Email)** và **Mật khẩu**.
+3. Hệ thống sẽ tự động chuyển hướng về trang tương ứng với vai trò của bạn.
 
-### 2.2. Đổi mật khẩu & Cập nhật thông tin
-1. Nhấp vào tên tài khoản hoặc chọn **Trang cá nhân**.
-2. Nhấn nút **Đổi mật khẩu**.
-3. Nhập mật khẩu hiện tại và mật khẩu mới (tối thiểu 6 ký tự).
+### 2.2. Đổi mật khẩu & Yêu cầu đổi mật khẩu lần đầu
+- Với tài khoản mới được nhập từ file Excel, hệ thống sẽ kích hoạt cờ yêu cầu đổi mật khẩu khi đăng nhập lần đầu.
+- Người dùng có thể chủ động đổi mật khẩu tại trang **Trang cá nhân** > **Đổi mật khẩu**.
 
 ---
 
 ## 3. Hướng dẫn dành cho Thí sinh (Học sinh / Student)
 
 ### 3.1. Kiểm tra Thiết bị & Camera AI
-Trước khi vào phòng thi chính thức, thí sinh nên kiểm tra thiết bị:
-1. Từ **Dashboard Học sinh**, nhấn thẻ **Kiểm tra Camera & Giám sát AI** (hoặc truy cập `/student/camera-test`).
-2. Khi trình duyệt hỏi, nhấn **Cho phép (Allow)** truy cập Webcam.
-3. Thử nghiệm:
-   - Ngồi ngay ngắn trước màn hình: Hệ thống nhận diện trạng thái *An toàn (Bình thường)*.
-   - Quay đầu sang trái/phải hoặc rời màn hình: Hệ thống sẽ hiển thị cảnh báo vi phạm mô phỏng.
+- Trước khi vào phòng thi, thí sinh nên truy cập mục **Kiểm tra Camera** trên thanh menu để đảm bảo trình duyệt đã cấp quyền truy cập camera và mô hình AI nhận diện khuôn mặt hoạt động bình thường.
 
-### 3.2. Tìm kiếm & Vào thi
-1. Truy cập mục **Kỳ thi của tôi** hoặc **Danh sách đề thi**.
-2. Tìm kiếm đề thi theo tên môn hoặc mã đề.
-3. Đọc kỹ thông tin đề thi:
-   - **Thời gian làm bài:** (Ví dụ: 45 phút).
-   - **Ngưỡng điểm đạt:** (Ví dụ: 60%).
-   - **Số câu hỏi**.
-4. Nhấn nút **Vào làm bài**.
+### 3.2. Vào thi & Nhập mật khẩu đề thi
+1. Vào mục **Danh sách Đề thi** để xem các bài thi đang mở.
+2. Với các bài thi có biểu tượng 🔒 **Yêu cầu mật khẩu**, một hộp thoại sẽ hiện lên yêu cầu nhập mật khẩu do giám thị/giáo viên cung cấp.
+3. Nhập đúng mật khẩu và bấm **Bắt đầu làm bài**.
 
-### 3.3. Thao tác trong Phòng thi (Zen Focus Mode)
-Giao diện phòng thi được thiết kế tối giản, loại bỏ mọi chi tiết thừa để thí sinh tập trung cao độ:
-- **Đồng hồ đếm ngược (Top Bar):** 
-  - Màu xanh lá: Thời gian an toàn.
-  - Màu vàng (nhấp nháy): Còn dưới 5 phút.
-  - Màu đỏ (cảnh báo gấp): Còn dưới 1 phút.
-- **Thanh tiến độ câu hỏi (Mục lục câu hỏi bên phải):**
-  - **Màu xanh dương:** Câu đang mở xem.
-  - **Màu xanh lá:** Câu đã chọn câu trả lời.
-  - **Màu xám:** Câu chưa làm.
-  - Nhấp trực tiếp vào bất kỳ số câu nào để chuyển nhanh đến câu đó.
-- **Khung Camera giám sát (Góc dưới bên phải):**
-  - Hiển thị góc nhìn webcam của bạn để đảm bảo khuôn mặt luôn nằm trong khung hình.
+### 3.3. Thao tác trong Phòng thi
+- **Thanh trạng thái đầu trang**: Hiển thị tên bài thi, đồng hồ đếm ngược và nút nộp bài.
+- **Bảng điều hướng câu hỏi**: Cho phép nhảy nhanh đến từng câu hỏi, hiển thị rõ câu đã làm (xanh lá), câu đang làm (xanh dương) và câu chưa trả lời.
+- **Chống gian lận**: Với đề thi có kích hoạt giám sát AI, thí sinh không được chuyển tab, rời khỏi màn hình hoặc để người khác xuất hiện trước camera.
 
-### 3.4. Cách làm từng dạng câu hỏi
-- **Trắc nghiệm 1 đáp án (Single Choice):** Nhấp chọn vào 1 trong các ô lựa chọn A, B, C, D. Ô được chọn sẽ viền xanh dương nổi bật.
-- **Trắc nghiệm nhiều đáp án (Multiple Select):** Đánh dấu vào tất cả các ô vuông mà bạn cho là đúng.
-- **Đúng / Sai (True / False):** Chọn ô "Đúng" hoặc "Sai".
-- **Nối cột (Matching):** Với mỗi ý ở cột bên trái, chọn ý tương ứng từ danh sách thả xuống ở cột bên phải.
-- **Tự luận (Essay):**
-  - **Cách 1 - Gõ văn bản:** Nhập câu trả lời trực tiếp vào khung soạn thảo.
-  - **Cách 2 - Chụp ảnh bài làm tay:** Nhấn nút **Chụp / tải ảnh bài làm tay** để chụp trực tiếp từ camera hoặc tải ảnh giấy thi lên. Hệ thống tự động tối ưu hóa dung lượng ảnh.
+### 3.4. Dạng câu hỏi có Đính kèm Media
+- **Hình ảnh**: Ảnh minh họa hiển thị rõ nét bên dưới nội dung câu hỏi.
+- **Video clip**: Hỗ trợ video MP4 hoặc nhúng trực tiếp YouTube player.
+- **Audio nghe hiểu**: Hỗ trợ phát file âm thanh (.mp3, .wav) trực tiếp trên giao diện để làm bài trắc nghiệm nghe hiểu tiếng Anh, kiểm tra thính giác,...
 
 ### 3.5. Nộp bài & Xem kết quả chi tiết
-1. Khi hoàn thành bài làm hoặc sắp hết giờ, nhấn nút **Nộp bài thi** màu xanh ở góc trên.
-2. Hộp thoại xác nhận xuất hiện, nhấn **Đồng ý nộp bài**.
-3. **Màn hình Tổng kết Kết quả (Bento Grid):**
-   - Xem ngay Điểm số tổng và Tỷ lệ chính xác (%) đạt được.
-   - Thẻ thống kê số câu đúng (màu xanh lá) và số câu sai (màu đỏ).
-   - Xem chi tiết từng câu: nhấp vào từng câu hỏi để xem đáp án bạn đã chọn và lời giải/đáp án chuẩn.
-   - *(Lưu ý: Nếu đề thi có câu tự luận, điểm số sẽ là điểm tạm tính cho các câu trắc nghiệm cho đến khi giáo viên chấm xong phần tự luận).*
+- Sau khi nộp bài, hệ thống hiển thị điểm số tức thì đối với các câu trắc nghiệm.
+- Nếu đề thi có câu tự luận, hệ thống thông báo trạng thái "Đang chờ giáo viên chấm điểm" và hiển thị điểm tạm tính.
 
 ---
 
-## 4. Hướng dẫn dành cho Giáo viên (Teacher)
+## 4. Hướng dẫn dành cho Giáo viên (Teacher Portal)
 
-### 4.1. Quản lý Danh mục Môn học
-1. Vào menu **Quản trị & Giảng dạy** → **Danh mục môn học**.
-2. Nhấn **Thêm danh mục mới**, nhập tên môn (Toán học, Vật lý, Tiếng Anh...) và mô tả.
-3. Danh mục giúp phân loại câu hỏi và đề thi khoa học, dễ tìm kiếm.
+### 4.1. Giao diện & Không gian làm việc riêng biệt
+- Khi đăng nhập với tài khoản Giáo viên, hệ thống áp dụng giao diện **Teacher Portal** với tông màu Xanh Ngọc Emerald (`#059669`), ẩn các mục quản trị người dùng để tập trung vào thi cử và chấm bài.
+- **Quyền riêng tư & Bảo mật**: Giáo viên chỉ xem và quản lý những đề thi do mình tạo, đề thi mình được thêm làm đồng tác giả (collaborator) hoặc giám thị coi thi (proctor).
 
-### 4.2. Xây dựng Ngân hàng Câu hỏi
-1. Vào mục **Ngân hàng câu hỏi**.
-2. Nhấn **Tạo câu hỏi mới**:
-   - Chọn **Môn học/Danh mục**.
-   - Chọn **Loại câu hỏi**: Trắc nghiệm đơn, Trắc nghiệm nhiều lựa chọn, Đúng/Sai, Nối cột, hoặc Tự luận.
-   - Chọn **Mức độ khó**: Dễ, Trung bình, Khó.
-   - Nhập nội dung câu hỏi và các lựa chọn đáp án.
-   - Đánh dấu đáp án đúng.
-   - Nhập **Lời giải thích chi tiết** (để học sinh xem sau khi thi xong).
-3. Nhấn **Lưu câu hỏi**.
+### 4.2. Xây dựng Ngân hàng Câu hỏi & Đính kèm Media
+1. Truy cập **Ngân hàng Câu hỏi** > **Thêm câu hỏi mới**.
+2. Chọn loại câu hỏi: *Trắc nghiệm 1 đáp án, Trắc nghiệm nhiều đáp án, Đúng/Sai, Nối cột, Tự luận*.
+3. Mở mục **Đính kèm Media (Hình ảnh, Video, Audio)** để thêm link ảnh, video YouTube hoặc file audio.
+4. Hỗ trợ nhập hàng loạt câu hỏi qua nút **Nhập từ Excel** (file mẫu chuẩn .xlsx).
 
-### 4.3. Tạo & Xuất bản Đề thi
-1. Vào mục **Quản lý Đề thi** → Nhấn **Tạo đề thi mới**.
-2. Điền thông tin cấu hình:
-   - **Tên kỳ thi / Mã đề**.
-   - **Thời lượng làm bài** (ví dụ: 60 phút).
-   - **Ngưỡng điểm đạt** (Passing Score, ví dụ: 50% hoặc 70%).
-   - **Số lượt thi tối đa** cho phép mỗi học sinh.
-3. **Chọn câu hỏi vào đề:** Tích chọn các câu hỏi từ Ngân hàng câu hỏi hoặc chọn ngẫu nhiên theo danh mục.
-4. **Trạng thái:**
-   - Chọn **Bản nháp (Draft)** nếu đang biên soạn.
-   - Chọn **Đã xuất bản (Published)** để học sinh bắt đầu thấy và có thể vào thi.
+### 4.3. Quản lý Danh mục, Tìm kiếm & Thao tác Hàng loạt
+- **Tìm kiếm**: Ô search tìm nhanh câu hỏi theo nội dung, môn học hoặc thẻ tags.
+- **Lọc**: Lọc theo danh mục hoặc theo thể loại câu hỏi.
+- **Thao tác hàng loạt**: Chọn các checkbox đầu dòng để:
+  - **Gán vào danh mục**: Đưa hàng loạt câu hỏi vào 1 danh mục/chủ đề cụ thể.
+  - **Xóa hàng loạt**: Xóa vĩnh viễn nhiều câu hỏi cùng lúc.
 
-### 4.4. Chấm điểm Bài thi Tự luận (Manual Grading)
-1. Vào mục **Chấm thi tự luận**.
-2. Hệ thống hiển thị danh sách các bài làm có câu tự luận cần chấm.
-3. Nhấn vào bài làm của học sinh:
-   - Xem đề bài, đáp án mẫu của giáo viên.
-   - Xem bài làm của học sinh (đoạn văn bản gõ hoặc ảnh chụp bài làm tay).
-   - Nhập điểm số cho câu tự luận và nhận xét/góp ý.
-4. Nhấn **Lưu điểm chấm**. Điểm tổng kết của học sinh sẽ tự động được cập nhật lại ngay lập tức.
+### 4.4. Tạo & Cấu hình Đề thi
+1. Vào **Quản lý Đề thi** > **Tạo đề thi mới**.
+2. Cấu hình các thông số:
+   - Thời lượng thi, ngưỡng đạt (%).
+   - **Kích hoạt Giám thị AI & Chống gian lận**: Bật để bật camera giám sát AI, tắt để cho phép thi tự do.
+   - **Mật khẩu truy cập**: Đặt mật khẩu nếu cần giới hạn thí sinh.
+   - Hiển thị kết quả & đáp án sau khi nộp.
+3. Sau khi tạo đề, mở nút **Quản lý** để:
+   - Thêm câu hỏi vào đề (chọn thủ công hoặc tự động bốc ngẫu nhiên).
+   - Phân công giáo viên coi thi (Proctor).
+   - Thiết lập khung giờ mở đề thi (Lịch thi).
+4. Bấm **Xuất bản đề thi** để mở cho học sinh làm bài.
 
-### 4.5. Giám sát Phòng thi Trực tiếp (Live Proctoring Center)
-1. Vào mục **Giám sát thi** → Chọn kỳ thi đang diễn ra.
-2. Màn hình HUD Giám thị thời gian thực:
-   - **Lưới Webcam Thí sinh:** Xem video trực tiếp camera của từng học sinh đang trong phòng thi.
-   - **Thông tin nhận diện rõ ràng:** Mỗi thẻ hiển thị đầy đủ **Họ và tên thí sinh**, **@username** và **Địa chỉ IP máy thí sinh**.
-   - **Viền cảnh báo rủi ro:**
-     - 🟢 **Xanh lá:** Trạng thái bình thường, không có dấu hiệu gian lận.
-     - 🟡 **Vàng:** Cảnh báo nhẹ (quay mặt khỏi màn hình 1-2 lần).
-     - 🔴 **Đỏ:** Cảnh báo nghiêm trọng (rời khỏi màn hình nhiều lần, đổi tab trình duyệt liên tục).
-   - **Violation Feed:** Cột nhật ký bên phải hiển thị dòng thời gian vi phạm chính xác từng giây: Thí sinh nào, lúc mấy giờ, vi phạm hành vi gì (VD: `Quay mặt khỏi màn hình (Góc lệch > 25°)`).
+### 4.5. Chấm bài Tự luận theo từng Đề thi (Manual Grading)
+1. Vào mục **Chấm bài tự luận**.
+2. Hệ thống hiển thị các đề thi có bài tự luận đang chờ chấm, kèm số lượng bài và số học sinh.
+3. Nhấp **Vào chấm bài đề này** để mở không gian chấm bài tập trung: xem nội dung trả lời/ảnh chụp bài viết tay của học sinh, nhập điểm và ghi chú nhận xét.
+
+### 4.6. Giám sát Phòng thi Trực tiếp (Live Proctoring)
+- Giám thị mở link coi thi `/proctor/exam/:examId` để theo dõi lưới camera trực tiếp của tất cả thí sinh.
+- Nút **Làm mới dữ liệu** hỗ trợ cập nhật danh sách thí sinh tức thì không cần F5.
+- Thực hiện kỷ luật phòng thi: Gửi cảnh báo, trừ giờ làm bài, trừ phần trăm điểm hoặc **Cấm thi ngay lập tức**.
+- Thí sinh bị cấm thi sẽ bị đá khỏi phòng thi vĩnh viễn và không thể vào lại.
 
 ---
 
 ## 5. Hướng dẫn dành cho Quản trị viên (Admin)
 
 ### 5.1. Dashboard Thống kê Tổng quan
-- Xem nhanh 4 chỉ số KPI quan trọng: Tổng số đề thi, Tổng số câu hỏi trong ngân hàng, Tổng lượt nộp bài, Tỷ lệ đạt trung bình toàn hệ thống.
-- Biểu đồ phân bố điểm số và hoạt động thi theo thời gian thực.
+- Theo dõi các chỉ số KPI: Tổng số thí sinh, tổng đề thi, tổng số câu hỏi, lượt thi đã hoàn thành và biểu đồ xu hướng 14 ngày.
 
-### 5.2. Quản lý Người dùng & Phân quyền
-1. Vào mục **Quản lý người dùng**.
-2. Danh sách toàn bộ tài khoản trong hệ thống với bộ lọc theo vai trò (Admin, Teacher, Student).
-3. Các thao tác quản trị:
-   - **Đổi vai trò:** Nâng cấp học sinh lên giáo viên hoặc cấp quyền admin.
-   - **Khoá / Mở khoá tài khoản:** Tạm ngừng quyền truy cập nếu phát hiện vi phạm quy chế.
-   - **Tạo tài khoản mới:** Tạo nhanh tài khoản giáo viên hoặc quản trị viên.
+### 5.2. Quản lý Người dùng & Nhập Học sinh Hàng loạt từ Excel
+1. Vào **Quản lý Người dùng**.
+2. Nhấn nút **Nhập từ Excel** > Tải file mẫu chuẩn `.xlsx`.
+3. Điền danh sách tài khoản gồm: `tai_khoan`, `ho_ten`, `email`, `mat_khau`, `vai_tro`.
+4. Kéo thả file vào hộp thoại để hệ thống tự động tạo hàng loạt tài khoản học sinh.
 
-### 5.3. Báo cáo & Thống kê Toàn hệ thống
-1. Vào mục **Báo cáo & Thống kê**.
-2. Thống kê chi tiết theo từng kỳ thi:
-   - Số lượng thí sinh tham gia.
-   - Điểm cao nhất, điểm thấp nhất, điểm trung bình.
-   - Tỷ lệ vượt qua kỳ thi.
-3. Xuất file báo cáo tổng hợp.
+### 5.3. Thư viện Quản lý Bằng chứng & Hình ảnh Vi phạm Sau thi
+1. Vào mục **Ảnh vi phạm sau thi** trên thanh menu.
+2. Danh sách các đợt thi vi phạm được nhóm theo: `<Tên bài thi> • <Ngày thi> [<Giờ bắt đầu> - <Giờ kết thúc>]`.
+3. Nhấp vào đợt thi để xem chi tiết:
+   - Tên thí sinh, mã tài khoản, thời gian vi phạm chính xác đến từng giây.
+   - Loại vi phạm (rời tab, quay đầu, phát hiện nhiều người,...).
+   - Ảnh chụp bằng chứng từ camera.
+   - Nút **Lưu ảnh về máy** để tải ảnh chứng cứ về máy tính.
+   - Nút **Xóa** từng ảnh hoặc **Xóa toàn bộ mục bài thi** khi kỳ thi đã kết thúc xử lý.
 
 ---
 
 ## 6. Cơ chế Giám sát AI & Chống Gian Lận
 
-Hệ thống tích hợp công nghệ AI Edge Computing kết hợp WebRTC & WebSocket:
-
-```
-+--------------------------------------------------------------------+
-|                       TRÌNH DUYỆT THÍ SINH                        |
-|                                                                    |
-|  +---------------------+        +-------------------------------+  |
-|  |  Camera WebRTC      |        |  Face Mesh & Gaze Detection   |  |
-|  |  Truyền video live  |        |  AI xử lý trực tiếp tại máy   |  |
-|  +----------+----------+        +---------------+---------------+  |
-|             |                                   |                  |
-+-------------|-----------------------------------|------------------+
-              | Video Stream                      | Violation Events
-              v                                   v
-+-------------+----------+        +---------------+---------------+
-|  Kênh Giám thị Live    |        |  Realtime WebSocket Gateway   |
-|  Giáo viên xem webcam  |        |  Nhận diện & Ghi nhận vi phạm |
-+------------------------+        +-------------------------------+
-```
-
-### Các hành vi bị hệ thống AI tự động phát hiện và ghi nhận:
-1. **Không phát hiện khuôn mặt (Face Missing):** Thí sinh rời khỏi vị trí ngồi thi hoặc che khuất camera.
-2. **Quay đầu / Lệch góc nhìn quá mức:** Thí sinh quay sang hai bên hoặc cúi nhìn tài liệu/thiết bị phụ.
-3. **Phát hiện nhiều người (Multiple Faces):** Có người khác xuất hiện trong khung hình camera.
-4. **Chuyển tab / Mở cửa sổ khác (Tab Switching):** Thí sinh rời khỏi màn hình làm bài thi để tra cứu.
+Mô hình AI chạy song song trực tiếp trên Client (WebAssembly/ONNX) kết hợp Backend Risk Engine:
+1. **Phát hiện khuôn mặt**: Cảnh báo khi thí sinh rời khỏi góc máy hoặc có từ 2 người trở lên.
+2. **Theo dõi hướng nhìn (Gaze/Head Pose)**: Cảnh báo khi thí sinh quay đầu sang trái/phải liên tục.
+3. **Phát hiện chuyển tab (Visibility API & Blur)**: Ghi nhận sự kiện khi thí sinh chuyển sang cửa sổ hoặc ứng dụng khác.
+4. **Tự động chụp ảnh bằng chứng**: Chụp ảnh ngay tại khoảnh khắc xảy ra vi phạm và lưu vào thư viện bằng chứng của Admin.
 
 ---
 
 ## 7. Khắc phục Sự cố Thường gặp (FAQ)
 
-### Q1: Trình duyệt báo "Không thể truy cập Camera"?
-- **Cách xử lý:** 
-  1. Nhấp vào biểu tượng ổ khoá 🔒 ở đầu thanh địa chỉ trình duyệt.
-  2. Tại mục **Camera**, chọn **Cho phép (Allow)**.
-  3. Tải lại trang (F5).
-  4. Đảm bảo không có ứng dụng nào khác (Zoom, Google Meet, Teams) đang chiếm giữ camera.
-
-### Q2: Đang làm bài thi thì bị mất kết nối mạng hoặc cúp điện?
-- **Cách xử lý:** 
-  - Toàn bộ câu trả lời của bạn được hệ thống **tự động lưu nháp từng câu** lên máy chủ ngay khi bạn click chọn.
-  - Khi có mạng trở lại, bạn chỉ cần đăng nhập lại và nhấn vào kỳ thi để tiếp tục làm bài (trong khoảng thời gian làm bài còn hiệu lực).
-
-### Q3: Tải ảnh bài làm tự luận báo lỗi hoặc quá chậm?
-- **Cách xử lý:** 
-  - Hệ thống đã tích hợp bộ nén ảnh tự động để giảm dung lượng file xuống chuẩn nén an toàn.
-  - Hãy kiểm tra kết nối mạng và đảm bảo file có định dạng `.jpg`, `.png` hoặc `.jpeg`.
-
-### Q4: Giáo viên muốn chấm điểm bài thi tự luận thì tìm ở đâu?
-- **Cách xử lý:** 
-  - Đăng nhập bằng tài khoản Giáo viên hoặc Admin.
-  - Vào menu bên trái chọn **Chấm thi tự luận (Manual Grading)** để xem danh sách tất cả các bài làm đang chờ chấm điểm.
-
----
-
-*Tài liệu được cập nhật theo phiên bản mới nhất của ExamTestWebsite.*
+- **Q: Trình duyệt không mở được camera?**
+  *A: Kiểm tra biểu tượng ổ khóa ở thanh địa chỉ trình duyệt, chọn Cho phép (Allow) Camera.*
+- **Q: Học sinh bị cấm thi nhầm thì làm thế nào?**
+  *A: Giáo viên/Admin vào mục Quản lý đề thi > Lượt thi > Xóa lượt thi hoặc đặt lại số lần làm bài cho học sinh.*
+- **Q: Làm sao để tạo bài kiểm tra không yêu cầu camera?**
+  *A: Khi tạo/chỉnh sửa đề thi, tắt công tắc "Kích hoạt Giám thị AI & Chống gian lận".*
