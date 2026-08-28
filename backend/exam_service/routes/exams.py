@@ -28,7 +28,8 @@ async def list_exams(skip: int = 0, limit: int = 100, db: AsyncSession = Depends
             if role == "teacher":
                 is_owner = str(exam.owner_id) == user_id
                 is_collab = any(str(c.user_id) == user_id for c in exam.collaborators)
-                if is_owner or is_collab:
+                is_proctor = any(str(p.user_id) == user_id for p in getattr(exam, 'proctors', []))
+                if is_owner or is_collab or is_proctor:
                     filtered.append(exam)
             elif role == "student":
                 if exam.status == "published":

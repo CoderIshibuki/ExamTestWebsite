@@ -159,6 +159,24 @@ async def list_pending_manual_grading(
         .where(models.QuestionResult.needs_manual_grading == True)  # noqa: E712
         .where(models.QuestionResult.graded_by_user_id.is_(None))
     )
+
+    if current_user["role"] == "teacher":
+        from sqlalchemy import text
+        allowed_exams_stmt = text(
+            """
+            SELECT id FROM exams WHERE owner_id = :uid
+            UNION
+            SELECT exam_id FROM exam_collaborators WHERE user_id = :uid
+            UNION
+            SELECT exam_id FROM exam_proctors WHERE user_id = :uid
+            """
+        )
+        allowed_res = await db.execute(allowed_exams_stmt, {"uid": current_user["id"]})
+        allowed_exam_ids = [row[0] for row in allowed_res.fetchall()]
+        if not allowed_exam_ids:
+            return []
+        stmt = stmt.where(models.Result.exam_id.in_(allowed_exam_ids))
+
     if exam_id:
         stmt = stmt.where(models.Result.exam_id == exam_id)
 
@@ -188,6 +206,22 @@ async def manual_grade_question(
     """Giáo viên/Admin chấm điểm tay cho câu tự luận, sau đó tự động cộng lại tổng điểm của bài thi."""
     if current_user["role"] not in ("admin", "teacher"):
         raise HTTPException(status_code=403, detail="Access denied")
+
+    if current_user["role"] == "teacher":
+        from sqlalchemy import text
+        check_stmt = text(
+            """
+            SELECT 1 FROM results r
+            WHERE r.id = :rid AND (
+                EXISTS (SELECT 1 FROM exams e WHERE e.id = r.exam_id AND e.owner_id = :uid)
+                OR EXISTS (SELECT 1 FROM exam_collaborators ec WHERE ec.exam_id = r.exam_id AND ec.user_id = :uid)
+                OR EXISTS (SELECT 1 FROM exam_proctors ep WHERE ep.exam_id = r.exam_id AND ep.user_id = :uid)
+            )
+            """
+        )
+        has_perm = (await db.execute(check_stmt, {"rid": result_id, "uid": current_user["id"]})).scalar()
+        if not has_perm:
+            raise HTTPException(status_code=403, detail="Bạn không có quyền chấm bài thi này.")
 
     qr_stmt = select(models.QuestionResult).where(
         models.QuestionResult.result_id == result_id,
