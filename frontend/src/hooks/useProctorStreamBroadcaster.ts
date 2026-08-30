@@ -35,6 +35,13 @@ export function useProctorStreamBroadcaster(
     });
     socketRef.current = socket;
 
+    socket.on('connect', () => {
+      socket.emit('join_exam', { exam_id: examId });
+    });
+    if (socket.connected) {
+      socket.emit('join_exam', { exam_id: examId });
+    }
+
     const handleStreamRequested = async (data: { proctor_sid: string; stream_type?: string }) => {
       let activeStream: MediaStream | null = stream;
       const reqType = data.stream_type || 'camera';

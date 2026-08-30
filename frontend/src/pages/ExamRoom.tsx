@@ -133,11 +133,11 @@ const ExamRoom: React.FC = () => {
           id: q.question_id,
           content: q.content?.text || '',
           type: q.type,
-          options: isMatching ? [] : q.options.map((o) => ({ id: o.id, text: o.text })),
+          options: isMatching ? [] : (q.options || []).map((o, idx) => ({ id: o.id || String(idx), text: o.text || (o as any).content || '' })),
           matching: isMatching
             ? {
-                left: q.options.filter((o) => o.id.startsWith('L_')).map((o) => ({ id: o.id, text: o.text })),
-                right: q.options.filter((o) => o.id.startsWith('R_')).map((o) => ({ id: o.id, text: o.text })),
+                left: (q.options || []).filter((o) => o.id?.startsWith('L_')).map((o) => ({ id: o.id, text: o.text || (o as any).content || '' })),
+                right: (q.options || []).filter((o) => o.id?.startsWith('R_')).map((o) => ({ id: o.id, text: o.text || (o as any).content || '' })),
               }
             : undefined,
           essayMode: q.type === 'essay' ? 'both' : undefined,

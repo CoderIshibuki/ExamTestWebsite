@@ -191,7 +191,7 @@ async def get_violation_session_details(
         FROM violations v
         LEFT JOIN exams e ON v.exam_id = e.id
         LEFT JOIN users u ON v.user_id = u.id::text OR v.user_id = u.username
-        WHERE v.exam_id = :exam_id::uuid
+        WHERE v.exam_id = CAST(:exam_id AS uuid)
         ORDER BY v.timestamp DESC
     """
     result = await db.execute(text(sql), {"exam_id": exam_id})
@@ -211,7 +211,7 @@ async def delete_violation(
         raise HTTPException(status_code=403, detail="Chỉ Quản trị viên mới có quyền xoá bằng chứng vi phạm.")
     
     res = await db.execute(
-        text("DELETE FROM violations WHERE id = :vid::uuid RETURNING id"),
+        text("DELETE FROM violations WHERE id = CAST(:vid AS uuid) RETURNING id"),
         {"vid": violation_id}
     )
     deleted = res.fetchone()
@@ -233,7 +233,7 @@ async def delete_violation_session(
         raise HTTPException(status_code=403, detail="Chỉ Quản trị viên mới có quyền xoá toàn bộ mục vi phạm bài thi.")
         
     await db.execute(
-        text("DELETE FROM violations WHERE exam_id = :eid::uuid"),
+        text("DELETE FROM violations WHERE exam_id = CAST(:eid AS uuid)"),
         {"eid": exam_id}
     )
     await db.commit()
