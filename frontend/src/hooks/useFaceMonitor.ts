@@ -34,15 +34,16 @@ interface UseFaceMonitorOptions {
   cooldownMs?: number;
 }
 
-const YAW_THRESHOLD_DEG = 25; // quay đầu quá góc này coi như "quay mặt khỏi màn hình"
-const GAZE_THRESHOLD_RATIO = 0.35; // tâm mống mắt lệch khỏi trung tâm mắt quá tỉ lệ này
+const YAW_THRESHOLD_DEG = 15; // Quay đầu sang trái/phải quá 15 độ
+const PITCH_THRESHOLD_DEG = 14; // Cúi đầu nhìn xuống tài liệu/điện thoại hoặc ngửa đầu quá 14 độ
+const GAZE_THRESHOLD_RATIO = 0.16; // Liếc mắt sang bên cạnh/nhìn lệch màn hình
 
 export function useFaceMonitor({
   videoRef,
   enabled,
   onViolation,
-  sustainedFrames = 10,
-  cooldownMs = 8000,
+  sustainedFrames = 3,
+  cooldownMs = 3000,
 }: UseFaceMonitorOptions) {
   const [ready, setReady] = useState(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'running' | 'error'>('idle');
@@ -85,7 +86,7 @@ export function useFaceMonitor({
               'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
             delegate: 'GPU',
           },
-          outputFaceBlendshapes: false,
+          outputFaceBlendshapes: true,
           outputFacialTransformationMatrixes: true,
           runningMode: 'VIDEO',
           numFaces: 2, // dò tối đa 2 mặt là đủ để phát hiện "có người thứ 2"
@@ -142,35 +143,64 @@ export function useFaceMonitor({
             resetCounter('multiple_faces_detected');
           }
 
-          // Ước lượng góc quay đầu (yaw) từ ma trận biến đổi khuôn mặt MediaPipe trả về.
+          // Ước lượng góc quay đầu (yaw) và cúi đầu (pitch) từ ma trận biến đổi khuôn mặt
           const matrix = result.facialTransformationMatrixes?.[0]?.data;
           if (matrix && matrix.length >= 16) {
-            // Trích góc yaw xấp xỉ từ ma trận xoay 4x4 (hàng-cột column-major của MediaPipe)
             const yawRad = Math.atan2(-matrix[2], matrix[0]);
             const yawDeg = Math.abs((yawRad * 180) / Math.PI);
-            if (yawDeg > YAW_THRESHOLD_DEG) {
-              maybeReport('face_turned_away', { yaw_degrees: Math.round(yawDeg) });
+
+            const pitchRad = Math.atan2(matrix[6], matrix[10]);
+            const pitchDeg = Math.abs((pitchRad * 180) / Math.PI);
+
+            if (yawDeg > YAW_THRESHOLD_DEG || pitchDeg > PITCH_THRESHOLD_DEG) {
+              maybeReport('face_turned_away', {
+                yaw_degrees: Math.round(yawDeg),
+                pitch_degrees: Math.round(pitchDeg),
+                direction: pitchDeg > PITCH_THRESHOLD_DEG ? 'Cúi đầu nhìn xuống' : 'Quay mặt sang bên',
+              });
             } else {
               resetCounter('face_turned_away');
             }
           }
 
-          // Ước lượng hướng nhìn thô từ vị trí mống mắt so với tâm hốc mắt (landmark index
-          // chuẩn của MediaPipe FaceMesh: mống mắt trái ~ 468-472, phải ~ 473-477 khi
-          // refine_landmarks bật; khoé mắt trái 33/133, phải 362/263).
+          // Ước lượng hướng liếc mắt (gaze) từ vị trí mống mắt trái & phải
           const lm = result.faceLandmarks[0];
-          if (lm && lm.length > 468) {
+          if (lm && lm.length > 473) {
+            // Mắt trái: mống mắt 468, khóe mắt 33, 133
             const leftIrisX = lm[468]?.x;
             const leftEyeInner = lm[133]?.x;
             const leftEyeOuter = lm[33]?.x;
+
+            // Mắt phải: mống mắt 473, khóe mắt 362, 263
+            const rightIrisX = lm[473]?.x;
+            const rightEyeInner = lm[362]?.x;
+            const rightEyeOuter = lm[263]?.x;
+
+            let isGazingAway = false;
+            let maxOffset = 0;
+
             if (leftIrisX !== undefined && leftEyeInner !== undefined && leftEyeOuter !== undefined) {
               const eyeWidth = Math.abs(leftEyeOuter - leftEyeInner) || 1;
               const irisOffset = (leftIrisX - (leftEyeInner + leftEyeOuter) / 2) / eyeWidth;
               if (Math.abs(irisOffset) > GAZE_THRESHOLD_RATIO) {
-                maybeReport('gaze_away_from_screen', { offset_ratio: Number(irisOffset.toFixed(2)) });
-              } else {
-                resetCounter('gaze_away_from_screen');
+                isGazingAway = true;
+                maxOffset = Math.abs(irisOffset);
               }
+            }
+
+            if (rightIrisX !== undefined && rightEyeInner !== undefined && rightEyeOuter !== undefined) {
+              const eyeWidth = Math.abs(rightEyeOuter - rightEyeInner) || 1;
+              const irisOffset = (rightIrisX - (rightEyeInner + rightEyeOuter) / 2) / eyeWidth;
+              if (Math.abs(irisOffset) > GAZE_THRESHOLD_RATIO) {
+                isGazingAway = true;
+                maxOffset = Math.max(maxOffset, Math.abs(irisOffset));
+              }
+            }
+
+            if (isGazingAway) {
+              maybeReport('gaze_away_from_screen', { offset_ratio: Number(maxOffset.toFixed(2)) });
+            } else {
+              resetCounter('gaze_away_from_screen');
             }
           }
         }
