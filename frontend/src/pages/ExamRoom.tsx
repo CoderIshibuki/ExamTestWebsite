@@ -231,6 +231,66 @@ const ExamRoom: React.FC = () => {
     setConfirmSubmitOpen(true);
   };
 
+  if (passwordDialogOpen) {
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC', p: 3 }}>
+        <Dialog
+          open={passwordDialogOpen}
+          onClose={() => {}}
+          maxWidth="xs"
+          fullWidth
+          slotProps={{ paper: { sx: { borderRadius: 2, p: 1 } } }}
+        >
+          <DialogTitle sx={{ fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <LockOutlined sx={{ color: '#2563EB' }} /> Đề thi có bảo mật
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText sx={{ mb: 2, color: '#475569', fontSize: 14 }}>
+              Đề thi này yêu cầu mật khẩu truy cập. Vui lòng nhập mật khẩu do giáo viên/giám thị cung cấp để bắt đầu thi.
+            </DialogContentText>
+            <TextField
+              autoFocus
+              fullWidth
+              label="Mật khẩu truy cập"
+              type={showPassword ? 'text' : 'password'}
+              value={passwordInput}
+              onChange={(e) => { setPasswordInput(e.target.value); setPasswordError(''); }}
+              onKeyDown={(e) => { if (e.key === 'Enter' && passwordInput.trim() && !isJoining) { setIsJoining(true); initExam(passwordInput.trim()); } }}
+              error={!!passwordError}
+              helperText={passwordError || ' '}
+              variant="outlined"
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <MuiIconButton onClick={() => setShowPassword((v) => !v)} edge="end" size="small">
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </MuiIconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2.5 }}>
+            <Button onClick={() => navigate(-1)} sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 600, color: '#64748B' }}>
+              Quay lại
+            </Button>
+            <Button
+              variant="contained"
+              disabled={!passwordInput.trim() || isJoining}
+              onClick={() => { setIsJoining(true); initExam(passwordInput.trim()); }}
+              sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 700, bgcolor: '#2563EB', '&:hover': { bgcolor: '#1D4ED8' } }}
+            >
+              {isJoining ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : 'Bắt đầu thi'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
+    );
+  }
+
   if (state.status === 'joining' || state.status === 'idle') {
     return (
       <Box sx={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: 2, bgcolor: 'background.default' }} role="status" aria-busy="true">
@@ -767,61 +827,6 @@ const ExamRoom: React.FC = () => {
           {saveAnswerError}
         </Alert>
       </Snackbar>
-      {/* Hộp thoại nhập mật khẩu truy cập đề thi */}
-      <Dialog
-        open={passwordDialogOpen}
-        onClose={() => {}}  // Không cho đóng bằng click ngoài
-        maxWidth="xs"
-        fullWidth
-        slotProps={{ paper: { sx: { borderRadius: 2, p: 1 } } }}
-      >
-        <DialogTitle sx={{ fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 1 }}>
-          <LockOutlined sx={{ color: '#2563EB' }} /> Đề thi có bảo mật
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ mb: 2, color: '#475569', fontSize: 14 }}>
-            Đề thi này yêu cầu mật khẩu truy cập. Vui lòng nhập mật khẩu do giáo viên/giám thị cung cấp để bắt đầu thi.
-          </DialogContentText>
-          <TextField
-            autoFocus
-            fullWidth
-            label="Mật khẩu truy cập"
-            type={showPassword ? 'text' : 'password'}
-            value={passwordInput}
-            onChange={(e) => { setPasswordInput(e.target.value); setPasswordError(''); }}
-            onKeyDown={(e) => { if (e.key === 'Enter' && passwordInput.trim() && !isJoining) { setIsJoining(true); initExam(passwordInput.trim()); } }}
-            error={!!passwordError}
-            helperText={passwordError || ' '}
-            variant="outlined"
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
-            slotProps={{
-              input: {
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <MuiIconButton onClick={() => setShowPassword((v) => !v)} edge="end" size="small">
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </MuiIconButton>
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button onClick={() => navigate(-1)} sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 600, color: '#64748B' }}>
-            Quay lại
-          </Button>
-          <Button
-            variant="contained"
-            disabled={!passwordInput.trim() || isJoining}
-            onClick={() => { setIsJoining(true); initExam(passwordInput.trim()); }}
-            sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 700, bgcolor: '#2563EB', '&:hover': { bgcolor: '#1D4ED8' } }}
-          >
-            {isJoining ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : 'Bắt đầu thi'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
     </Box>
   );
 };

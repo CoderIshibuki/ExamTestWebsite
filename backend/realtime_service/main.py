@@ -36,7 +36,7 @@ app.add_middleware(
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins=origins)
 
 # Mount Socket.IO to FastAPI app
-socket_app = socketio.ASGIApp(sio, socketio_path="/")
+socket_app = socketio.ASGIApp(sio, socketio_path="socket.io")
 app.mount("/ws", socket_app)
 
 # Register event handlers

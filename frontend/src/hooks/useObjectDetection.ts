@@ -53,9 +53,10 @@ export function useObjectDetection({
 
     const load = async () => {
       try {
-        // HEAD-check trước để tránh onnxruntime ném lỗi console ồn ào nếu thiếu file model.
+        // HEAD-check trước để tránh onnxruntime ném lỗi console ồn ào nếu thiếu file model (hoặc trả về index.html).
         const head = await fetch(modelUrl, { method: 'HEAD' });
-        if (!head.ok) {
+        const cType = head.headers.get('content-type') || '';
+        if (!head.ok || cType.includes('text/html')) {
           setAvailable(false);
           return;
         }
