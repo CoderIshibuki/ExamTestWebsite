@@ -232,9 +232,13 @@ def register_message_handlers(sio):
             return
         client = await redis_client.get_client()
         student_sid = await client.get(f"exam:room:{exam_id}:sid:{target_user_id}")
+        payload = {'proctor_sid': sid, 'stream_type': stream_type, 'target_user_id': target_user_id}
         if student_sid:
             sid_str = student_sid.decode('utf-8') if isinstance(student_sid, bytes) else student_sid
-            await sio.emit('webrtc_stream_requested', {'proctor_sid': sid, 'stream_type': stream_type}, room=sid_str)
+            await sio.emit('webrtc_stream_requested', payload, room=sid_str)
+        # Always emit to student's user and exam rooms as guaranteed fallback
+        await sio.emit('webrtc_stream_requested', payload, room=f"exam:{exam_id}:user:{target_user_id}")
+        await sio.emit('webrtc_stream_requested', payload, room=f"user:{target_user_id}")
 
     @sio.event
     async def webrtc_offer(sid, data):

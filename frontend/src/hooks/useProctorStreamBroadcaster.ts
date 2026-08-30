@@ -15,6 +15,16 @@ export function useProctorStreamBroadcaster(
   const socketRef = useRef<Socket | null>(null);
   const peersRef = useRef<Record<string, RTCPeerConnection>>({});
   const screenStreamRef = useRef<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(stream);
+  const onProctorActionRef = useRef(onProctorAction);
+
+  useEffect(() => {
+    streamRef.current = stream;
+  }, [stream]);
+
+  useEffect(() => {
+    onProctorActionRef.current = onProctorAction;
+  }, [onProctorAction]);
 
   useEffect(() => {
     if (!examId) return;
@@ -32,18 +42,27 @@ export function useProctorStreamBroadcaster(
     const socket = io(wsUrl, {
       path: '/ws/socket.io',
       query: { token },
+      reconnection: true,
+      reconnectionAttempts: 20,
+      reconnectionDelay: 1000,
     });
     socketRef.current = socket;
 
-    socket.on('connect', () => {
+    const sendJoin = () => {
       socket.emit('join_exam', { exam_id: examId });
-    });
+    };
+
+    socket.on('connect', sendJoin);
     if (socket.connected) {
-      socket.emit('join_exam', { exam_id: examId });
+      sendJoin();
     }
 
-    const handleStreamRequested = async (data: { proctor_sid: string; stream_type?: string }) => {
-      let activeStream: MediaStream | null = stream;
+    const handleStreamRequested = async (data: { proctor_sid: string; stream_type?: string; target_user_id?: string }) => {
+      if (data.target_user_id && userId && data.target_user_id !== userId) {
+        return;
+      }
+
+      let activeStream: MediaStream | null = streamRef.current;
       const reqType = data.stream_type || 'camera';
 
       if (reqType === 'screen' || reqType === 'both') {
@@ -59,17 +78,31 @@ export function useProctorStreamBroadcaster(
           }
         } catch (e) {
           console.warn('Screen share cancelled or not allowed, falling back to camera', e);
-          activeStream = stream;
+          activeStream = streamRef.current;
+        }
+      }
+
+      if (!activeStream) {
+        try {
+          activeStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
+          streamRef.current = activeStream;
+        } catch (err) {
+          console.error('Failed to get fallback camera stream:', err);
         }
       }
 
       if (!activeStream) return;
+
+      if (peersRef.current[data.proctor_sid]) {
+        peersRef.current[data.proctor_sid].close();
+      }
+
       const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
       peersRef.current[data.proctor_sid] = pc;
 
       activeStream.getTracks().forEach((track) => pc.addTrack(track, activeStream!));
-      if (reqType === 'both' && stream && activeStream !== stream) {
-        stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+      if (reqType === 'both' && streamRef.current && activeStream !== streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => pc.addTrack(track, streamRef.current!));
       }
 
       pc.onicecandidate = (event) => {
@@ -95,14 +128,11 @@ export function useProctorStreamBroadcaster(
 
     const handleProctorAction = (data: any) => {
       if (!data) return;
-      if (data.user_id === userId || data.user_id === '*' || !data.user_id) {
-        onProctorAction?.(data);
+      if (!data.user_id || data.user_id === userId || data.user_id === '*') {
+        onProctorActionRef.current?.(data);
       }
     };
 
-    socket.on('connect', () => {
-      socket.emit('join_exam', { exam_id: examId });
-    });
     socket.on('webrtc_stream_requested', handleStreamRequested);
     socket.on('webrtc_answer', handleAnswer);
     socket.on('webrtc_ice_candidate', handleIceCandidate);
@@ -113,5 +143,5 @@ export function useProctorStreamBroadcaster(
       peersRef.current = {};
       socket.disconnect();
     };
-  }, [examId, stream, onProctorAction]);
+  }, [examId]);
 }

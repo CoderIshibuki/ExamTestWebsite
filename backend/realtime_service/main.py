@@ -98,6 +98,8 @@ async def broadcast_alert(alert: ProctorAlert, _: bool = Depends(require_interna
     return {"status": "alert_broadcasted"}
 
 @app.get("/api/v1/realtime/exams/{exam_id}/students")
+@app.get("/v1/realtime/exams/{exam_id}/students")
+@app.get("/exams/{exam_id}/students")
 async def get_exam_students(exam_id: str, _: dict = Depends(require_staff_bearer)):
     import json
     client = await redis_client.get_client()
@@ -128,6 +130,8 @@ class ProctorActionRequest(BaseModel):
     penalty_minutes: Optional[int] = 0
 
 @app.post("/api/v1/realtime/exams/{exam_id}/proctor/action")
+@app.post("/v1/realtime/exams/{exam_id}/proctor/action")
+@app.post("/exams/{exam_id}/proctor/action")
 async def send_proctor_action(exam_id: str, payload: ProctorActionRequest, current_user: dict = Depends(require_staff_bearer)):
     action_id = str(uuid.uuid4())
     event_data = {
