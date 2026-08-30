@@ -40,11 +40,28 @@ export const useProctoring = (examId: string, attemptId: string, options: UsePro
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  const captureFrame = useCallback((): string | null => {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) return null;
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.min(video.videoWidth, 320);
+      canvas.height = Math.min(video.videoHeight, 240);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', 0.65);
+    } catch {
+      return null;
+    }
+  }, []);
+
   const handleViolation = useCallback(
     (type: ViolationType, details: Record<string, any> = {}) => {
       if (!examId || !attemptId) return;
       setViolationCount((prev) => prev + 1);
       setLastViolationType(type);
+      const screenshot = captureFrame();
       proctoringApi
         .sendViolationEvent({
           exam_id: examId,
@@ -52,11 +69,11 @@ export const useProctoring = (examId: string, attemptId: string, options: UsePro
           type,
           severity: SEVERITY_MAP[type] || 'medium',
           details: { source: type.startsWith('tab_') || type.startsWith('window_') ? 'browser' : 'ai_proctoring', eventType: type, ...details },
-          screenshot_url: null,
+          screenshot_url: screenshot,
         })
         .catch(console.error);
     },
-    [examId, attemptId],
+    [examId, attemptId, captureFrame],
   );
 
   // Theo dõi chuyển tab / mất focus cửa sổ (luôn bật, không cần quyền camera)
