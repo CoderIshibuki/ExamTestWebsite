@@ -43,12 +43,6 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
   const [generating, setGenerating] = useState(false);
   const [manualAdd, setManualAdd] = useState<any>(null);
 
-  // Tab Giám thị
-  const [proctors, setProctors] = useState<any[]>([]);
-  const [teachers, setTeachers] = useState<any[]>([]);
-  const [selectedTeacher, setSelectedTeacher] = useState<any>(null);
-  const [loadingProctors, setLoadingProctors] = useState(false);
-
   // Tab Lịch thi
   const [schedules, setSchedules] = useState<any[]>([]);
   const [loadingSchedules, setLoadingSchedules] = useState(false);
@@ -80,24 +74,6 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
       setError('Không tải được danh sách câu hỏi.');
     } finally {
       setLoadingQuestions(false);
-    }
-  };
-
-  const loadProctorsTab = async () => {
-    if (!examId) return;
-    setLoadingProctors(true);
-    try {
-      const [p, users] = await Promise.all([
-        adminApi.listExamProctors(examId),
-        adminApi.getUsers(),
-      ]);
-      setProctors(p || []);
-      setTeachers((users || []).filter((u: any) => u.role === 'teacher' || u.role === 'admin'));
-    } catch (err) {
-      console.error('Failed to load proctors', err);
-      setError('Không tải được danh sách giám thị.');
-    } finally {
-      setLoadingProctors(false);
     }
   };
 
@@ -202,7 +178,6 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
       setError('');
       setSuccessMsg('');
       loadQuestionsTab();
-      loadProctorsTab();
       loadSchedulesTab();
       loadAttemptsTab();
     }
@@ -284,34 +259,6 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
     }
   };
 
-  const handleAddProctor = async () => {
-    if (!examId || !selectedTeacher) return;
-    try {
-      await adminApi.addExamProctor(examId, selectedTeacher.id);
-      setSelectedTeacher(null);
-      loadProctorsTab();
-    } catch (err) {
-      console.error('Failed to add proctor', err);
-      setError('Gán giám thị thất bại.');
-    }
-  };
-
-  const handleRemoveProctor = async (userId: string) => {
-    if (!examId) return;
-    try {
-      await adminApi.removeExamProctor(examId, userId);
-      setProctors((prev) => prev.filter((p) => p.user_id !== userId));
-    } catch (err) {
-      console.error('Failed to remove proctor', err);
-      setError('Gỡ giám thị thất bại.');
-    }
-  };
-
-  const teacherName = (userId: string) => {
-    const t = teachers.find((u) => u.id === userId);
-    return t ? `${t.full_name || t.username} (${t.email})` : userId;
-  };
-
   const handleAddSchedule = async () => {
     if (!examId || !newStart || !newEnd) {
       setError('Vui lòng chọn đầy đủ thời gian bắt đầu và kết thúc.');
@@ -352,7 +299,6 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
       <DialogContent sx={{ minHeight: 450 }}>
         <Tabs value={tab} onChange={(_e, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tab label="Câu hỏi trong đề" sx={{ fontWeight: 700, textTransform: 'none' }} />
-          <Tab label="Giám thị coi thi" sx={{ fontWeight: 700, textTransform: 'none' }} />
           <Tab label="Lịch thi" sx={{ fontWeight: 700, textTransform: 'none' }} />
           <Tab label={`Thí sinh & Lượt thi (${attempts.length})`} sx={{ fontWeight: 700, textTransform: 'none' }} />
         </Tabs>
@@ -434,51 +380,6 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
         </TabPanel>
 
         <TabPanel value={tab} index={1}>
-          {loadingProctors ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
-          ) : (
-            <>
-              <Typography sx={{ fontWeight: 600, mb: 1 }}>Giám thị đang được gán ({proctors.length})</Typography>
-              <List dense sx={{ maxHeight: 220, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 2, mb: 3 }}>
-                {proctors.length === 0 && (
-                  <ListItem><ListItemText primary="Chưa gán giám thị nào cho đề thi này." /></ListItem>
-                )}
-                {proctors.map((p) => (
-                  <ListItem
-                    key={p.user_id}
-                    secondaryAction={
-                      <IconButton edge="end" color="error" onClick={() => handleRemoveProctor(p.user_id)}>
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    }
-                  >
-                    <ListItemText primary={teacherName(p.user_id)} />
-                  </ListItem>
-                ))}
-              </List>
-
-              <Typography sx={{ fontWeight: 600, mb: 1 }}>Gán thêm giám thị</Typography>
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <Autocomplete
-                  options={teachers.filter((t) => !proctors.some((p) => p.user_id === t.id))}
-                  getOptionLabel={(o) => `${o.full_name || o.username} (${o.email})`}
-                  value={selectedTeacher}
-                  onChange={(_e, v) => setSelectedTeacher(v)}
-                  sx={{ flex: 1 }}
-                  renderInput={(params) => <TextField {...params} label="Chọn giáo viên" size="small" />}
-                />
-                <Button variant="contained" onClick={handleAddProctor} disabled={!selectedTeacher} sx={{ borderRadius: 2, textTransform: 'none' }}>
-                  Gán
-                </Button>
-              </Box>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
-                Giáo viên được gán sẽ có quyền xem dashboard giám sát thi thời gian thực của đề này.
-              </Typography>
-            </>
-          )}
-        </TabPanel>
-
-        <TabPanel value={tab} index={2}>
           {loadingSchedules ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
           ) : (
@@ -525,7 +426,7 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
           )}
         </TabPanel>
 
-        <TabPanel value={tab} index={3}>
+        <TabPanel value={tab} index={2}>
           {loadingAttempts ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
           ) : (

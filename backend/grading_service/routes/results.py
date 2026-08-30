@@ -36,12 +36,6 @@ async def get_results_by_exam(
     role = current_user["role"]
     if role == "proctor":
         raise HTTPException(status_code=403, detail="Proctors cannot view results")
-        
-    if role == "teacher":
-        exam_client = ExamClient()
-        access = await exam_client.verify_exam_access(str(exam_id), current_user["token"])
-        if not access or (not access.get("is_owner") and not access.get("is_collaborator")):
-            raise HTTPException(status_code=403, detail="Not authorized to view these results")
 
     async def fetch_data():
         if role in ["admin", "teacher"]:
@@ -73,12 +67,6 @@ async def get_result(
         
     if role == "student" and str(db_result.user_id) != str(current_user["id"]):
         raise HTTPException(status_code=403, detail="Not authorized to view this result")
-        
-    if role == "teacher":
-        exam_client = ExamClient()
-        access = await exam_client.verify_exam_access(str(db_result.exam_id), current_user["token"])
-        if not access or (not access.get("is_owner") and not access.get("is_collaborator")):
-            raise HTTPException(status_code=403, detail="Not authorized to view this result")
         
     return db_result
 

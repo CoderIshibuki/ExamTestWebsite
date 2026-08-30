@@ -92,7 +92,7 @@ async def update_question(
     if not existing_q:
         raise HTTPException(status_code=404, detail="Question not found")
         
-    if current_user["role"] != "admin" and existing_q.get("created_by") != current_user["id"]:
+    if current_user["role"] not in ("admin", "teacher") and existing_q.get("created_by") != current_user["id"]:
         raise HTTPException(status_code=403, detail="Permission denied")
         
     update_data = question.model_dump(exclude_unset=True)
@@ -113,7 +113,7 @@ async def delete_question(
     if not existing_q:
         raise HTTPException(status_code=404, detail="Question not found")
         
-    if current_user["role"] != "admin" and existing_q.get("created_by") != current_user["id"]:
+    if current_user["role"] not in ("admin", "teacher") and existing_q.get("created_by") != current_user["id"]:
         raise HTTPException(status_code=403, detail="Permission denied")
         
     success = await crud.delete_question(id)

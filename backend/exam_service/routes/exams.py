@@ -20,18 +20,12 @@ async def list_exams(skip: int = 0, limit: int = 100, db: AsyncSession = Depends
     
     async def fetch_data():
         exams = await crud.get_exams(db, skip=skip, limit=limit)
-        if role == "admin":
+        if role in ("admin", "teacher"):
             return exams
         
         filtered = []
         for exam in exams:
-            if role == "teacher":
-                is_owner = str(exam.owner_id) == user_id
-                is_collab = any(str(c.user_id) == user_id for c in exam.collaborators)
-                is_proctor = any(str(p.user_id) == user_id for p in getattr(exam, 'proctors', []))
-                if is_owner or is_collab or is_proctor:
-                    filtered.append(exam)
-            elif role == "student":
+            if role == "student":
                 if exam.status == "published":
                     is_roster = any(str(r.user_id) == user_id for r in exam.roster)
                     if getattr(exam, 'is_public', False) or is_roster:
@@ -124,26 +118,19 @@ async def get_exam_reports(
     from sqlalchemy import text
 
     # Pass/fail thật: so sánh results.percentage (bảng cùng DB vật lý, thuộc grading_service)
-    # với exam.passing_score — trước đây dùng status == 'GRADED' làm tiêu chí pass/fail,
-    # hoàn toàn sai bản chất (đã "graded" không có nghĩa là "đạt").
-    #
-    # Giáo viên chỉ xem báo cáo của đề thi CHÍNH MÌNH tạo (owner_id) — trước đây route này
-    # luôn trả về tất cả đề thi trong hệ thống bất kể ai gọi, khiến giáo viên nhìn thấy cả
-    # dữ liệu của giáo viên khác. Admin vẫn xem được toàn bộ.
-    where_owner = "" if current_user["role"] == "admin" else "WHERE e.owner_id = :owner_id"
+    # với exam.passing_score
     rows = (await db.execute(text(
-        f"""
+        """
         SELECT e.title AS title,
                COUNT(r.id) AS total,
                SUM(CASE WHEN r.percentage >= e.passing_score THEN 1 ELSE 0 END) AS passed
         FROM exams e
         LEFT JOIN results r ON r.exam_id = e.id AND r.status = 'graded'
-        {where_owner}
         GROUP BY e.id, e.title
         HAVING COUNT(r.id) > 0
         ORDER BY e.title
         """
-    ), {"owner_id": current_user["id"]} if where_owner else {})).all()
+    ))).all()
 
     reports = [
         {
@@ -169,13 +156,8 @@ async def get_exam(exam_id: str, db: AsyncSession = Depends(get_db), current_use
         raise HTTPException(status_code=404, detail="Exam not found")
         
     role = current_user["role"]
-    if role == "admin":
-        pass # Admin can read any exam
-    elif role == "teacher":
-        is_owner = str(exam.owner_id) == current_user["id"]
-        is_collaborator = any(str(c.user_id) == current_user["id"] for c in exam.collaborators)
-        if not is_owner and not is_collaborator:
-            raise HTTPException(status_code=403, detail="Not authorized to view this exam")
+    if role in ("admin", "teacher"):
+        pass # Admin and Teacher can read any exam
     elif role == "proctor":
         is_proctor = any(str(p.user_id) == current_user["id"] for p in getattr(exam, 'proctors', []))
         if not is_proctor:
@@ -223,7 +205,7 @@ async def update_exam(
     
     is_owner = str(exam.owner_id) == current_user["id"]
     is_collaborator = any(str(c.user_id) == current_user["id"] for c in exam.collaborators)
-    if current_user["role"] != "admin" and not is_owner and not is_collaborator:
+    if current_user["role"] not in ("admin", "teacher") and not is_owner and not is_collaborator:
         raise HTTPException(status_code=403, detail="You don't have permission")
         
     updated = await crud.update_exam(db, exam_id, exam_update)
@@ -242,7 +224,7 @@ async def delete_exam(
         raise HTTPException(status_code=404, detail="Exam not found")
         
     is_owner = str(exam.owner_id) == current_user["id"]
-    if current_user["role"] != "admin" and not is_owner:
+    if current_user["role"] not in ("admin", "teacher") and not is_owner:
         raise HTTPException(status_code=403, detail="You don't have permission. Only owners can delete.")
         
     await crud.delete_exam(db, exam_id)
@@ -261,7 +243,7 @@ async def publish_exam(
         
     is_owner = str(exam.owner_id) == current_user["id"]
     is_collaborator = any(str(c.user_id) == current_user["id"] for c in exam.collaborators)
-    if current_user["role"] != "admin" and not is_owner and not is_collaborator:
+    if current_user["role"] not in ("admin", "teacher") and not is_owner and not is_collaborator:
         raise HTTPException(status_code=403, detail="You don't have permission")
         
     if exam.status != "draft":
@@ -337,7 +319,7 @@ async def unpublish_exam(
         
     is_owner = str(exam.owner_id) == current_user["id"]
     is_collaborator = any(str(c.user_id) == current_user["id"] for c in exam.collaborators)
-    if current_user["role"] != "admin" and not is_owner and not is_collaborator:
+    if current_user["role"] not in ("admin", "teacher") and not is_owner and not is_collaborator:
         raise HTTPException(status_code=403, detail="You don't have permission")
         
     update_data = schemas.ExamUpdate(status="draft")

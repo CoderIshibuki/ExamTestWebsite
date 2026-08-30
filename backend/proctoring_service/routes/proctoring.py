@@ -207,8 +207,8 @@ async def delete_violation(
     """
     Xóa 1 bản ghi vi phạm / hình ảnh vi phạm cụ thể.
     """
-    if current_user["role"] != "admin":
-        raise HTTPException(status_code=403, detail="Chỉ Quản trị viên mới có quyền xoá bằng chứng vi phạm.")
+    if current_user["role"] not in ("admin", "teacher"):
+        raise HTTPException(status_code=403, detail="Chỉ Quản trị viên và Giáo viên mới có quyền xoá bằng chứng vi phạm.")
     
     res = await db.execute(
         text("DELETE FROM violations WHERE id = CAST(:vid AS uuid) RETURNING id"),
@@ -229,8 +229,8 @@ async def delete_violation_session(
     """
     Xóa toàn bộ thư mục/dữ liệu vi phạm của cả bài thi.
     """
-    if current_user["role"] != "admin":
-        raise HTTPException(status_code=403, detail="Chỉ Quản trị viên mới có quyền xoá toàn bộ mục vi phạm bài thi.")
+    if current_user["role"] not in ("admin", "teacher"):
+        raise HTTPException(status_code=403, detail="Chỉ Quản trị viên và Giáo viên mới có quyền xoá toàn bộ mục vi phạm bài thi.")
         
     await db.execute(
         text("DELETE FROM violations WHERE exam_id = CAST(:eid AS uuid)"),

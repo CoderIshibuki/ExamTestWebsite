@@ -20,7 +20,9 @@ ROLE_PERMISSIONS = {
     "teacher": [
         "exam:read", "exam:create", "exam:update", "exam:delete", "exam:publish", "exam:assign",
         "question:read", "question:create", "question:update", "question:delete",
-        "result:read_managed", "proctoring:read", "proctoring:flag", "proctoring:terminate"
+        "attempt:create", "attempt:answer", "attempt:submit", "result:read_own", "result:read_managed",
+        "user:read", "user:create", "user:update", "user:delete",
+        "proctoring:read", "proctoring:flag", "proctoring:terminate"
     ],
     "admin": [
         "exam:read", "exam:create", "exam:update", "exam:delete", "exam:publish", "exam:assign",

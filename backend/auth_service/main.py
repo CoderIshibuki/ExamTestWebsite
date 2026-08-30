@@ -162,7 +162,7 @@ async def create_user_admin(
     current_user: models.User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    if current_user.role != "admin":
+    if current_user.role not in ("admin", "teacher"):
         raise HTTPException(status_code=403, detail="Not enough permissions")
     
     query = select(models.User).where((models.User.username == user_in.username) | (models.User.email == user_in.email))
@@ -204,7 +204,7 @@ async def list_users(
     skip: int = 0, limit: int = 100, role: str = None, 
     current_user: models.User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
 ):
-    if current_user.role != "admin":
+    if current_user.role not in ("admin", "teacher"):
         raise HTTPException(status_code=403, detail="Not enough permissions")
     query = select(models.User)
     if role:
@@ -219,7 +219,7 @@ async def update_user(
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    if current_user.role != "admin":
+    if current_user.role not in ("admin", "teacher"):
         raise HTTPException(status_code=403, detail="Not enough permissions")
     if str(current_user.id) == user_id and (
         (user_update.role is not None and user_update.role != "admin")
@@ -246,7 +246,7 @@ async def create_users_bulk(
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    if current_user.role != "admin":
+    if current_user.role not in ("admin", "teacher"):
         raise HTTPException(status_code=403, detail="Not enough permissions")
 
     created = []
@@ -284,7 +284,7 @@ async def delete_user(
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    if current_user.role != "admin":
+    if current_user.role not in ("admin", "teacher"):
         raise HTTPException(status_code=403, detail="Not enough permissions")
     if str(current_user.id) == user_id:
         raise HTTPException(status_code=400, detail="Không thể tự xoá chính tài khoản đang đăng nhập.")
