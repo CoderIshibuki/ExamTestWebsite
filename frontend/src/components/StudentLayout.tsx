@@ -19,7 +19,6 @@ import {
   Person as PersonIcon,
   VerifiedUser,
   School,
-  AccountCircle,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -51,7 +50,6 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
       {
         label: 'CÁ NHÂN & CÔNG CỤ',
         items: [
-          { text: 'Trang cá nhân', icon: <AccountCircle fontSize="small" />, path: '/profile' },
           { text: 'Đổi mật khẩu', icon: <LockIcon fontSize="small" />, path: '/change-password' },
           { text: 'Kiểm tra Camera', icon: <VideocamIcon fontSize="small" />, path: '/student/camera-test' },
         ],

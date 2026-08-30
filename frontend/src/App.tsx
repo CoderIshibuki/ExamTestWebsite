@@ -15,7 +15,6 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const ChangePassword = lazy(() => import('./pages/ChangePassword'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const ExamList = lazy(() => import('./pages/ExamList'));
-const Profile = lazy(() => import('./pages/Profile'));
 const StudentResults = lazy(() => import('./pages/StudentResults'));
 const ExamRoom = lazy(() => import('./pages/ExamRoom'));
 const ResultSummary = lazy(() => import('./pages/ResultSummary'));
@@ -66,13 +65,6 @@ function App() {
             <RoleRoute allowedRoles={['student', 'teacher', 'admin']}>
               <StudentLayout>
                 <Dashboard />
-              </StudentLayout>
-            </RoleRoute>
-          } />
-          <Route path="/profile" element={
-            <RoleRoute allowedRoles={['student', 'teacher', 'admin']}>
-              <StudentLayout>
-                <Profile />
               </StudentLayout>
             </RoleRoute>
           } />
