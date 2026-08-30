@@ -164,12 +164,19 @@ async def send_proctor_action(exam_id: str, payload: ProctorActionRequest, curre
             curr_val = int(curr) if curr else 0
             new_val = min(100, curr_val + (payload.penalty_percent or 0))
             await client.set(f"exam:penalty:{exam_id}:{payload.user_id}", str(new_val), ex=86400 * 7)
+
+        student_sid = await client.get(f"exam:room:{exam_id}:sid:{payload.user_id}")
+        if student_sid:
+            sid_str = student_sid.decode('utf-8') if isinstance(student_sid, bytes) else student_sid
+            await sio.emit("student:proctor_action", event_data, room=sid_str)
     except Exception as e:
         print(f"Failed to record proctor action in Redis: {e}")
     
-    # Phát sự kiện đúng 1 lần tới phòng riêng của thí sinh này
+    # Phát sự kiện tới tất cả các room của học sinh và phòng thi
     await sio.emit("student:proctor_action", event_data, room=f"exam:{exam_id}:user:{payload.user_id}")
-
+    await sio.emit("student:proctor_action", event_data, room=f"user:{payload.user_id}")
+    await sio.emit("student:proctor_action", event_data, room=f"exam:{exam_id}")
+    await sio.emit("student:proctor_action", event_data, room=exam_id)
     await sio.emit("proctor:action_logged", event_data, room=f"proctor:{exam_id}")
     return {"status": "action_dispatched", "data": event_data}
 

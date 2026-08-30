@@ -33,10 +33,15 @@ export function useProctorStreamBroadcaster(
     let userId = '';
     try {
       if (token) {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        userId = payload.sub || '';
+        const payload = JSON.parse(decodeURIComponent(escape(atob(token.split('.')[1]))));
+        userId = String(payload.sub || payload.id || payload.user_id || '');
       }
-    } catch {}
+    } catch {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        userId = String(payload.sub || payload.id || payload.user_id || '');
+      } catch {}
+    }
 
     const wsUrl = import.meta.env.VITE_WS_URL || window.location.origin;
     const socket = io(wsUrl, {
@@ -157,7 +162,9 @@ export function useProctorStreamBroadcaster(
 
     const handleProctorAction = (data: any) => {
       if (!data) return;
-      if (!data.user_id || data.user_id === userId || data.user_id === '*') {
+      const targetUid = String(data.user_id || '').trim().toLowerCase();
+      const currentUid = String(userId || '').trim().toLowerCase();
+      if (!targetUid || targetUid === '*' || targetUid === currentUid) {
         onProctorActionRef.current?.(data);
       }
     };
