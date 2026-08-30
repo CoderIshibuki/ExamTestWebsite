@@ -40,17 +40,41 @@ export const useProctoring = (examId: string, attemptId: string, options: UsePro
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const captureFrame = useCallback((): string | null => {
-    const video = videoRef.current;
-    if (!video || !video.videoWidth || !video.videoHeight) return null;
+  const captureFrame = useCallback((violationType?: string): string | null => {
     try {
       const canvas = document.createElement('canvas');
-      canvas.width = Math.min(video.videoWidth, 320);
-      canvas.height = Math.min(video.videoHeight, 240);
+      canvas.width = 320;
+      canvas.height = 240;
       const ctx = canvas.getContext('2d');
       if (!ctx) return null;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      return canvas.toDataURL('image/jpeg', 0.65);
+
+      const video = videoRef.current;
+      if (video && video.videoWidth > 0 && video.videoHeight > 0) {
+        ctx.drawImage(video, 0, 0, 320, 240);
+      } else {
+        // Fallback banner nếu không có luồng camera
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, 320, 240);
+        ctx.fillStyle = '#ef4444';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('⚠️ PHÁT HIỆN VI PHẠM', 160, 110);
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '12px sans-serif';
+        ctx.fillText(violationType ? String(violationType).toUpperCase() : 'SỰ KIỆN TRÌNH DUYỆT', 160, 135);
+      }
+
+      // Red footer evidence banner with timestamp
+      ctx.fillStyle = 'rgba(220, 38, 38, 0.9)';
+      ctx.fillRect(0, 205, 320, 35);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'left';
+      const timeStr = new Date().toLocaleTimeString('vi-VN');
+      const label = violationType === 'tab_switch' ? 'Chuyển tab thi' : violationType === 'window_blur' ? 'Mất focus cửa sổ' : (violationType || 'Vi phạm');
+      ctx.fillText(`🚨 ${label} • ${timeStr}`, 8, 227);
+
+      return canvas.toDataURL('image/jpeg', 0.7);
     } catch {
       return null;
     }
@@ -61,7 +85,7 @@ export const useProctoring = (examId: string, attemptId: string, options: UsePro
       if (!examId || !attemptId) return;
       setViolationCount((prev) => prev + 1);
       setLastViolationType(type);
-      const screenshot = captureFrame();
+      const screenshot = captureFrame(type);
       proctoringApi
         .sendViolationEvent({
           exam_id: examId,

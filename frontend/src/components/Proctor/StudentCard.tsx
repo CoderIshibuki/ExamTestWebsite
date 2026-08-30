@@ -159,45 +159,41 @@ const StudentCard = ({ student, examId, onRequestStream, onStopStream, stream }:
 
         {/* Action Controls */}
         <Box sx={{ display: 'flex', gap: 0.8, mt: 1.5, flexWrap: 'wrap' }}>
-          {student.is_online && (
-            <>
-              <Tooltip title={watching && streamMode === 'camera' ? 'Tắt camera' : 'Xem luồng Web Camera'}>
-                <Button
-                  size="small"
-                  variant={watching && streamMode === 'camera' ? 'contained' : 'outlined'}
-                  color={watching && streamMode === 'camera' ? 'error' : 'primary'}
-                  startIcon={watching && streamMode === 'camera' ? <VideocamOffIcon sx={{ fontSize: 15 }} /> : <VideocamIcon sx={{ fontSize: 15 }} />}
-                  onClick={handleToggleCamera}
-                  sx={{ flex: 1, borderRadius: 1, textTransform: 'none', fontWeight: 700, fontSize: '0.72rem', py: 0.6 }}
-                >
-                  {watching && streamMode === 'camera' ? 'Tắt cam' : 'Cam'}
-                </Button>
-              </Tooltip>
+          <Tooltip title={watching && streamMode === 'camera' ? 'Tắt xem camera' : 'Xem trực tiếp luồng camera của thí sinh'}>
+            <Button
+              size="small"
+              variant={watching && streamMode === 'camera' ? 'contained' : 'outlined'}
+              color={watching && streamMode === 'camera' ? 'error' : 'primary'}
+              startIcon={watching && streamMode === 'camera' ? <VideocamOffIcon sx={{ fontSize: 16 }} /> : <VideocamIcon sx={{ fontSize: 16 }} />}
+              onClick={handleToggleCamera}
+              sx={{ flex: 1, borderRadius: 1, textTransform: 'none', fontWeight: 700, fontSize: '0.78rem', py: 0.7 }}
+            >
+              {watching && streamMode === 'camera' ? 'Tắt cam' : 'Xem Cam'}
+            </Button>
+          </Tooltip>
 
-              <Tooltip title={watching && streamMode === 'screen' ? 'Tắt xem màn hình' : 'Xem trực tiếp màn hình làm bài của thí sinh'}>
-                <Button
-                  size="small"
-                  variant={watching && streamMode === 'screen' ? 'contained' : 'outlined'}
-                  color={watching && streamMode === 'screen' ? 'error' : 'info'}
-                  startIcon={watching && streamMode === 'screen' ? <StopScreenShareIcon sx={{ fontSize: 15 }} /> : <ScreenShareIcon sx={{ fontSize: 15 }} />}
-                  onClick={handleToggleScreen}
-                  sx={{ flex: 1, borderRadius: 1, textTransform: 'none', fontWeight: 700, fontSize: '0.72rem', py: 0.6 }}
-                >
-                  {watching && streamMode === 'screen' ? 'Tắt hình' : 'Màn hình'}
-                </Button>
-              </Tooltip>
-            </>
-          )}
+          <Tooltip title={watching && streamMode === 'screen' ? 'Tắt xem màn hình' : 'Xem trực tiếp màn hình làm bài của thí sinh'}>
+            <Button
+              size="small"
+              variant={watching && streamMode === 'screen' ? 'contained' : 'outlined'}
+              color={watching && streamMode === 'screen' ? 'error' : 'info'}
+              startIcon={watching && streamMode === 'screen' ? <StopScreenShareIcon sx={{ fontSize: 16 }} /> : <ScreenShareIcon sx={{ fontSize: 16 }} />}
+              onClick={handleToggleScreen}
+              sx={{ flex: 1, borderRadius: 1, textTransform: 'none', fontWeight: 700, fontSize: '0.78rem', py: 0.7 }}
+            >
+              {watching && streamMode === 'screen' ? 'Tắt hình' : 'Màn hình'}
+            </Button>
+          </Tooltip>
 
           <Button
             size="small"
-            variant="outlined"
+            variant="contained"
             color="warning"
-            startIcon={<GavelIcon sx={{ fontSize: 15 }} />}
+            startIcon={<GavelIcon sx={{ fontSize: 16 }} />}
             onClick={() => setActionDialogOpen(true)}
-            sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 700, fontSize: '0.72rem', py: 0.6, px: 1.2 }}
+            sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 700, fontSize: '0.78rem', py: 0.7, px: 1.5 }}
           >
-            Kỷ luật
+            Phạt
           </Button>
         </Box>
       </CardContent>
