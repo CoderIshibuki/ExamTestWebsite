@@ -52,18 +52,32 @@ export const useProctoringData = (examId: string) => {
       });
 
       // Fetch online students
-      const studentsRes = await apiClient.get(`/v1/realtime/exams/${examId}/students`);
-      const serverStudents = studentsRes.data.students || [];
-      const userIds = studentsRes.data.online_students || [];
+      let serverStudents: any[] = [];
+      let userIds: string[] = [];
+      try {
+        const studentsRes = await apiClient.get(`/v1/realtime/exams/${examId}/students`);
+        serverStudents = studentsRes.data.students || [];
+        userIds = studentsRes.data.online_students || [];
+      } catch (err) {
+        console.warn('Could not fetch realtime students, falling back to violations roster:', err);
+      }
 
-      const mappedStudents: StudentSession[] = userIds.map((id: string) => {
+      // Hợp nhất toàn bộ thí sinh: từ danh sách online thực tế + từ các bản ghi vi phạm trong bài thi
+      const allUserIds = Array.from(new Set([
+        ...userIds,
+        ...Object.keys(violationCounts),
+        ...Object.keys(riskScores)
+      ]));
+
+      const mappedStudents: StudentSession[] = allUserIds.map((id: string) => {
         const found = serverStudents.find((s: any) => s.user_id === id);
+        const isOnline = userIds.includes(id);
         return {
           user_id: id,
           full_name: found?.full_name || userMap[id]?.full_name || 'Thí sinh',
           username: found?.username || userMap[id]?.username || 'student',
           ip: found?.ip || '127.0.0.1',
-          is_online: true,
+          is_online: isOnline,
           risk_score: riskScores[id] || 0,
           violations_count: violationCounts[id] || 0,
         };
@@ -137,8 +151,23 @@ export const useProctoringData = (examId: string) => {
           details: payload.details || {},
         };
         setViolations((prev) => [newViolation, ...prev]);
-        setStudents((prev) =>
-          prev.map((s) =>
+        setStudents((prev) => {
+          const exists = prev.find((s) => s.user_id === payload.user_id);
+          if (!exists) {
+            return [
+              ...prev,
+              {
+                user_id: payload.user_id,
+                full_name: payload.full_name || userMap[payload.user_id]?.full_name || 'Thí sinh',
+                username: payload.username || userMap[payload.user_id]?.username || 'student',
+                ip: payload.ip || '127.0.0.1',
+                is_online: true,
+                risk_score: payload.risk_score || 0,
+                violations_count: 1,
+              }
+            ];
+          }
+          return prev.map((s) =>
             s.user_id === payload.user_id
               ? {
                   ...s,
@@ -146,8 +175,8 @@ export const useProctoringData = (examId: string) => {
                   risk_score: payload.risk_score !== undefined ? payload.risk_score : (s.risk_score || 0),
                 }
               : s
-          )
-        );
+          );
+        });
       } else if (lastEvent.type === 'risk_update') {
         setStudents((prev) =>
           prev.map((s) =>

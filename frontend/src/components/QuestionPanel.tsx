@@ -59,6 +59,13 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
     switch (question.type) {
       case 'true_false':
       case 'multiple_choice': {
+        if (!question.options || question.options.length === 0) {
+          return (
+            <Alert severity="warning" sx={{ borderRadius: 2, mt: 1 }}>
+              Câu hỏi này hiện chưa có danh sách đáp án lựa chọn.
+            </Alert>
+          );
+        }
         const value = typeof selectedAnswer === 'string' ? selectedAnswer : '';
         return (
           <RadioGroup value={value} onChange={(e) => onSelectAnswer(e.target.value)} sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
