@@ -5,7 +5,7 @@ import {
   MenuItem, InputAdornment, Chip
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import type { GridColDef, GridRowSelectionModel } from '@mui/x-data-grid';
+import type { GridColDef, GridRowSelectionModel, GridRowId } from '@mui/x-data-grid';
 import { useState, useEffect, useMemo } from 'react';
 import { adminApi } from '../api/adminApi';
 import {
@@ -20,12 +20,13 @@ import ExcelImportDialog from '../components/ExcelImportDialog';
 // Shape thật trả về từ question_service (QuestionModel)
 interface Question {
   id: string;
+  _id?: string;
   content: { text: string };
   type: string;
+  category_id?: string;
   metadata: { subject: string; difficulty: string; tags?: string[] };
   options?: any[];
   correct_answer?: any;
-  category_id?: string;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -53,7 +54,10 @@ const AdminQuestions = () => {
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
   const [batchAssignOpen, setBatchAssignOpen] = useState(false);
   const [targetCategory, setTargetCategory] = useState<string>('');
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>({
+    type: 'include',
+    ids: new Set<GridRowId>(),
+  });
   const [createOpen, setCreateOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<any | null>(null);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
@@ -117,6 +121,29 @@ const AdminQuestions = () => {
     });
   }, [questions, searchTerm, selectedCategory, selectedType]);
 
+  // Đảm bảo mỗi dòng có field id duy nhất
+  const rows = useMemo(() => {
+    return filteredQuestions.map((q) => ({
+      ...q,
+      id: String(q.id || q._id || ''),
+    }));
+  }, [filteredQuestions]);
+
+  // Tính toán danh sách ID đã chọn tương thích với mọi chế độ selection của MUI DataGrid v9
+  const selectedIds = useMemo<string[]>(() => {
+    if (!rowSelectionModel) return [];
+    if (Array.isArray(rowSelectionModel)) {
+      return (rowSelectionModel as any[]).map(String);
+    }
+    if (rowSelectionModel.type === 'include') {
+      return Array.from(rowSelectionModel.ids).map(String);
+    } else if (rowSelectionModel.type === 'exclude') {
+      const excluded = rowSelectionModel.ids;
+      return rows.map((r) => r.id).filter((id) => !excluded.has(id));
+    }
+    return [];
+  }, [rowSelectionModel, rows]);
+
   const handleOpenCreate = () => {
     setEditingQuestion(null);
     setCreateOpen(true);
@@ -150,7 +177,12 @@ const AdminQuestions = () => {
     try {
       await adminApi.deleteQuestion(deleteDialog.id);
       setQuestions((prev) => prev.filter((q: any) => (q.id || q._id) !== deleteDialog.id));
-      setSelectedIds((prev) => prev.filter((id) => id !== deleteDialog.id));
+      setRowSelectionModel((prev) => {
+        if (Array.isArray(prev)) return prev.filter((id) => id !== deleteDialog.id) as any;
+        const newIds = new Set(prev.ids);
+        newIds.delete(deleteDialog.id as string);
+        return { ...prev, ids: newIds };
+      });
       setSnackbar({ open: true, message: 'Đã xoá câu hỏi.', severity: 'success' });
     } catch (err: any) {
       console.error('Failed to delete question', err);
@@ -166,7 +198,7 @@ const AdminQuestions = () => {
     try {
       await adminApi.bulkDeleteQuestions(selectedIds);
       setQuestions((prev) => prev.filter((q: any) => !selectedIds.includes(q.id || q._id)));
-      setSelectedIds([]);
+      setRowSelectionModel({ type: 'include', ids: new Set() });
       setSnackbar({ open: true, message: `Đã xóa thành công ${selectedIds.length} câu hỏi.`, severity: 'success' });
     } catch (err: any) {
       console.error('Failed to batch delete questions', err);
@@ -182,7 +214,7 @@ const AdminQuestions = () => {
     try {
       await adminApi.bulkAssignCategory(selectedIds, targetCategory || null);
       setSnackbar({ open: true, message: `Đã gán ${selectedIds.length} câu hỏi vào danh mục thành công.`, severity: 'success' });
-      setSelectedIds([]);
+      setRowSelectionModel({ type: 'include', ids: new Set() });
       fetchQuestions();
     } catch (err: any) {
       console.error('Failed to batch assign category', err);
@@ -505,19 +537,15 @@ const AdminQuestions = () => {
           </Box>
         ) : (
           <DataGrid
-            rows={filteredQuestions}
+            rows={rows}
             columns={columns}
             rowHeight={60}
-            getRowId={(row) => row.id || row._id}
+            getRowId={(row) => row.id}
             checkboxSelection
-            onRowSelectionModelChange={(newSelection: GridRowSelectionModel) => {
-              if (Array.isArray(newSelection)) {
-                setSelectedIds(newSelection.map(String));
-              } else if (newSelection && typeof newSelection === 'object' && 'ids' in newSelection) {
-                setSelectedIds(Array.from((newSelection as any).ids).map(String));
-              }
+            onRowSelectionModelChange={(newModel: GridRowSelectionModel) => {
+              setRowSelectionModel(newModel);
             }}
-            rowSelectionModel={{ type: 'include', ids: new Set(selectedIds) } as any}
+            rowSelectionModel={rowSelectionModel}
             initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
             pageSizeOptions={[10, 25, 50, 100]}
             disableRowSelectionOnClick
