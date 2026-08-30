@@ -32,10 +32,19 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': 'http://localhost',
+      '/api': {
+        target: 'http://localhost',
+        changeOrigin: true,
+      },
       '/ws': {
         target: 'http://localhost',
-        ws: true
+        ws: true,
+        changeOrigin: true,
+      },
+      '/socket.io': {
+        target: 'http://localhost',
+        ws: true,
+        changeOrigin: true,
       }
     }
   }
