@@ -327,14 +327,12 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
                       </IconButton>
                     }
                   >
-                    <ListItemText
-                      primary={q.content?.text || q.question_text || '(không có nội dung)'}
-                      secondary={
-                        <Box component="span" sx={{ display: 'block', mt: 0.5 }}>
-                          <Chip label={TYPE_LABELS[q.type] || q.type} size="small" sx={{ borderRadius: 1 }} />
-                        </Box>
-                      }
-                    />
+                    <Box sx={{ flex: 1, pr: 2 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#0F172A' }}>
+                        {q.content?.text || q.question_text || '(không có nội dung)'}
+                      </Typography>
+                      <Chip label={TYPE_LABELS[q.type] || q.type} size="small" sx={{ borderRadius: 1, mt: 0.5, height: 20, fontSize: '0.7rem' }} />
+                    </Box>
                   </ListItem>
                 ))}
               </List>
