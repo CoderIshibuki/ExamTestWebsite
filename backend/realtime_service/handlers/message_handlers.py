@@ -259,3 +259,19 @@ def register_message_handlers(sio):
         target_sid = data.get('target_sid')
         if target_sid:
             await sio.emit('webrtc_ice_candidate', {'candidate': data.get('candidate'), 'from_sid': sid}, room=target_sid)
+
+    @sio.event
+    async def student_live_frame(sid, data):
+        """Học sinh truyền khung hình snapshot trực tiếp tới phòng giám thị."""
+        exam_id = data.get('exam_id')
+        user_id = data.get('user_id')
+        frame = data.get('frame')
+        stream_type = data.get('stream_type', 'camera')
+        if exam_id and user_id and frame:
+            await sio.emit('proctor:student_frame', {
+                'exam_id': exam_id,
+                'user_id': user_id,
+                'frame': frame,
+                'stream_type': stream_type,
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+            }, room=f"proctor:{exam_id}")

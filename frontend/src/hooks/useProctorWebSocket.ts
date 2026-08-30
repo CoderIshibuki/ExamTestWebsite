@@ -70,6 +70,7 @@ export const useProctorWebSocket = (examId: string) => {
 export function useProctorStreamViewer(socket: Socket | null) {
   const peersRef = useRef<Record<string, RTCPeerConnection>>({});
   const [streams, setStreams] = useState<Record<string, MediaStream>>({});
+  const [frames, setFrames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!socket) return;
@@ -94,19 +95,25 @@ export function useProctorStreamViewer(socket: Socket | null) {
     };
 
     const handleIceCandidate = async (data: { candidate: RTCIceCandidateInit; from_sid: string }) => {
-      // Không biết chắc peer nào ứng với from_sid ở đây (chỉ lưu theo user_id) — áp dụng
-      // cho tất cả peer đang mở là chấp nhận được vì số lượng nhỏ trong 1 phòng thi.
       Object.values(peersRef.current).forEach((pc) => {
         pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(() => {});
       });
     };
 
+    const handleStudentFrame = (data: { exam_id: string; user_id: string; frame: string; stream_type?: string }) => {
+      if (data?.user_id && data?.frame) {
+        setFrames((prev) => ({ ...prev, [data.user_id]: data.frame }));
+      }
+    };
+
     socket.on('webrtc_offer', handleOffer);
     socket.on('webrtc_ice_candidate', handleIceCandidate);
+    socket.on('proctor:student_frame', handleStudentFrame);
 
     return () => {
       socket.off('webrtc_offer', handleOffer);
       socket.off('webrtc_ice_candidate', handleIceCandidate);
+      socket.off('proctor:student_frame', handleStudentFrame);
       Object.values(peersRef.current).forEach((pc) => pc.close());
       peersRef.current = {};
     };
@@ -129,5 +136,5 @@ export function useProctorStreamViewer(socket: Socket | null) {
     });
   }, []);
 
-  return { streams, requestStream, stopStream };
+  return { streams, frames, requestStream, stopStream };
 }

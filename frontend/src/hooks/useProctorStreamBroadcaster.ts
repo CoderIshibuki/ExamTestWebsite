@@ -57,6 +57,24 @@ export function useProctorStreamBroadcaster(
       sendJoin();
     }
 
+    const captureStreamSnapshot = (mediaStream: MediaStream | null): string | null => {
+      if (!mediaStream || !mediaStream.active) return null;
+      try {
+        const video = document.createElement('video');
+        video.srcObject = mediaStream;
+        video.muted = true;
+        const canvas = document.createElement('canvas');
+        canvas.width = 320;
+        canvas.height = 240;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return null;
+        ctx.drawImage(video, 0, 0, 320, 240);
+        return canvas.toDataURL('image/jpeg', 0.6);
+      } catch {
+        return null;
+      }
+    };
+
     const handleStreamRequested = async (data: { proctor_sid: string; stream_type?: string; target_user_id?: string }) => {
       if (data.target_user_id && userId && data.target_user_id !== userId) {
         return;
@@ -93,11 +111,22 @@ export function useProctorStreamBroadcaster(
 
       if (!activeStream) return;
 
+      // Broadcast an immediate snapshot frame
+      const snap = captureStreamSnapshot(activeStream);
+      if (snap) {
+        socket.emit('student_live_frame', {
+          exam_id: examId,
+          user_id: userId,
+          frame: snap,
+          stream_type: reqType,
+        });
+      }
+
       if (peersRef.current[data.proctor_sid]) {
         peersRef.current[data.proctor_sid].close();
       }
 
-      const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+      const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] });
       peersRef.current[data.proctor_sid] = pc;
 
       activeStream.getTracks().forEach((track) => pc.addTrack(track, activeStream!));
@@ -133,12 +162,28 @@ export function useProctorStreamBroadcaster(
       }
     };
 
+    const frameInterval = setInterval(() => {
+      const active = screenStreamRef.current || streamRef.current;
+      if (active && active.active && socket.connected) {
+        const snap = captureStreamSnapshot(active);
+        if (snap) {
+          socket.emit('student_live_frame', {
+            exam_id: examId,
+            user_id: userId,
+            frame: snap,
+            stream_type: screenStreamRef.current ? 'screen' : 'camera',
+          });
+        }
+      }
+    }, 1500);
+
     socket.on('webrtc_stream_requested', handleStreamRequested);
     socket.on('webrtc_answer', handleAnswer);
     socket.on('webrtc_ice_candidate', handleIceCandidate);
     socket.on('student:proctor_action', handleProctorAction);
 
     return () => {
+      clearInterval(frameInterval);
       Object.values(peersRef.current).forEach((pc) => pc.close());
       peersRef.current = {};
       socket.disconnect();

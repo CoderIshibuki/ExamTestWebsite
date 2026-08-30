@@ -18,7 +18,7 @@ const ProctorDashboard = () => {
   const { examId } = useParams<{ examId: string }>();
   const navigate = useNavigate();
   const { students, violations, alerts, clearAlerts, loading, refreshing, refetch, unauthorized, error, socket } = useProctoringData(examId || '');
-  const { streams, requestStream, stopStream } = useProctorStreamViewer(socket);
+  const { streams, frames, requestStream, stopStream } = useProctorStreamViewer(socket);
 
   const [filter, setFilter] = useState<'all' | 'violation' | 'high_risk' | 'online'>('all');
   const [search, setSearch] = useState('');
@@ -197,6 +197,7 @@ const ProctorDashboard = () => {
               onRequestStream={(userId, type) => requestStream(examId || '', userId, type)}
               onStopStream={stopStream}
               streams={streams}
+              frames={frames}
             />
           ) : (
             <Paper sx={{ p: 6, textAlign: 'center', bgcolor: '#1e293b', border: '1px dashed #334155', borderRadius: 1.5 }}>

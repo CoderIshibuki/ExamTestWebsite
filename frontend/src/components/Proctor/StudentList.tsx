@@ -9,9 +9,10 @@ interface StudentListProps {
   onRequestStream?: (userId: string, type?: 'camera' | 'screen' | 'both') => void;
   onStopStream?: (userId: string) => void;
   streams?: Record<string, MediaStream>;
+  frames?: Record<string, string>;
 }
 
-const StudentList = ({ students, examId, onRequestStream, onStopStream, streams }: StudentListProps) => {
+const StudentList = ({ students, examId, onRequestStream, onStopStream, streams, frames }: StudentListProps) => {
   if (students.length === 0) {
     return (
       <Box sx={{ textAlign: 'center', p: 4 }}>
@@ -30,6 +31,7 @@ const StudentList = ({ students, examId, onRequestStream, onStopStream, streams 
             onRequestStream={onRequestStream}
             onStopStream={onStopStream}
             stream={streams?.[student.user_id]}
+            frame={frames?.[student.user_id]}
           />
         </Grid>
       ))}

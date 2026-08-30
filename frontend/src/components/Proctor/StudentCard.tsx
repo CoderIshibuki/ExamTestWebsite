@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   Card, CardContent, Typography, Box, Button, Chip, Avatar, Dialog,
   DialogTitle, DialogContent, DialogActions,
-  IconButton, Tooltip, ButtonGroup,
+  IconButton, Tooltip, ButtonGroup, CircularProgress,
 } from '@mui/material';
 import {
   Videocam as VideocamIcon,
@@ -23,9 +23,10 @@ interface StudentCardProps {
   onRequestStream?: (userId: string, type?: 'camera' | 'screen' | 'both') => void;
   onStopStream?: (userId: string) => void;
   stream?: MediaStream | null;
+  frame?: string;
 }
 
-const StudentCard = ({ student, examId, onRequestStream, onStopStream, stream }: StudentCardProps) => {
+const StudentCard = ({ student, examId, onRequestStream, onStopStream, stream, frame }: StudentCardProps) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const fullVideoRef = useRef<HTMLVideoElement | null>(null);
   const [watching, setWatching] = useState(false);
@@ -86,8 +87,18 @@ const StudentCard = ({ student, examId, onRequestStream, onStopStream, stream }:
         <Box sx={{ bgcolor: '#000', aspectRatio: '16/9', position: 'relative', borderTopLeftRadius: 6, borderTopRightRadius: 6, overflow: 'hidden' }}>
           {stream ? (
             <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          ) : frame ? (
+            <Box sx={{ width: '100%', height: '100%', position: 'relative' }}>
+              <img src={frame} alt="Live Snapshot" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              <Chip
+                size="small"
+                label="● TRỰC TIẾP"
+                sx={{ position: 'absolute', bottom: 8, left: 8, bgcolor: 'rgba(34,197,94,0.9)', color: '#fff', fontWeight: 800, fontSize: '0.65rem', height: 20 }}
+              />
+            </Box>
           ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 1 }}>
+              <CircularProgress size={24} sx={{ color: '#38bdf8' }} />
               <Typography variant="caption" sx={{ color: '#94a3b8' }}>
                 Đang kết nối luồng {streamMode === 'screen' ? 'màn hình làm bài' : 'camera'}...
               </Typography>
@@ -248,10 +259,15 @@ const StudentCard = ({ student, examId, onRequestStream, onStopStream, stream }:
         <DialogContent sx={{ p: 2, display: 'flex', justifyContent: 'center', alignItems: 'center', bgcolor: '#000', minHeight: 520 }}>
           {stream ? (
             <video ref={fullVideoRef} autoPlay playsInline muted style={{ width: '100%', maxHeight: '72vh', objectFit: 'contain' }} />
+          ) : frame ? (
+            <img src={frame} alt="Live Snapshot" style={{ width: '100%', maxHeight: '72vh', objectFit: 'contain' }} />
           ) : (
-            <Typography sx={{ color: '#94a3b8' }}>
-              Đang nạp luồng {streamMode === 'screen' ? 'màn hình làm bài' : 'camera chất lượng cao'}...
-            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
+              <CircularProgress size={32} sx={{ color: '#38bdf8' }} />
+              <Typography sx={{ color: '#94a3b8' }}>
+                Đang nạp luồng {streamMode === 'screen' ? 'màn hình làm bài' : 'camera chất lượng cao'}...
+              </Typography>
+            </Box>
           )}
         </DialogContent>
         <DialogActions sx={{ p: 2, borderTop: '1px solid #1e293b', justifyContent: 'space-between' }}>
