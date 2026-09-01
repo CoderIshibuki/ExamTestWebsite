@@ -101,7 +101,7 @@ export const useProctoringData = (examId: string) => {
     if (examId) {
       fetchInitialData();
     }
-  }, [examId, userMap]);
+  }, [examId]);
 
   useEffect(() => {
     if (events.length > 0) {
