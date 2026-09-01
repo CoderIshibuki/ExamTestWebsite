@@ -41,20 +41,45 @@ const BLACKLISTED_PROCESSES = {
   'vboxheadless.exe': 'VirtualBox Headless',
 };
 
+const fs = require('fs');
+
+// Đọc trước Server URL để gắn vào Chromium command line switch
+let targetServerUrl = process.env.ELECTRON_START_URL || 'http://localhost:5173,http://192.168.2.8:5173,http://192.168.2.8';
+const cliUrl = process.argv.find((arg) => arg.startsWith('http://') || arg.startsWith('https://'));
+if (cliUrl) {
+  targetServerUrl = cliUrl;
+} else {
+  const configPath = path.join(path.dirname(process.execPath), 'server_config.json');
+  if (fs.existsSync(configPath)) {
+    try {
+      const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      if (cfg.server_url) targetServerUrl = cfg.server_url;
+    } catch {}
+  }
+}
+
+// 1. Cho phép Chromium dùng Camera/Microphone trên địa chỉ IP HTTP mạng LAN như HTTPS
+app.commandLine.appendSwitch('unsafely-treat-insecure-origin-as-secure', `${targetServerUrl},http://192.168.2.8:5173,http://192.168.2.8,http://localhost:5173`);
+// 2. Tự động cấp quyền phần cứng media stream không cần dialog
+app.commandLine.appendSwitch('use-fake-ui-for-media-stream');
+app.commandLine.appendSwitch('enable-features', 'HardwareMediaKeyHandling,MediaStreamTrack');
+app.commandLine.appendSwitch('ignore-certificate-errors');
+
 function createWindow() {
   const { session } = require('electron');
   
-  // Tự động cấp quyền camera, micro, quay màn hình cho ứng dụng thi
+  // Tự động cấp tất cả quyền camera, micro, quay màn hình cho ứng dụng thi
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
-    if (['media', 'display-capture', 'mediaKeySystem', 'geolocation', 'notifications'].includes(permission)) {
-      return callback(true);
-    }
-    callback(false);
+    callback(true);
   });
 
   session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
-    return ['media', 'display-capture'].includes(permission);
+    return true;
   });
+
+  if (session.defaultSession.setDevicePermissionHandler) {
+    session.defaultSession.setDevicePermissionHandler(() => true);
+  }
 
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -67,7 +92,8 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: false,
-      webSecurity: true,
+      webSecurity: false,
+      allowRunningInsecureContent: true,
     },
   });
 
