@@ -4,6 +4,34 @@ Tất cả các thay đổi, nâng cấp và bản vá bảo mật của dự á
 
 ---
 
+## [2.1.0] - 2026-09-01
+
+### 🛡️ Desktop Standalone Client & Chống Gian Lận Cấp Hệ Điều Hành
+
+1. **Đóng gói Ứng Dụng Thi Desktop Độc Lập (.exe Portable):**
+   - Thêm kịch bản đóng gói `npm run pack` tự động tạo `dist-client/ExamSystemClient.exe`.
+   - Ứng dụng hoạt động độc lập (Zero-dependency), không yêu cầu cài đặt Node.js hay bất kỳ môi trường nào trên máy thí sinh.
+   - Hỗ trợ cấu hình `server_config.json` để kết nối linh hoạt tới máy chủ trường học hoặc mạng LAN.
+
+2. **Cưỡng Chế Đóng (Taskkill / Force Shutdown) Tiến Trình Gian Lận:**
+   - Module Anti-cheat Kiosk quét tiến trình OS mỗi 5 giây.
+   - Khi phát hiện bất kỳ phần mềm cấm nào (UltraViewer, TeamViewer, AnyDesk, Discord, OBS Studio, Zalo, Telegram, ChatGPT Desktop, VMware, VirtualBox...), ứng dụng tự động thực thi lệnh hệ thống `taskkill /F /IM` để tắt ngay lập tức.
+   - Tự động bắn cảnh báo đỏ trên màn hình thí sinh và gửi log vi phạm về bảng giám sát thời gian thực.
+
+3. **Chụp và Phát Sóng Đúng Màn Hình Desktop Làm Bài (Native Desktop Screen Streaming):**
+   - Tích hợp API `desktopCapturer` của nhân hệ điều hành (`capture-screen-frame`).
+   - Phát sóng liên tục ảnh chụp toàn bộ màn hình làm bài của thí sinh về phòng Giám thị với kích thước chuẩn 640x360 siêu nhẹ (~15KB/frame), bảo đảm không gây nghẽn băng thông Wi-Fi.
+
+4. **Tăng Tốc Phần Cứng GPU & Tối Ưu Độ Trễ (Zero-lag):**
+   - Bật cờ tăng tốc đồ họa GPU Rasterization, Zero-Copy Buffers, và tắt cơ chế Background Timer Throttling trong Electron.
+   - Áp dụng `React.memo` cho thẻ giám sát thí sinh (`StudentCard.tsx`), loại bỏ hoàn toàn hiện tượng re-render liên tục và đơ/quay tròn.
+
+5. **Hoàn Thiện Bộ Phạt & Tinh Chỉnh Quy Chế Thi:**
+   - Đảm bảo 100% lệnh kỷ luật từ Giám thị (Trừ điểm, Trừ thời gian, Cảnh cáo, Cấm thi) được chuyển phát và hiển thị ngay lập tức trên máy thí sinh.
+   - Loại bỏ các giới hạn số lần thi tối đa và biểu tượng thùng rác không cần thiết trong bảng quản lý thí sinh.
+
+---
+
 ## [2.0.0] - 2026-08-28
 
 ### 🌟 Tính Năng Mới & Nâng Cấp Đột Phá

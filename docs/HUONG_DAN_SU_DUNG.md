@@ -149,13 +149,18 @@ Hệ thống phân cấp 3 vai trò người dùng chính:
 
 ---
 
-## 6. Cơ chế Giám sát AI & Chống Gian Lận
+## 6. Cơ chế Giám sát AI & Chống Gian Lận (Web & Desktop Kiosk)
 
-Mô hình AI chạy song song trực tiếp trên Client (WebAssembly/ONNX) kết hợp Backend Risk Engine:
+### 6.1. Mô hình Giám sát AI trên Trình duyệt & WebAssembly:
 1. **Phát hiện khuôn mặt**: Cảnh báo khi thí sinh rời khỏi góc máy hoặc có từ 2 người trở lên.
 2. **Theo dõi hướng nhìn (Gaze/Head Pose)**: Cảnh báo khi thí sinh quay đầu sang trái/phải liên tục.
 3. **Phát hiện chuyển tab (Visibility API & Blur)**: Ghi nhận sự kiện khi thí sinh chuyển sang cửa sổ hoặc ứng dụng khác.
 4. **Tự động chụp ảnh bằng chứng**: Chụp ảnh ngay tại khoảnh khắc xảy ra vi phạm và lưu vào thư viện bằng chứng của Admin.
+
+### 6.2. Cơ chế Bảo mật Chuyên dụng trên Ứng dụng Desktop (`ExamSystemClient.exe`):
+1. **Chế độ Toàn Màn Hình Kiosk Lockdown**: Tự động khóa toàn màn hình, chặn các tổ hợp phím hệ thống nguy hiểm (`Alt+Tab`, `PrintScreen`, `Ctrl+Shift+Esc`, `Alt+F4`, `F11`, `F12`, `Ctrl+R`).
+2. **Cưỡng Chế Tắt (Taskkill / Force-shutdown) Phần Mềm Gian Lận**: Quét định kỳ 5 giây, phát hiện các ứng dụng điều khiển từ xa, quay màn hình hoặc bot AI (**UltraViewer, TeamViewer, AnyDesk, Discord, OBS Studio, Zalo, Telegram, ChatGPT Desktop, VMware, VirtualBox...**) và tự động gọi lệnh hệ thống `taskkill /F /IM` để tắt ngay lập tức.
+3. **Livestream Màn Hình Máy Tính Thật (Native Screen Streaming)**: Chụp toàn bộ màn hình làm bài của thí sinh và phát trực tiếp về cho Giám thị, giúp quan sát mọi thao tác trên máy tính của thí sinh theo thời gian thực.
 
 ---
 
@@ -163,7 +168,9 @@ Mô hình AI chạy song song trực tiếp trên Client (WebAssembly/ONNX) kế
 
 - **Q: Trình duyệt không mở được camera?**
   *A: Kiểm tra biểu tượng ổ khóa ở thanh địa chỉ trình duyệt, chọn Cho phép (Allow) Camera.*
-- **Q: Học sinh bị cấm thi nhầm thì làm thế nào?**
-  *A: Giáo viên/Admin vào mục Quản lý đề thi > Lượt thi > Xóa lượt thi hoặc đặt lại số lần làm bài cho học sinh.*
+- **Q: Thí sinh thi bằng file .exe trên máy tính khác trong mạng LAN như thế nào?**
+  *A: Copy nguyên thư mục `frontend/dist-client` sang máy thí sinh. Mở file `ExamSystemClient.exe` để làm bài trực tiếp.*
+- **Q: Học sinh bị cấm thi hoặc cần cho thi lại thì làm thế nào?**
+  *A: Giám thị/Admin mở hộp thoại Quản lý đề thi > Tab "Thí sinh & Lượt thi" > Bấm nút **"Thi lại"** để reset lượt thi cho thí sinh.*
 - **Q: Làm sao để tạo bài kiểm tra không yêu cầu camera?**
   *A: Khi tạo/chỉnh sửa đề thi, tắt công tắc "Kích hoạt Giám thị AI & Chống gian lận".*

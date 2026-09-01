@@ -21,16 +21,27 @@ Hệ thống thi trực tuyến kiến trúc **microservices**, hỗ trợ nhi�
 | `auth_service` | Xác thực, JWT, quản lý người dùng | 8000 |
 | `question_service` | Ngân hàng câu hỏi (MongoDB) | 8001 |
 | `exam_service` | Quản lý kỳ thi, lịch thi, lượt làm bài | 8002 |
-| `realtime_service` | WebSocket / Socket.IO đồng bộ trạng thái thi | 8003 |
+| `realtime_service` | WebSocket / Socket.IO đồng bộ trạng thái thi, livestream màn hình & camera | 8003 |
 | `grading_service` | Chấm điểm tự động (+ Celery worker) | 8004 |
-| `proctoring_service` | Nhận & xử lý sự kiện giám sát, tính điểm rủi ro | 8005 |
+| `proctoring_service` | Nhận & xử lý sự kiện giám sát, tính điểm rủi ro, bằng chứng vi phạm | 8005 |
 | `nginx` | API Gateway, định tuyến `/api/...` tới các service trên | 80 / 443 |
 
 **Hạ tầng dữ liệu:** PostgreSQL (dữ liệu quan hệ), MongoDB (ngân hàng câu hỏi), Redis (cache, pub/sub, broker cho Celery).
 
-**Frontend:** React 18 + TypeScript + Vite + Material UI, giao tiếp với backend qua API Gateway (nginx).
+**Frontend & Desktop Client:**
+- **Web App:** React 18 + TypeScript + Vite + Material UI, giao tiếp với backend qua API Gateway (nginx).
+- **Desktop Secure Kiosk Client (`ExamSystemClient.exe`):** Ứng dụng thi độc lập (Electron Native) tích hợp khóa màn hình Kiosk toàn phần, chặn phím tắt hệ thống (`Alt+Tab`, `PrintScreen`, `Ctrl+Shift+Esc`), tự động **CƯỠNG CHẾ TẮT (taskkill)** các ứng dụng gian lận ngầm (UltraViewer, Discord, OBS, AnyDesk, ChatGPT...) và phát sóng trực tiếp màn hình desktop làm bài của thí sinh về phòng Giám thị.
 
 > Sơ đồ kiến trúc chi tiết: [`docs/SoDoKienTrucTongThe.md`](docs/SoDoKienTrucTongThe.md)
+
+## Đóng gói Ứng Dụng Thi Desktop (.exe)
+Hệ thống hỗ trợ tạo bộ cài / file thực thi portable độc lập cho thí sinh không cần cài Node.js:
+
+```bash
+cd frontend
+npm run pack
+```
+Kết quả đóng gói nằm tại thư mục `frontend/dist-client/` chứa file thực thi **`ExamSystemClient.exe`**. Chỉ cần nén thư mục này và gửi sang máy thí sinh là có thể thi ngay qua mạng LAN/Internet.
 
 ## Yêu cầu môi trường
 

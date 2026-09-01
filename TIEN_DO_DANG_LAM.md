@@ -17,12 +17,19 @@
 | **9** | **Cải thiện tốc độ & bảo mật an toàn** | ✅ **Hoàn thành** | `6d2141a` | Bảo mật phân quyền chấm thi, làm sạch payload mật khẩu, tối ưu query SQL & index PostgreSQL. |
 | **10** | **Quản lý Hình ảnh Vi phạm Sau thi (Evidence Gallery)**: nhóm theo `<Tên bài thi - Ngày - Giờ bắt đầu - Kết thúc>`, xem tên HS, mã, giờ, tải ảnh về máy, xóa mục bài thi, xóa ảnh vi phạm | ✅ **Hoàn thành** | `0cd25c6` | Thêm trang `AdminViolations.tsx`, API backend `/v1/proctoring/violations/sessions` & detail/delete, hỗ trợ xem ảnh, tải ảnh vi phạm chất lượng cao, xóa bản ghi/thư mục. |
 | **11** | **Bật/Tắt chống gian lận cho từng bài thi (Enable AI Proctoring toggle)** | ✅ **Hoàn thành** | `a37003f` | Thêm cột `enable_proctoring` vào DB `exams`, công tắc trong modal tạo/sửa đề thi `AdminExams.tsx`, tự động tắt camera/giám sát trong `ExamRoom.tsx` khi đề thi tự do. |
-| **12** | **Cập nhật toàn bộ file Docs**: hướng dẫn sử dụng, tiến độ, changelog | ✅ **Hoàn thành** | Đang push | Cập nhật chi tiết `docs/HUONG_DAN_SU_DUNG.md`, `TIEN_DO_DANG_LAM.md`, `CHANGELOG.md`. |
-| **13** | **Gợi ý các tính năng tiềm năng trong tương lai** | ✅ **Hoàn thành** | Đang push | Đề xuất lộ trình nâng cấp (Voice-to-Text chấm tự luận, Ngân hàng đề thi cộng đồng, Thi ngoại tuyến PWA, v.v.). |
+| **12** | **Đóng gói Standalone Portable Desktop Client (.exe)**: tạo script `npm run pack` trích xuất `dist-client/ExamSystemClient.exe` zero-dependency, kèm `server_config.json` | ✅ **Hoàn thành** | `d6e4839` | Máy thí sinh không cần cài đặt Node.js hay npx, mở `.exe` là kết nối và thi trực tiếp qua mạng LAN. |
+| **13** | **Tự động cấp quyền Camera & Màn hình trong môi trường Desktop**: bypass sandbox Chromium cho IP LAN HTTP | ✅ **Hoàn thành** | `06787e8` | Bổ sung cờ `unsafely-treat-insecure-origin-as-secure`, `use-fake-ui-for-media-stream`, `setDevicePermissionHandler`. |
+| **14** | **Bỏ giới hạn số lần thi & Biểu tượng thùng rác cạnh nút "Thi lại"** | ✅ **Hoàn thành** | `12df366` | Xóa trường nhập max attempts, gỡ chip số lần thi, xóa icon thùng rác thừa trong `ManageExamDialog.tsx`. |
+| **15** | **Livestream Đúng Màn Hình Desktop Thí Sinh (Native Screen Capture)**: chụp màn hình OS qua `desktopCapturer` | ✅ **Hoàn thành** | `2eb5d7c` | Tích hợp IPC `capture-screen-frame`, truyền frame 640x360 siêu nhẹ về Proctor Dashboard, hiển thị 100% màn hình làm bài thật. |
+| **16** | **Cưỡng Chế Tắt (Taskkill / Force Shutdown) Ứng Dụng Gian Lận**: quét tiến trình ngầm và tự động kill | ✅ **Hoàn thành** | `2eb5d7c` | Quét định kỳ 5s, phát hiện UltraViewer, Discord, OBS, AnyDesk, ChatGPT... và gọi lệnh `taskkill /F /IM` đóng ngay lập tức. |
+| **17** | **Tối ưu Hóa Chống Đơ / Tránh Vòng Lặp & Nút Kỷ Luật 100% Tin Cậy**: chống nghẽn tác vụ gối đầu | ✅ **Hoàn thành** | `31484f6` | Thêm cờ khóa `isCapturing`/`isBroadcasting`, memoize `StudentCard`, sửa cơ chế nhận lệnh phạt cho thí sinh. |
+| **18** | **Tăng tốc Phần Cứng GPU (Hardware Acceleration)**: rasterization và unthrottled background timers | ✅ **Hoàn thành** | `cc42f7f` | Bật `--enable-gpu-rasterization`, `--enable-zero-copy`, `--disable-background-timer-throttling` trong Electron. |
+| **19** | **Cập nhật toàn bộ tài liệu & Dọn dẹp hệ thống Docker, cache** | ✅ **Hoàn thành** | `main` | Cập nhật `README.md`, `CHANGELOG.md`, `HUONG_DAN_SU_DUNG.md`, `TIEN_DO_DANG_LAM.md`, `docker system prune`. |
 
 ---
 
 ## 🎯 Kết Quả Kiểm Thử (Verification)
-- ✅ **Frontend TypeScript & Build**: `npm run build` chạy thành công 100%, 0 lỗi, toàn bộ bundle được tối ưu hóa code-splitting.
-- ✅ **Backend Service APIs**: Cả 6 microservices (`auth_service`, `exam_service`, `question_service`, `grading_service`, `proctoring_service`, `realtime_service`) hoạt động đồng bộ.
-- ✅ **Git & GitHub**: Đã commit và push riêng biệt từng tính năng theo đúng yêu cầu nghiêm ngặt của dự án.
+- ✅ **Frontend TypeScript & Build**: `npm run build` và `npm run pack` chạy thành công 100%, 0 lỗi.
+- ✅ **Backend Service APIs**: Cả 6 microservices (`auth_service`, `exam_service`, `question_service`, `grading_service`, `proctoring_service`, `realtime_service`) hoạt động ổn định và sẵn sàng.
+- ✅ **Desktop Standalone Client**: Đã đóng gói hoàn tất tại `frontend/dist-client/ExamSystemClient.exe`.
+- ✅ **Git & GitHub**: Toàn bộ commit đã được đồng bộ hóa lên GitHub main repository.
