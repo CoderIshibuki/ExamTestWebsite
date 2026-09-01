@@ -6,6 +6,7 @@ node_modules/
 !.env.example
 nginx/ssl/
 dist/
+dist-electron/
 build/
 coverage/
 .pytest_cache/

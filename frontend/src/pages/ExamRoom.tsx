@@ -3,9 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Button, CircularProgress, Paper, Grid, Container,
   Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogContentText,
-  DialogActions, TextField, InputAdornment, IconButton as MuiIconButton,
+  DialogActions, TextField, InputAdornment, IconButton as MuiIconButton, Chip,
 } from '@mui/material';
-import { ErrorOutlined, WarningAmber as WarningIcon, Block as BlockIcon, Visibility, VisibilityOff, LockOutlined } from '@mui/icons-material';
+import { ErrorOutlined, WarningAmber as WarningIcon, Block as BlockIcon, Visibility, VisibilityOff, LockOutlined, VerifiedUser } from '@mui/icons-material';
 import { useTimer } from '../hooks/useTimer';
 import { useProctoring } from '../hooks/useProctoring';
 import { useProctorStreamBroadcaster } from '../hooks/useProctorStreamBroadcaster';
@@ -83,6 +83,46 @@ const ExamRoom: React.FC = () => {
   }, [setStatus]);
 
   useProctorStreamBroadcaster(examId || '', cameraStream, handleProctorAction);
+
+  // Tích hợp Chế độ Kiosk Lockdown & Quét Anti-cheat trên Electron Desktop Client
+  useEffect(() => {
+    if (!window.electronAPI) return;
+
+    if (state.status === 'in_progress') {
+      window.electronAPI.setKioskMode(true);
+
+      // Định kỳ 15s quét tiến trình gian lận ngầm (Discord, TeamViewer, UltraViewer, OBS, ...)
+      const scanInterval = setInterval(async () => {
+        try {
+          const res = await window.electronAPI?.scanCheatProcesses();
+          if (res && !res.clean && res.processes.length > 0) {
+            const appNames = res.processes.map((p) => p.label).join(', ');
+            setDisciplinaryAlert({
+              message: `🚨 CẢNH BÁO GIAN LẬN: Phát hiện ứng dụng bị cấm (${appNames}) đang chạy! Vui lòng tắt ngay lập tức.`,
+              severity: 'error',
+            });
+          }
+        } catch (e) {
+          console.error('Error scanning processes:', e);
+        }
+      }, 15000);
+
+      const unbindShortcut = window.electronAPI.onBlockedShortcut((data) => {
+        setDisciplinaryAlert({
+          message: `⚠️ HÀNH VI BỊ CẤM: Phím tắt [${data.shortcut}] đã bị khóa trong phòng thi!`,
+          severity: 'warning',
+        });
+      });
+
+      return () => {
+        clearInterval(scanInterval);
+        unbindShortcut();
+        window.electronAPI?.setKioskMode(false);
+      };
+    } else {
+      window.electronAPI.setKioskMode(false);
+    }
+  }, [state.status]);
 
   // Khóa nút Back trình duyệt khi đang làm bài thi
   useEffect(() => {
@@ -557,6 +597,22 @@ const ExamRoom: React.FC = () => {
           <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0F172A', display: { xs: 'none', sm: 'block' } }}>
             Phòng thi trực tuyến
           </Typography>
+          {window.electronAPI && (
+            <Chip
+              icon={<VerifiedUser sx={{ fontSize: '14px !important', color: '#16A34A !important' }} />}
+              label="Kiosk Anti-Cheat"
+              size="small"
+              sx={{
+                bgcolor: '#DCFCE7',
+                color: '#15803D',
+                fontWeight: 700,
+                fontSize: '0.72rem',
+                borderRadius: 1,
+                border: '1px solid #BBF7D0',
+                height: 22,
+              }}
+            />
+          )}
         </Box>
 
         {/* Center Timer */}

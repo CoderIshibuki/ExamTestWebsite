@@ -91,10 +91,28 @@ export function useProctorStreamBroadcaster(
       if (reqType === 'screen' || reqType === 'both') {
         try {
           if (!screenStreamRef.current || !screenStreamRef.current.active) {
-            screenStreamRef.current = await navigator.mediaDevices.getDisplayMedia({
-              video: { frameRate: 15 },
-              audio: false,
-            });
+            if (window.electronAPI) {
+              const sources = await window.electronAPI.getDesktopSources();
+              const primarySource = sources[0];
+              if (primarySource) {
+                screenStreamRef.current = await (navigator.mediaDevices as any).getUserMedia({
+                  audio: false,
+                  video: {
+                    mandatory: {
+                      chromeMediaSource: 'desktop',
+                      chromeMediaSourceId: primarySource.id,
+                      maxFrameRate: 15,
+                    },
+                  },
+                });
+              }
+            }
+            if (!screenStreamRef.current || !screenStreamRef.current.active) {
+              screenStreamRef.current = await navigator.mediaDevices.getDisplayMedia({
+                video: { frameRate: 15 },
+                audio: false,
+              });
+            }
           }
           if (reqType === 'screen') {
             activeStream = screenStreamRef.current;
