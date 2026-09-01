@@ -21,30 +21,51 @@ const ResultSummary: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (attemptId) {
-      setLoading(true);
-      setError(null);
-      gradingApi
-        .getExamResult(attemptId)
-        .then(async (res) => {
-          setResult(res);
-          try {
-            const [examData, questions] = await Promise.all([
-              getExamById(res.exam_id),
-              getExamQuestions(res.exam_id),
-            ]);
+    if (!attemptId) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    const fetchResult = async (retryCount = 0) => {
+      try {
+        const res = await gradingApi.getExamResult(attemptId);
+        if (cancelled) return;
+        setResult(res);
+        try {
+          const [examData, questions] = await Promise.all([
+            getExamById(res.exam_id),
+            getExamQuestions(res.exam_id),
+          ]);
+          if (!cancelled) {
             setExam(examData);
             setPassingScore(examData.passing_score ?? 50);
             const map: Record<string, ExamQuestionDetail> = {};
             questions.forEach((q) => { map[q.question_id] = q; });
             setQuestionsMap(map);
-          } catch {
-            // Fallback
           }
-        })
-        .catch(() => setError('Không thể tải kết quả. Vui lòng thử lại sau.'))
-        .finally(() => setLoading(false));
-    }
+        } catch {
+          // Fallback
+        }
+        setLoading(false);
+      } catch (err: any) {
+        if (retryCount < 8) {
+          // Hệ thống đang chấm bài tự động bằng Celery, retry sau 1.2s
+          setTimeout(() => {
+            if (!cancelled) fetchResult(retryCount + 1);
+          }, 1200);
+        } else {
+          if (!cancelled) {
+            setError('Không thể tải kết quả. Vui lòng thử lại sau.');
+            setLoading(false);
+          }
+        }
+      }
+    };
+
+    fetchResult();
+    return () => {
+      cancelled = true;
+    };
   }, [attemptId]);
 
   if (loading) {

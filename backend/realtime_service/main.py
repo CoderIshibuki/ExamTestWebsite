@@ -27,13 +27,13 @@ if "http://localhost:5173" not in origins:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins=origins)
+sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
 
 # Mount Socket.IO to FastAPI app
 socket_app = socketio.ASGIApp(sio, socketio_path="")

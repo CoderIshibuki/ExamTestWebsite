@@ -127,6 +127,10 @@ export const useProctoring = (examId: string, attemptId: string, options: UsePro
 
     const start = async () => {
       try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          setCameraError('Trình duyệt chặn Camera qua HTTP mạng LAN (Vui lòng sử dụng App Desktop ExamSystemClient.exe hoặc mở trên localhost/HTTPS).');
+          return;
+        }
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { width: 320, height: 240 },
           audio: false,

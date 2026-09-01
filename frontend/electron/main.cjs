@@ -42,6 +42,20 @@ const BLACKLISTED_PROCESSES = {
 };
 
 function createWindow() {
+  const { session } = require('electron');
+  
+  // Tự động cấp quyền camera, micro, quay màn hình cho ứng dụng thi
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+    if (['media', 'display-capture', 'mediaKeySystem', 'geolocation', 'notifications'].includes(permission)) {
+      return callback(true);
+    }
+    callback(false);
+  });
+
+  session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
+    return ['media', 'display-capture'].includes(permission);
+  });
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
