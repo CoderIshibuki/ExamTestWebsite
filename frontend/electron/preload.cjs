@@ -6,6 +6,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Lấy các nguồn màn hình từ hệ điều hành
   getDesktopSources: () => ipcRenderer.invoke('get-desktop-sources'),
 
+  // Chụp ảnh màn hình máy tính trực tiếp
+  captureScreenFrame: () => ipcRenderer.invoke('capture-screen-frame'),
+
   // Bật/tắt chế độ Kiosk Lockdown
   setKioskMode: (enable) => ipcRenderer.invoke('set-kiosk-mode', enable),
 

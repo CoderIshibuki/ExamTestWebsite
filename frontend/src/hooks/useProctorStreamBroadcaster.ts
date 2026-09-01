@@ -187,9 +187,30 @@ export function useProctorStreamBroadcaster(
       }
     };
 
-    const frameInterval = setInterval(() => {
+    const frameInterval = setInterval(async () => {
+      if (!socket.connected) return;
+
+      // Ưu tiên chụp trực tiếp toàn bộ màn hình máy tính thật từ Electron desktopCapturer
+      if (window.electronAPI?.captureScreenFrame) {
+        try {
+          const screenSnap = await window.electronAPI.captureScreenFrame();
+          if (screenSnap) {
+            socket.emit('student_live_frame', {
+              exam_id: examId,
+              user_id: userId,
+              frame: screenSnap,
+              stream_type: 'screen',
+            });
+            return;
+          }
+        } catch (err) {
+          console.warn('Lỗi chụp màn hình Electron:', err);
+        }
+      }
+
+      // Fallback khi chạy web thông thường
       const active = screenStreamRef.current || streamRef.current;
-      if (active && active.active && socket.connected) {
+      if (active && active.active) {
         const snap = captureStreamSnapshot(active);
         if (snap) {
           socket.emit('student_live_frame', {
@@ -200,7 +221,7 @@ export function useProctorStreamBroadcaster(
           });
         }
       }
-    }, 1500);
+    }, 1200);
 
     socket.on('webrtc_stream_requested', handleStreamRequested);
     socket.on('webrtc_answer', handleAnswer);

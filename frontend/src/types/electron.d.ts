@@ -10,6 +10,7 @@ export interface ElectronCheatScanResult {
   processes: Array<{
     process_name: string;
     label: string;
+    killed?: boolean;
   }>;
 }
 
@@ -24,6 +25,7 @@ export interface ElectronAppInfo {
 export interface IElectronAPI {
   isDesktop: boolean;
   getDesktopSources: () => Promise<ElectronDesktopSource[]>;
+  captureScreenFrame: () => Promise<string | null>;
   setKioskMode: (enable: boolean) => Promise<{ isKiosk: boolean }>;
   scanCheatProcesses: () => Promise<ElectronCheatScanResult>;
   getDesktopAppInfo: () => Promise<ElectronAppInfo>;

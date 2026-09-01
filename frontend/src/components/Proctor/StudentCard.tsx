@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, memo } from 'react';
 import {
   Card, CardContent, Typography, Box, Button, Chip, Avatar, Dialog,
   DialogTitle, DialogContent, DialogActions,
@@ -29,8 +29,8 @@ interface StudentCardProps {
 const StudentCard = ({ student, examId, onRequestStream, onStopStream, stream, frame }: StudentCardProps) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const fullVideoRef = useRef<HTMLVideoElement | null>(null);
-  const [watching, setWatching] = useState(false);
-  const [streamMode, setStreamMode] = useState<'camera' | 'screen'>('camera');
+  const [watching, setWatching] = useState(true);
+  const [streamMode, setStreamMode] = useState<'camera' | 'screen'>('screen');
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
 
@@ -296,4 +296,4 @@ const StudentCard = ({ student, examId, onRequestStream, onStopStream, stream, f
   );
 };
 
-export default StudentCard;
+export default memo(StudentCard);

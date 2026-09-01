@@ -15,6 +15,7 @@ import QuestionPanel from '../components/QuestionPanel';
 import Timer from '../components/Timer';
 import ProctoringStatus from '../components/ProctoringStatus';
 import { examApi } from '../api/examApi';
+import { proctoringApi } from '../api/proctoringApi';
 import { AuthContext } from '../context/AuthContext';
 
 const ExamRoom: React.FC = () => {
@@ -91,21 +92,30 @@ const ExamRoom: React.FC = () => {
     if (state.status === 'in_progress') {
       window.electronAPI.setKioskMode(true);
 
-      // Định kỳ 15s quét tiến trình gian lận ngầm (Discord, TeamViewer, UltraViewer, OBS, ...)
+      // Định kỳ 5s quét và cưỡng chế tắt tiến trình gian lận ngầm (Discord, TeamViewer, UltraViewer, OBS, ...)
       const scanInterval = setInterval(async () => {
         try {
           const res = await window.electronAPI?.scanCheatProcesses();
           if (res && !res.clean && res.processes.length > 0) {
             const appNames = res.processes.map((p) => p.label).join(', ');
             setDisciplinaryAlert({
-              message: `🚨 CẢNH BÁO GIAN LẬN: Phát hiện ứng dụng bị cấm (${appNames}) đang chạy! Vui lòng tắt ngay lập tức.`,
+              message: `🚨 CẢNH BÁO: Hệ thống phát hiện và ĐÃ CƯỠNG CHẾ TẮT ứng dụng cấm (${appNames})!`,
               severity: 'error',
             });
+            if (examId && state.attemptId) {
+              proctoringApi.sendViolationEvent({
+                exam_id: examId,
+                exam_session_id: state.attemptId,
+                type: 'multiple_faces_detected',
+                severity: 'critical',
+                details: { source: 'kiosk_anticheat_process_killed', apps: appNames },
+              }).catch(() => {});
+            }
           }
         } catch (e) {
           console.error('Error scanning processes:', e);
         }
-      }, 15000);
+      }, 5000);
 
       const unbindShortcut = window.electronAPI.onBlockedShortcut((data) => {
         setDisciplinaryAlert({

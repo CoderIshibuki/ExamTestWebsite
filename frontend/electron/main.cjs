@@ -193,7 +193,7 @@ function setKioskMode(enable) {
   }
 }
 
-// Quét tiến trình đang chạy trên hệ điều hành
+// Quét và CƯỠNG CHẾ TẮT (Force Shutdown) tiến trình gian lận đang chạy trên hệ điều hành
 async function scanRunningProcesses() {
   const suspiciousFound = [];
 
@@ -208,9 +208,20 @@ async function scanRunningProcesses() {
         if (match && match[1]) {
           const procName = match[1].toLowerCase().trim();
           if (BLACKLISTED_PROCESSES[procName]) {
+            // CƯỠNG CHẾ ĐÓNG ỨNG DỤNG NGAY LẬP TỨC
+            let wasKilled = false;
+            try {
+              await execAsync(`taskkill /F /IM ${procName}`);
+              wasKilled = true;
+              console.log(`[Anti-Cheat Kiosk] ĐÃ CƯỠNG CHẾ ĐÓNG ỨNG DỤNG CẤM: ${procName}`);
+            } catch (kErr) {
+              console.warn(`[Anti-Cheat Kiosk] Không thể kill ${procName}:`, kErr);
+            }
+
             suspiciousFound.push({
               process_name: procName,
               label: BLACKLISTED_PROCESSES[procName],
+              killed: wasKilled,
             });
           }
         }
@@ -224,15 +235,20 @@ async function scanRunningProcesses() {
         const procName = path.basename(line.trim().toLowerCase());
         const winName = `${procName}.exe`;
         if (BLACKLISTED_PROCESSES[winName] || BLACKLISTED_PROCESSES[procName]) {
+          try {
+            await execAsync(`pkill -9 -f ${procName}`);
+          } catch {}
+
           suspiciousFound.push({
             process_name: procName,
             label: BLACKLISTED_PROCESSES[winName] || BLACKLISTED_PROCESSES[procName],
+            killed: true,
           });
         }
       }
     }
   } catch (err) {
-    console.error('Error scanning processes:', err);
+    console.error('Error scanning/killing cheat processes:', err);
   }
 
   return {
@@ -244,6 +260,23 @@ async function scanRunningProcesses() {
 
 // Đăng ký các IPC Handlers giao tiếp an toàn với React UI
 function setupIpcHandlers() {
+  // Chụp ảnh màn hình máy tính trực tiếp (Native Screen Capture)
+  ipcMain.handle('capture-screen-frame', async () => {
+    try {
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        thumbnailSize: { width: 960, height: 540 },
+      });
+      if (sources && sources.length > 0) {
+        return sources[0].thumbnail.toDataURL();
+      }
+      return null;
+    } catch (err) {
+      console.error('Error capturing native screen frame:', err);
+      return null;
+    }
+  });
+
   // Lấy danh sách màn hình từ OS trực tiếp (không popup)
   ipcMain.handle('get-desktop-sources', async () => {
     try {
