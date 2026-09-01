@@ -6,7 +6,7 @@ import {
   ToggleButtonGroup, MenuItem,
 } from '@mui/material';
 import {
-  PlayArrow, AccessTime, Autorenew, ErrorOutlined, Search,
+  PlayArrow, AccessTime, ErrorOutlined, Search,
   ViewList, ViewModule,
   HelpOutlined,
 } from '@mui/icons-material';
@@ -124,7 +124,6 @@ const ExamList: React.FC = () => {
                     <TableCell sx={{ fontWeight: 800, color: '#475569', fontSize: '0.82rem' }}>TÊN ĐỀ THI</TableCell>
                     <TableCell sx={{ fontWeight: 800, color: '#475569', fontSize: '0.82rem', width: '120px' }}>THỜI GIAN</TableCell>
                     <TableCell sx={{ fontWeight: 800, color: '#475569', fontSize: '0.82rem', width: '120px' }}>CHUẨN ĐẠT</TableCell>
-                    <TableCell sx={{ fontWeight: 800, color: '#475569', fontSize: '0.82rem', width: '110px', textAlign: 'center' }}>LƯỢT THI</TableCell>
                     <TableCell sx={{ fontWeight: 800, color: '#475569', fontSize: '0.82rem', width: '130px', textAlign: 'right' }}>THAO TÁC</TableCell>
                   </TableRow>
                 </TableHead>
@@ -163,11 +162,6 @@ const ExamList: React.FC = () => {
                           size="small"
                           sx={{ fontWeight: 700, bgcolor: '#EFF6FF', color: '#2563EB', borderRadius: 1 }}
                         />
-                      </TableCell>
-                      <TableCell sx={{ textAlign: 'center' }}>
-                        <Typography variant="body2" sx={{ color: '#475569', fontWeight: 600 }}>
-                          {exam.max_attempts} lần
-                        </Typography>
                       </TableCell>
                       <TableCell sx={{ textAlign: 'right' }}>
                         <Button
@@ -233,13 +227,6 @@ const ExamList: React.FC = () => {
                       </Typography>
 
                       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                        <Chip
-                          icon={<Autorenew sx={{ fontSize: 13 }} />}
-                          label={`Tối đa: ${exam.max_attempts} lần`}
-                          size="small"
-                          variant="outlined"
-                          sx={{ color: '#64748B', borderColor: '#E2E8F0', borderRadius: 1 }}
-                        />
                         <Chip
                           label={`Ngưỡng đạt: ${exam.passing_score ?? 50}%`}
                           size="small"

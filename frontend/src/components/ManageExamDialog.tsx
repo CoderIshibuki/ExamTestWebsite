@@ -196,19 +196,6 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
     }
   };
 
-  const handleResetAllAttempts = async (userId: string, studentName: string) => {
-    if (!examId) return;
-    if (!window.confirm(`Bạn có chắc chắn muốn xoá TẤT CẢ lượt thi của "${studentName}" trong đề thi này?`)) return;
-    try {
-      await adminApi.resetStudentAttempts(examId, userId);
-      setSuccessMsg(`Đã reset toàn bộ lượt thi cho "${studentName}". Thí sinh có thể vào thi lại.`);
-      loadAttemptsTab();
-    } catch (err: any) {
-      console.error('Failed to reset student attempts', err);
-      setError(err?.response?.data?.detail || 'Reset lượt thi thất bại.');
-    }
-  };
-
   const existingIds = new Set(examQuestions.map((q) => String(q.question_id || q.id || '')));
   const availableBank = bank.filter((q) => !existingIds.has(String(q.id || q._id || '')));
 
@@ -547,20 +534,10 @@ export default function ManageExamDialog({ open, onClose, examId, examTitle }: M
                                     size="small"
                                     startIcon={<RestartAltIcon sx={{ fontSize: 15 }} />}
                                     onClick={() => handleDeleteAttempt(att.id, studentName)}
-                                    sx={{ borderRadius: 1.2, textTransform: 'none', fontWeight: 700, fontSize: '0.75rem', px: 1, py: 0.3 }}
+                                    sx={{ borderRadius: 1.2, textTransform: 'none', fontWeight: 700, fontSize: '0.75rem', px: 1.2, py: 0.3 }}
                                   >
                                     Thi lại
                                   </Button>
-                                </Tooltip>
-                                <Tooltip title="Xoá toàn bộ lượt thi của thí sinh này">
-                                  <IconButton
-                                    size="small"
-                                    color="error"
-                                    onClick={() => handleResetAllAttempts(att.user_id, studentName)}
-                                    sx={{ border: '1px solid #FEE2E2', borderRadius: 1.2, p: 0.5 }}
-                                  >
-                                    <DeleteIcon sx={{ fontSize: 16 }} />
-                                  </IconButton>
                                 </Tooltip>
                               </Box>
                             </TableCell>

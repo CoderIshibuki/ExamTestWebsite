@@ -537,24 +537,6 @@ const AdminExams = () => {
               </Box>
 
               <Controller
-                name="max_attempts"
-                control={control}
-                rules={{ min: { value: 1, message: 'Tối thiểu 1 lần' } }}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    type="number"
-                    label="Số lần làm tối đa"
-                    variant="outlined"
-                    fullWidth
-                    error={!!errors.max_attempts}
-                    helperText={errors.max_attempts?.message}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
-                  />
-                )}
-              />
-
-              <Controller
                 name="access_password"
                 control={control}
                 render={({ field }) => (
