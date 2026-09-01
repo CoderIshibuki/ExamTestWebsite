@@ -13,13 +13,14 @@
     "test": "vitest run",
     "preview": "vite preview",
     "electron:dev": "concurrently -k \"vite\" \"cross-env ELECTRON_START_URL=http://localhost:5173 electron electron/main.cjs\"",
-    "electron:build": "tsc -b && vite build && electron-builder"
+    "electron:build": "tsc -b && vite build && electron-builder",
+    "pack": "tsc -b && vite build && node scripts/package-client.cjs"
   },
   "build": {
     "appId": "com.examsystem.proctor",
     "productName": "ExamSystem Anti-Cheat Client",
     "directories": {
-      "output": "dist-electron"
+      "output": "release"
     },
     "files": [
       "dist/**/*",
@@ -27,12 +28,7 @@
       "package.json"
     ],
     "win": {
-      "target": [
-        {
-          "target": "dir",
-          "arch": ["x64"]
-        }
-      ]
+      "target": "portable"
     }
   },
   "dependencies": {

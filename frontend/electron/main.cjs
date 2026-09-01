@@ -61,9 +61,36 @@ function createWindow() {
   const userAgent = mainWindow.webContents.getUserAgent() + ' ExamSystemDesktop/1.0';
   mainWindow.webContents.setUserAgent(userAgent);
 
-  const startUrl = process.env.ELECTRON_START_URL || (app.isPackaged
-    ? `file://${path.join(__dirname, '../dist/index.html')}`
-    : 'http://localhost:5173');
+  const fs = require('fs');
+  let startUrl = process.env.ELECTRON_START_URL;
+
+  // Kiểm tra tham số dòng lệnh: e.g. exam-system-client.exe http://192.168.2.8:5173
+  const cliUrl = process.argv.find((arg) => arg.startsWith('http://') || arg.startsWith('https://'));
+  if (!startUrl && cliUrl) {
+    startUrl = cliUrl;
+  }
+
+  // Kiểm tra file server_config.json cạnh file .exe
+  if (!startUrl) {
+    const configPath = path.join(path.dirname(process.execPath), 'server_config.json');
+    if (fs.existsSync(configPath)) {
+      try {
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        if (config.server_url) {
+          startUrl = config.server_url;
+        }
+      } catch (err) {
+        console.warn('Lỗi đọc server_config.json:', err);
+      }
+    }
+  }
+
+  // Fallback mặc định
+  if (!startUrl) {
+    startUrl = app.isPackaged
+      ? `file://${path.join(__dirname, '../dist/index.html')}`
+      : 'http://localhost:5173';
+  }
 
   if (startUrl.startsWith('file://')) {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html')).catch((err) => {

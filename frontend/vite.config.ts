@@ -32,6 +32,9 @@ export default defineConfig({
   },
   server: {
     host: true,
+    watch: {
+      ignored: ['**/dist-client/**', '**/dist-electron/**', '**/release/**'],
+    },
     proxy: {
       '/api': {
         target: 'http://localhost',
