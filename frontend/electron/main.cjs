@@ -65,6 +65,14 @@ app.commandLine.appendSwitch('use-fake-ui-for-media-stream');
 app.commandLine.appendSwitch('enable-features', 'HardwareMediaKeyHandling,MediaStreamTrack');
 app.commandLine.appendSwitch('ignore-certificate-errors');
 
+// 3. Tối ưu GPU Hardware Acceleration & Chống lag/freeze khi chạy nền
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-zero-copy');
+app.commandLine.appendSwitch('ignore-gpu-blocklist');
+app.commandLine.appendSwitch('disable-background-timer-throttling');
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
+
 function createWindow() {
   const { session } = require('electron');
   
