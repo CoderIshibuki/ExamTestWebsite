@@ -180,46 +180,49 @@ export function useProctorStreamBroadcaster(
 
     const handleProctorAction = (data: any) => {
       if (!data) return;
-      const targetUid = String(data.user_id || '').trim().toLowerCase();
-      const currentUid = String(userId || '').trim().toLowerCase();
-      if (!targetUid || targetUid === '*' || targetUid === currentUid) {
-        onProctorActionRef.current?.(data);
-      }
+      console.log('[Student Broadcaster] Nhận lệnh kỷ luật từ Giám thị:', data);
+      onProctorActionRef.current?.(data);
     };
 
+    let isBroadcasting = false;
     const frameInterval = setInterval(async () => {
-      if (!socket.connected) return;
+      if (!socket.connected || isBroadcasting) return;
+      isBroadcasting = true;
 
-      // Ưu tiên chụp trực tiếp toàn bộ màn hình máy tính thật từ Electron desktopCapturer
-      if (window.electronAPI?.captureScreenFrame) {
-        try {
-          const screenSnap = await window.electronAPI.captureScreenFrame();
-          if (screenSnap) {
+      try {
+        // Ưu tiên chụp trực tiếp toàn bộ màn hình máy tính thật từ Electron desktopCapturer
+        if (window.electronAPI?.captureScreenFrame) {
+          try {
+            const screenSnap = await window.electronAPI.captureScreenFrame();
+            if (screenSnap) {
+              socket.emit('student_live_frame', {
+                exam_id: examId,
+                user_id: userId,
+                frame: screenSnap,
+                stream_type: 'screen',
+              });
+              return;
+            }
+          } catch (err) {
+            console.warn('Lỗi chụp màn hình Electron:', err);
+          }
+        }
+
+        // Fallback khi chạy web thông thường
+        const active = streamRef.current || screenStreamRef.current;
+        if (active && active.active) {
+          const snap = captureStreamSnapshot(active);
+          if (snap) {
             socket.emit('student_live_frame', {
               exam_id: examId,
               user_id: userId,
-              frame: screenSnap,
-              stream_type: 'screen',
+              frame: snap,
+              stream_type: 'camera',
             });
-            return;
           }
-        } catch (err) {
-          console.warn('Lỗi chụp màn hình Electron:', err);
         }
-      }
-
-      // Fallback khi chạy web thông thường
-      const active = screenStreamRef.current || streamRef.current;
-      if (active && active.active) {
-        const snap = captureStreamSnapshot(active);
-        if (snap) {
-          socket.emit('student_live_frame', {
-            exam_id: examId,
-            user_id: userId,
-            frame: snap,
-            stream_type: screenStreamRef.current ? 'screen' : 'camera',
-          });
-        }
+      } finally {
+        isBroadcasting = false;
       }
     }, 1200);
 

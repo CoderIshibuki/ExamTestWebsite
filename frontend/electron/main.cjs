@@ -260,12 +260,15 @@ async function scanRunningProcesses() {
 
 // Đăng ký các IPC Handlers giao tiếp an toàn với React UI
 function setupIpcHandlers() {
+  let isCapturing = false;
   // Chụp ảnh màn hình máy tính trực tiếp (Native Screen Capture)
   ipcMain.handle('capture-screen-frame', async () => {
+    if (isCapturing) return null;
+    isCapturing = true;
     try {
       const sources = await desktopCapturer.getSources({
         types: ['screen'],
-        thumbnailSize: { width: 960, height: 540 },
+        thumbnailSize: { width: 640, height: 360 },
       });
       if (sources && sources.length > 0) {
         return sources[0].thumbnail.toDataURL();
@@ -274,6 +277,8 @@ function setupIpcHandlers() {
     } catch (err) {
       console.error('Error capturing native screen frame:', err);
       return null;
+    } finally {
+      isCapturing = false;
     }
   });
 

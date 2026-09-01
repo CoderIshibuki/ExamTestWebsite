@@ -263,14 +263,15 @@ def register_message_handlers(sio):
     @sio.event
     async def student_live_frame(sid, data):
         """Học sinh truyền khung hình snapshot trực tiếp tới phòng giám thị."""
-        exam_id = data.get('exam_id')
-        user_id = data.get('user_id')
+        session = await sio.get_session(sid)
+        exam_id = data.get('exam_id') or (session.get('exam_id') if session else None)
+        user_id = data.get('user_id') or (session.get('user_id') if session else None)
         frame = data.get('frame')
-        stream_type = data.get('stream_type', 'camera')
+        stream_type = data.get('stream_type', 'screen')
         if exam_id and user_id and frame:
             await sio.emit('proctor:student_frame', {
-                'exam_id': exam_id,
-                'user_id': user_id,
+                'exam_id': str(exam_id),
+                'user_id': str(user_id),
                 'frame': frame,
                 'stream_type': stream_type,
                 'timestamp': datetime.now(timezone.utc).isoformat(),

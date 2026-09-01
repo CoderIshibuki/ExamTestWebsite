@@ -23,18 +23,21 @@ const StudentList = ({ students, examId, onRequestStream, onStopStream, streams,
 
   return (
     <Grid container spacing={2.5}>
-      {students.map((student) => (
-        <Grid size={{ xs: 12, sm: 6, md: 4 }} key={student.user_id}>
-          <StudentCard
-            student={student}
-            examId={examId}
-            onRequestStream={onRequestStream}
-            onStopStream={onStopStream}
-            stream={streams?.[student.user_id]}
-            frame={frames?.[student.user_id]}
-          />
-        </Grid>
-      ))}
+      {students.map((student) => {
+        const studentFrame = frames?.[student.user_id] || frames?.[String(student.user_id)];
+        return (
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={student.user_id}>
+            <StudentCard
+              student={student}
+              examId={examId}
+              onRequestStream={onRequestStream}
+              onStopStream={onStopStream}
+              stream={streams?.[student.user_id]}
+              frame={studentFrame}
+            />
+          </Grid>
+        );
+      })}
     </Grid>
   );
 };
